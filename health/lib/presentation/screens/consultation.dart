@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:health/presentation/screens/start.dart';
 import 'package:flutter_signature_pad/flutter_signature_pad.dart';
 
+import '../controller/consultation.controller.dart';
 import '../widgets/language.widgets.dart';
 
 class Consultation extends StatefulWidget {
@@ -12,72 +13,13 @@ class Consultation extends StatefulWidget {
 }
 
 class _ConsultationState extends State<Consultation> {
-  String? _selectedDoctor;
-  DateTime? _nextVisitDate; // Store the selected next visit date
-  final List<Map<String, String>> doctors = [
-    {
-      'name': 'Dr. John Doe',
-      'availability': 'Mon-Fri: 9 AM - 5 PM',
-      'nextLeaveDate': '2024-11-15',
-      'specialization': 'Endocrinologist',
-      'mobile': '9876543210',
-      'image': 'assets/images/doctor1.png',
-    },
-    {
-      'name': 'Dr. Jane Smith',
-      'availability': 'Mon-Fri: 10 AM - 4 PM',
-      'nextLeaveDate': '2024-10-30',
-      'specialization': 'Nutritionist',
-      'mobile': '8765432109',
-      'image': 'assets/images/doctor2.png',
-    },
-    // Add more doctors as needed
-  ];
-
-  final TextEditingController _prescriptionController = TextEditingController();
-  final TextEditingController _tabletsController = TextEditingController();
-
-  // Patient's detailed medical report
-  final Map<String, dynamic> _patientReport = {
-    'name': 'John Doe',
-    'age': 45,
-    'alcoholic': true,
-    'drinkingAge': 20,
-    'smoking': true,
-    'smokingAge': 18,
-    'familyHistory': {'relation': 'Father', 'condition': 'Diabetes'},
-    'medicalHistory': 'Hypertension, taking medication for high blood pressure',
-  };
-
-  // For signature pad
-  final GlobalKey<SignatureState> _signatureKey = GlobalKey();
-  List<Offset?> _points = [];
+  final ConsultationController _controller = ConsultationController();
 
   // Function to handle navigation
   void navigateToScreen(Widget screen) {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => screen),
     );
-  }
-
-  Future<void> _selectNextVisitDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _nextVisitDate ?? DateTime.now(),
-      firstDate: DateTime.now(),
-      lastDate: DateTime(2025),
-    );
-    if (picked != null && picked != _nextVisitDate) {
-      setState(() {
-        _nextVisitDate = picked; // Update the selected date
-      });
-    }
-  }
-
-  void _clearSignature() {
-    setState(() {
-      _points.clear(); // Clear the signature points
-    });
   }
 
   @override
@@ -101,9 +43,9 @@ class _ConsultationState extends State<Consultation> {
             child: Column(
               children: [
                 DropdownButtonFormField<String>(
-                  value: _selectedDoctor,
+                  value: _controller.selectedDoctor,
                   hint: Text('Select Doctor'),
-                  items: doctors.map((doctor) {
+                  items: _controller.doctors.map((doctor) {
                     return DropdownMenuItem(
                       value: doctor['name'],
                       child: Text(doctor['name']!),
@@ -111,7 +53,7 @@ class _ConsultationState extends State<Consultation> {
                   }).toList(),
                   onChanged: (value) {
                     setState(() {
-                      _selectedDoctor = value;
+                      _controller.selectedDoctor = value;
                     });
                   },
                 ),
@@ -119,7 +61,7 @@ class _ConsultationState extends State<Consultation> {
                 _buildPatientReportSummary(),
                 SizedBox(height: 10),
                 TextField(
-                  controller: _prescriptionController,
+                  controller: _controller.prescriptionController,
                   decoration: InputDecoration(
                     labelText: 'Enter Prescription',
                     border: OutlineInputBorder(),
@@ -128,7 +70,7 @@ class _ConsultationState extends State<Consultation> {
                 ),
                 SizedBox(height: 10),
                 TextField(
-                  controller: _tabletsController,
+                  controller: _controller.tabletsController,
                   decoration: InputDecoration(
                     labelText: 'Tablets / Injections (and duration)',
                     border: OutlineInputBorder(),
@@ -136,15 +78,15 @@ class _ConsultationState extends State<Consultation> {
                 ),
                 SizedBox(height: 10),
                 GestureDetector(
-                  onTap: () => _selectNextVisitDate(context),
+                  onTap: () => _controller.selectNextVisitDate(context),
                   child: AbsorbPointer(
                     child: TextField(
                       decoration: InputDecoration(
                         labelText: 'Next Visit Date',
                         border: OutlineInputBorder(),
-                        hintText: _nextVisitDate == null
+                        hintText: _controller.nextVisitDate == null
                             ? 'Select a date'
-                            : '${_nextVisitDate!.toLocal()}'.split(' ')[0], // Format the date
+                            : '${_controller.nextVisitDate!.toLocal()}'.split(' ')[0],
                       ),
                     ),
                   ),
@@ -157,13 +99,13 @@ class _ConsultationState extends State<Consultation> {
                     border: Border.all(color: Colors.black),
                   ),
                   child: Signature(
-                    key: _signatureKey,
+                    key: _controller.signatureKey,
                     onSign: () {
                       setState(() {
-                        _points = [];
+                        _controller.points = [];
                       });
                     },
-                    backgroundPainter: _SignaturePainter(_points),
+                    backgroundPainter: _SignaturePainter(_controller.points),
                     strokeWidth: 2.0,
                   ),
                 ),
@@ -171,14 +113,11 @@ class _ConsultationState extends State<Consultation> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     ElevatedButton(
-                      onPressed: _clearSignature,
+                      onPressed: _controller.clearSignature,
                       child: Text('Clear Signature'),
                     ),
                     ElevatedButton(
-                      onPressed: () {
-                        // Logic to generate and save prescription
-                        _generatePrescription();
-                      },
+                      onPressed: _controller.generatePrescription,
                       child: Text('Generate Prescription'),
                     ),
                   ],
@@ -203,29 +142,20 @@ class _ConsultationState extends State<Consultation> {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 10),
-            Text('Name: ${_patientReport['name']}'),
-            Text('Age: ${_patientReport['age']}'),
-            Text('Alcoholic: ${_patientReport['alcoholic'] ? 'Yes' : 'No'}'),
-            if (_patientReport['alcoholic'])
-              Text('Drinking Age: ${_patientReport['drinkingAge']}'),
-            Text('Smoking: ${_patientReport['smoking'] ? 'Yes' : 'No'}'),
-            if (_patientReport['smoking'])
-              Text('Smoking Age: ${_patientReport['smokingAge']}'),
-            Text('Family History: ${_patientReport['familyHistory']['relation']} has ${_patientReport['familyHistory']['condition']}'),
-            Text('Medical History: ${_patientReport['medicalHistory']}'),
+            Text('Name: ${_controller.patientReport['name']}'),
+            Text('Age: ${_controller.patientReport['age']}'),
+            Text('Alcoholic: ${_controller.patientReport['alcoholic'] ? 'Yes' : 'No'}'),
+            if (_controller.patientReport['alcoholic'])
+              Text('Drinking Age: ${_controller.patientReport['drinkingAge']}'),
+            Text('Smoking: ${_controller.patientReport['smoking'] ? 'Yes' : 'No'}'),
+            if (_controller.patientReport['smoking'])
+              Text('Smoking Age: ${_controller.patientReport['smokingAge']}'),
+            Text('Family History: ${_controller.patientReport['familyHistory']['relation']} has ${_controller.patientReport['familyHistory']['condition']}'),
+            Text('Medical History: ${_controller.patientReport['medicalHistory']}'),
           ],
         ),
       ),
     );
-  }
-
-  void _generatePrescription() {
-    // Implement the logic to save or display the prescription
-    print('Doctor: $_selectedDoctor');
-    print('Prescription: ${_prescriptionController.text}');
-    print('Tablets/Injections: ${_tabletsController.text}');
-    print('Next Visit Date: ${_nextVisitDate != null ? _nextVisitDate!.toLocal().toString().split(' ')[0] : 'Not selected'}');
-    print('Patient Report: $_patientReport');
   }
 }
 

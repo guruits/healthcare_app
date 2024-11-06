@@ -1,8 +1,7 @@
-import 'dart:math'; // Import this to generate random numbers
 import 'package:flutter/material.dart';
 import 'package:health/presentation/screens/selectPatient.dart';
 import 'package:health/presentation/screens/start.dart';
-
+import '../controller/bloodcollection.controller.dart';
 import '../widgets/language.widgets.dart';
 
 class Bloodcollection extends StatefulWidget {
@@ -13,45 +12,17 @@ class Bloodcollection extends StatefulWidget {
 }
 
 class _BloodcollectionState extends State<Bloodcollection> {
-  String _selectedPatient = '';
-  String _patientMobileNumber = '';
-  String _patientAadharNumber = '';
-  String _appointmentSlot = '';
-  String _patientAddress = '';
-  DateTime? _collectionDateTime;
-  String _collectionNumber = '';
-  bool _isPatientSelected = false;
-  bool _isPrinting = false;
-  String _statusMessage = '';
-
+  final BloodCollectionController _controller = BloodCollectionController();
 
   void _selectPatient(String patientName, String mobileNumber, String aadharNumber, String appointmentSlot, String address) {
     setState(() {
-      _selectedPatient = patientName;
-      _patientMobileNumber = mobileNumber;
-      _patientAadharNumber = aadharNumber;
-      _appointmentSlot = appointmentSlot;
-      _patientAddress = address;
-      _collectionNumber = _generateBloodCollectionNumber(); // Generate the number when a patient is selected
-      _isPatientSelected = true; // Set flag to true when a patient is selected
+      _controller.selectPatient(patientName, mobileNumber, aadharNumber, appointmentSlot, address);
     });
   }
 
-  String _generateBloodCollectionNumber() {
-    // Get the current date in the format YYYYMMDD
-    String datePart = DateTime.now().toString().split(' ')[0].replaceAll('-', '');
-    // Generate a random number between 1000 and 9999
-    String randomPart = Random().nextInt(9000 + 1).toString().padLeft(4, '0');
-    return '$datePart$randomPart'; // Combine date and random number
-  }
-
   void _submit() {
-    // Add your submission logic here
-    print('Submitting Blood Collection for $_selectedPatient');
-    print('Collection DateTime: $_collectionDateTime');
-    print('Collection Number: $_collectionNumber');
+    _controller.submit();
 
-    // Reset the selected patient and navigate back to SelectPatient screen
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
@@ -66,21 +37,10 @@ class _BloodcollectionState extends State<Bloodcollection> {
 
   void _printLabel() {
     setState(() {
-      _isPrinting = true;  // Show that the label is printing
-      _statusMessage = 'Label is printing...';
-    });
-
-    // Simulate label printing delay
-    Future.delayed(Duration(seconds: 2), () {
-      setState(() {
-        _isPrinting = false;  // Hide the "printing" state
-        _statusMessage = 'Label printing done';  // Show done message
-      });
+      _controller.printLabel();
     });
   }
 
-
-  // Function to handle navigation
   void navigateToScreen(Widget screen) {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => screen),
@@ -104,7 +64,7 @@ class _BloodcollectionState extends State<Bloodcollection> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: _isPatientSelected ? _buildBloodCollectionForm() : _buildSelectPatientButton(),
+        child: _controller.isPatientSelected ? _buildBloodCollectionForm() : _buildSelectPatientButton(),
       ),
     );
   }
@@ -137,26 +97,26 @@ class _BloodcollectionState extends State<Bloodcollection> {
                 );
               },
               style: ElevatedButton.styleFrom(
-                padding: EdgeInsets.symmetric(horizontal: 40, vertical: 15), // Increase button size
-                backgroundColor: Colors.purpleAccent, // Change background color
+                padding: EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                backgroundColor: Colors.purpleAccent,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30), // Rounded corners
+                  borderRadius: BorderRadius.circular(30),
                 ),
-                elevation: 10, // Add shadow to make it stand out
-                shadowColor: Colors.purple.withOpacity(0.5), // Shadow color
+                elevation: 10,
+                shadowColor: Colors.purple.withOpacity(0.5),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.person_add, color: Colors.white), // Add an icon
+                  Icon(Icons.person_add, color: Colors.white),
                   SizedBox(width: 10),
                   Text(
                     'Select Patient',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white, // White text for better contrast
-                      letterSpacing: 1.2, // Slight letter spacing
+                      color: Colors.white,
+                      letterSpacing: 1.2,
                     ),
                   ),
                 ],
@@ -204,11 +164,11 @@ class _BloodcollectionState extends State<Bloodcollection> {
           children: [
             Text('Selected Patient Information', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             Divider(),
-            _buildInfoRow('Patient Name', _selectedPatient),
-            _buildInfoRow('Mobile Number', _patientMobileNumber),
-            _buildInfoRow('Aadhar Number', _patientAadharNumber),
-            _buildInfoRow('Appointment Slot', _appointmentSlot),
-            _buildInfoRow('Address', _patientAddress),
+            _buildInfoRow('Patient Name', _controller.selectedPatient),
+            _buildInfoRow('Mobile Number', _controller.patientMobileNumber),
+            _buildInfoRow('Aadhar Number', _controller.patientAadharNumber),
+            _buildInfoRow('Appointment Slot', _controller.appointmentSlot),
+            _buildInfoRow('Address', _controller.patientAddress),
           ],
         ),
       ),
@@ -239,55 +199,48 @@ class _BloodcollectionState extends State<Bloodcollection> {
           onPressed: () async {
             DateTime? pickedDate = await showDatePicker(
               context: context,
-              initialDate: _collectionDateTime ?? DateTime.now(),
+              initialDate: _controller.collectionDateTime ?? DateTime.now(),
               firstDate: DateTime(2000),
               lastDate: DateTime(2101),
             );
             if (pickedDate != null) {
               TimeOfDay? pickedTime = await showTimePicker(
                 context: context,
-                initialTime: TimeOfDay.fromDateTime(_collectionDateTime ?? DateTime.now()),
+                initialTime: TimeOfDay.fromDateTime(_controller.collectionDateTime ?? DateTime.now()),
               );
               if (pickedTime != null) {
                 setState(() {
-                  _collectionDateTime = DateTime(
+                  _controller.updateCollectionDateTime(DateTime(
                     pickedDate.year,
                     pickedDate.month,
                     pickedDate.day,
                     pickedTime.hour,
                     pickedTime.minute,
-                  );
+                  ));
                 });
               }
             }
           },
-          child: Text(_collectionDateTime == null
+          child: Text(_controller.collectionDateTime == null
               ? 'Pick Date & Time'
-              : 'Date & Time: ${_collectionDateTime!.toLocal()}'),
+              : 'Date & Time Selected'),
         ),
       ],
     );
   }
 
   Widget _buildBloodCollectionNumberAndLabel() {
-    return Row(
+    return Column(
       children: [
-        Expanded(
-          child: TextField(
-            readOnly: true,
-            decoration: InputDecoration(
-              labelText: 'Generated Blood Collection Number',
-              border: OutlineInputBorder(),
-              hintText: 'Automatically generated',
-            ),
-            controller: TextEditingController(text: _collectionNumber),
-          ),
-        ),
-        SizedBox(width: 10),
+        Text('Collection Number: ${_controller.collectionNumber}', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        SizedBox(height: 10),
         ElevatedButton(
-          onPressed: _isPrinting ? null : _printLabel,
-          child: Text('Print Label'),
+          onPressed: _printLabel,
+          child: _controller.isPrinting
+              ? CircularProgressIndicator()
+              : Text('Print Label'),
         ),
+        if (_controller.statusMessage.isNotEmpty) Text(_controller.statusMessage),
       ],
     );
   }

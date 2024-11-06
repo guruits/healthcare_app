@@ -1,5 +1,6 @@
 import 'dart:math'; // Import this to generate random numbers
 import 'package:flutter/material.dart';
+import 'package:health/presentation/controller/urinecollection.contoller.dart';
 import 'package:health/presentation/screens/selectPatient.dart';
 import 'package:health/presentation/screens/start.dart';
 
@@ -13,42 +14,14 @@ class Urinecollection extends StatefulWidget {
 }
 
 class _UrineCollectionState extends State<Urinecollection> {
-  String _selectedPatient = '';
-  String _patientMobileNumber = '';
-  String _patientAadharNumber = '';
-  String _appointmentSlot = '';
-  String _patientAddress = '';
-  DateTime? _collectionDateTime;
-  String _collectionNumber = '';
-  bool _isPatientSelected = false;
-  bool _isPrinting = false;
-  String _statusMessage = '';
+  final UrinecollectionController _controller = UrinecollectionController();
 
-  void _selectPatient(String patientName, String mobileNumber, String aadharNumber, String appointmentSlot, String address) {
-    setState(() {
-      _selectedPatient = patientName;
-      _patientMobileNumber = mobileNumber;
-      _patientAadharNumber = aadharNumber;
-      _appointmentSlot = appointmentSlot;
-      _patientAddress = address;
-      _collectionNumber = _generateUrineCollectionNumber(); // Generate the number when a patient is selected
-      _isPatientSelected = true; // Set flag to true when a patient is selected
-    });
-  }
-
-  String _generateUrineCollectionNumber() {
-    // Get the current date in the format YYYYMMDD
-    String datePart = DateTime.now().toString().split(' ')[0].replaceAll('-', '');
-    // Generate a random number between 1000 and 9999
-    String randomPart = Random().nextInt(9000 + 1).toString().padLeft(4, '0');
-    return '$datePart$randomPart'; // Combine date and random number
-  }
 
   void _submit() {
     // Add your submission logic here
-    print('Submitting Urine Collection for $_selectedPatient');
-    print('Collection DateTime: $_collectionDateTime');
-    print('Collection Number: $_collectionNumber');
+    print('Submitting Urine Collection for $_controller.selectedPatient');
+    print('Collection DateTime: $_controller.collectionDateTime');
+    print('Collection Number: $_controller.collectionNumber');
 
     // Reset the selected patient and navigate back to SelectPatient screen
     Navigator.pushReplacement(
@@ -65,15 +38,15 @@ class _UrineCollectionState extends State<Urinecollection> {
 
   void _printLabel() {
     setState(() {
-      _isPrinting = true;  // Show that the label is printing
-      _statusMessage = 'Label is printing...';
+      _controller.isPrinting = true;  // Show that the label is printing
+      _controller.statusMessage = 'Label is printing...';
     });
 
     // Simulate label printing delay
     Future.delayed(Duration(seconds: 2), () {
       setState(() {
-        _isPrinting = false;  // Hide the "printing" state
-        _statusMessage = 'Label printing done';  // Show done message
+        _controller.isPrinting = false;  // Hide the "printing" state
+        _controller.statusMessage = 'Label printing done';  // Show done message
       });
     });
   }
@@ -102,7 +75,7 @@ class _UrineCollectionState extends State<Urinecollection> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: _isPatientSelected ? _buildUrineCollectionForm() : _buildSelectPatientButton(),
+        child: _controller.isPatientSelected ? _buildUrineCollectionForm() : _buildSelectPatientButton(),
       ),
     );
   }
@@ -122,7 +95,7 @@ class _UrineCollectionState extends State<Urinecollection> {
                 MaterialPageRoute(
                   builder: (context) => SelectPatient(
                     onSelect: (patientName) {
-                      _selectPatient(
+                      _controller.selectPatient(
                         patientName,
                         '9876543210',
                         '1234-5678-9123',
@@ -202,11 +175,11 @@ class _UrineCollectionState extends State<Urinecollection> {
           children: [
             Text('Selected Patient Information', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             Divider(),
-            _buildInfoRow('Patient Name', _selectedPatient),
-            _buildInfoRow('Mobile Number', _patientMobileNumber),
-            _buildInfoRow('Aadhar Number', _patientAadharNumber),
-            _buildInfoRow('Appointment Slot', _appointmentSlot),
-            _buildInfoRow('Address', _patientAddress),
+            _buildInfoRow('Patient Name', _controller.selectedPatient),
+            _buildInfoRow('Mobile Number', _controller.patientMobileNumber),
+            _buildInfoRow('Aadhar Number', _controller.patientAadharNumber),
+            _buildInfoRow('Appointment Slot', _controller.appointmentSlot),
+            _buildInfoRow('Address', _controller.patientAddress),
           ],
         ),
       ),
@@ -237,18 +210,18 @@ class _UrineCollectionState extends State<Urinecollection> {
           onPressed: () async {
             DateTime? pickedDate = await showDatePicker(
               context: context,
-              initialDate: _collectionDateTime ?? DateTime.now(),
+              initialDate: _controller.collectionDateTime ?? DateTime.now(),
               firstDate: DateTime(2000),
               lastDate: DateTime(2101),
             );
             if (pickedDate != null) {
               TimeOfDay? pickedTime = await showTimePicker(
                 context: context,
-                initialTime: TimeOfDay.fromDateTime(_collectionDateTime ?? DateTime.now()),
+                initialTime: TimeOfDay.fromDateTime(_controller.collectionDateTime ?? DateTime.now()),
               );
               if (pickedTime != null) {
                 setState(() {
-                  _collectionDateTime = DateTime(
+                  _controller.collectionDateTime = DateTime(
                     pickedDate.year,
                     pickedDate.month,
                     pickedDate.day,
@@ -259,9 +232,9 @@ class _UrineCollectionState extends State<Urinecollection> {
               }
             }
           },
-          child: Text(_collectionDateTime == null
+          child: Text(_controller.collectionDateTime == null
               ? 'Pick Date & Time'
-              : 'Date & Time: ${_collectionDateTime!.toLocal()}'),
+              : 'Date & Time: ${_controller.collectionDateTime!.toLocal()}'),
         ),
       ],
     );
@@ -278,12 +251,12 @@ class _UrineCollectionState extends State<Urinecollection> {
               border: OutlineInputBorder(),
               hintText: 'Automatically generated',
             ),
-            controller: TextEditingController(text: _collectionNumber),
+            controller: TextEditingController(text: _controller.collectionNumber),
           ),
         ),
         SizedBox(width: 10),
         ElevatedButton(
-          onPressed: _isPrinting ? null : _printLabel,
+          onPressed: _controller.isPrinting ? null : _printLabel,
           child: Text('Print Label'),
         ),
       ],

@@ -1,8 +1,7 @@
-import 'dart:math'; // Import this to generate random numbers
 import 'package:flutter/material.dart';
 import 'package:health/presentation/screens/selectPatient.dart';
 import 'package:health/presentation/screens/start.dart';
-
+import '../controller/dexascan.controller.dart';
 import '../widgets/language.widgets.dart';
 
 class DexaScan extends StatefulWidget {
@@ -13,43 +12,13 @@ class DexaScan extends StatefulWidget {
 }
 
 class _DexaScanState extends State<DexaScan> {
-  String _selectedPatient = '';
-  String _patientMobileNumber = '';
-  String _patientAadharNumber = '';
-  String _appointmentSlot = '';
-  String _patientAddress = '';
-  DateTime? _dexaScanAppointmentDateTime;
-  String _dexaScanAppointmentNumber = '';
-  bool _isPatientSelected = false;
-  bool _isPrinting = false;
-
-  void _selectPatient(String patientName, String mobileNumber, String aadharNumber, String appointmentSlot, String address) {
-    setState(() {
-      _selectedPatient = patientName;
-      _patientMobileNumber = mobileNumber;
-      _patientAadharNumber = aadharNumber;
-      _appointmentSlot = appointmentSlot;
-      _patientAddress = address;
-      _dexaScanAppointmentNumber = _generateDexaScanAppointmentNumber(); // Generate the number when a patient is selected
-      _isPatientSelected = true; // Set flag to true when a patient is selected
-    });
-  }
-
-  String _generateDexaScanAppointmentNumber() {
-    // Get the current date in the format YYYYMMDD
-    String datePart = DateTime.now().toString().split(' ')[0].replaceAll('-', '');
-    // Generate a random number between 1000 and 9999
-    String randomPart = Random().nextInt(9000 + 1).toString().padLeft(4, '0');
-    return '$datePart$randomPart'; // Combine date and random number
-  }
+  final DexaScanController _controller = DexaScanController();
 
   void _submit() {
-    // Add your submission logic here
-    print('Submitting Dexa Scan Appointment for $_selectedPatient');
-    print('Appointment DateTime: $_dexaScanAppointmentDateTime');
-    print('Dexa Scan Appointment Number: $_dexaScanAppointmentNumber');
+    print('Submitting Dexa Scan Appointment for ${_controller.selectedPatient}');
+    print('Appointment DateTime: ${_controller.dexaScanAppointmentDateTime}');
+    print('Dexa Scan Appointment Number: ${_controller.dexaScanAppointmentNumber}');
 
-    // Reset the selected patient and navigate back to SelectPatient screen
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
@@ -62,21 +31,7 @@ class _DexaScanState extends State<DexaScan> {
     );
   }
 
-  void _printLabel() {
-    setState(() {
-      _isPrinting = true; // Show that the label is printing
-    });
-
-    // Simulate label printing delay
-    Future.delayed(Duration(seconds: 2), () {
-      setState(() {
-        _isPrinting = false; // Hide the "printing" state
-      });
-    });
-  }
-
-  // Function to handle navigation
-  void navigateToScreen(Widget screen) {
+  void _navigateToScreen(Widget screen) {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => screen),
     );
@@ -89,7 +44,7 @@ class _DexaScanState extends State<DexaScan> {
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
           onPressed: () {
-            navigateToScreen(Start());
+            _navigateToScreen(Start());
           },
         ),
         title: Text('Dexa Scan Appointment'),
@@ -99,7 +54,7 @@ class _DexaScanState extends State<DexaScan> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: _isPatientSelected ? _buildDexaScanAppointmentForm() : _buildSelectPatientButton(),
+        child: _controller.isPatientSelected ? _buildDexaScanAppointmentForm() : _buildSelectPatientButton(),
       ),
     );
   }
@@ -109,7 +64,7 @@ class _DexaScanState extends State<DexaScan> {
       child: Column(
         children: [
           Center(
-            child: Image.asset('assets/images/dexascan.png', height: 250, width: 250), // Replace with your DexaScan image asset
+            child: Image.asset('assets/images/dexascan.png', height: 250, width: 250),
           ),
           SizedBox(height: 20),
           ElevatedButton(
@@ -119,13 +74,15 @@ class _DexaScanState extends State<DexaScan> {
                 MaterialPageRoute(
                   builder: (context) => SelectPatient(
                     onSelect: (patientName) {
-                      _selectPatient(
-                        patientName,
-                        '9876543210',
-                        '1234-5678-9123',
-                        '10:00 AM - 10:30 AM',
-                        '123, Example Street, City, Country',
-                      );
+                      setState(() {
+                        _controller.selectPatient(
+                          patientName,
+                          '9876543210',
+                          '1234-5678-9123',
+                          '10:00 AM - 10:30 AM',
+                          '123, Example Street, City, Country',
+                        );
+                      });
                     },
                   ),
                 ),
@@ -169,7 +126,7 @@ class _DexaScanState extends State<DexaScan> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Center(
-              child: Image.asset('assets/images/dexascan.png', height: 200, width: 200), // Replace with your DexaScan image asset
+              child: Image.asset('assets/images/dexascan.png', height: 200, width: 200),
             ),
             SizedBox(height: 20),
             _buildPatientInfoBox(),
@@ -199,11 +156,11 @@ class _DexaScanState extends State<DexaScan> {
           children: [
             Text('Selected Patient Information', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             Divider(),
-            _buildInfoRow('Patient Name', _selectedPatient),
-            _buildInfoRow('Mobile Number', _patientMobileNumber),
-            _buildInfoRow('Aadhar Number', _patientAadharNumber),
-            _buildInfoRow('Appointment Slot', _appointmentSlot),
-            _buildInfoRow('Address', _patientAddress),
+            _buildInfoRow('Patient Name', _controller.selectedPatient),
+            _buildInfoRow('Mobile Number', _controller.patientMobileNumber),
+            _buildInfoRow('Aadhar Number', _controller.patientAadharNumber),
+            _buildInfoRow('Appointment Slot', _controller.appointmentSlot),
+            _buildInfoRow('Address', _controller.patientAddress),
           ],
         ),
       ),
@@ -234,31 +191,25 @@ class _DexaScanState extends State<DexaScan> {
           onPressed: () async {
             DateTime? pickedDate = await showDatePicker(
               context: context,
-              initialDate: _dexaScanAppointmentDateTime ?? DateTime.now(),
+              initialDate: _controller.dexaScanAppointmentDateTime ?? DateTime.now(),
               firstDate: DateTime(2000),
               lastDate: DateTime(2101),
             );
             if (pickedDate != null) {
               TimeOfDay? pickedTime = await showTimePicker(
                 context: context,
-                initialTime: TimeOfDay.fromDateTime(_dexaScanAppointmentDateTime ?? DateTime.now()),
+                initialTime: TimeOfDay.fromDateTime(_controller.dexaScanAppointmentDateTime ?? DateTime.now()),
               );
               if (pickedTime != null) {
                 setState(() {
-                  _dexaScanAppointmentDateTime = DateTime(
-                    pickedDate.year,
-                    pickedDate.month,
-                    pickedDate.day,
-                    pickedTime.hour,
-                    pickedTime.minute,
-                  );
+                  _controller.updateAppointmentDateTime(pickedDate, pickedTime);
                 });
               }
             }
           },
-          child: Text(_dexaScanAppointmentDateTime == null
+          child: Text(_controller.dexaScanAppointmentDateTime == null
               ? 'Pick Date & Time'
-              : 'Date & Time: ${_dexaScanAppointmentDateTime!.toLocal()}'),
+              : 'Date & Time: ${_controller.dexaScanAppointmentDateTime!.toLocal()}'),
         ),
       ],
     );
@@ -275,13 +226,19 @@ class _DexaScanState extends State<DexaScan> {
               border: OutlineInputBorder(),
               hintText: 'Automatically generated',
             ),
-            controller: TextEditingController(text: _dexaScanAppointmentNumber),
+            controller: TextEditingController(text: _controller.dexaScanAppointmentNumber),
           ),
         ),
         SizedBox(width: 10),
         ElevatedButton(
-          onPressed: _isPrinting ? null : _printLabel,
-          child: Text('Print Label'),
+          onPressed: () {
+            setState(() {
+              _controller.printLabel(() {
+                print('Label printed for ${_controller.selectedPatient}');
+              });
+            });
+          },
+          child: Text(_controller.isPrinting ? 'Printing...' : 'Print Label'),
         ),
       ],
     );

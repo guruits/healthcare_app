@@ -1,5 +1,6 @@
 import 'dart:math'; // Import this to generate random numbers
 import 'package:flutter/material.dart';
+import 'package:health/presentation/controller/xray.controller.dart';
 import 'package:health/presentation/screens/selectPatient.dart';
 import 'package:health/presentation/screens/start.dart';
 
@@ -13,41 +14,13 @@ class XRay extends StatefulWidget {
 }
 
 class _XRayState extends State<XRay> {
-  String _selectedPatient = '';
-  String _patientMobileNumber = '';
-  String _patientAadharNumber = '';
-  String _appointmentSlot = '';
-  String _patientAddress = '';
-  DateTime? _xrayAppointmentDateTime;
-  String _xrayAppointmentNumber = '';
-  bool _isPatientSelected = false;
-  bool _isPrinting = false;
-
-  void _selectPatient(String patientName, String mobileNumber, String aadharNumber, String appointmentSlot, String address) {
-    setState(() {
-      _selectedPatient = patientName;
-      _patientMobileNumber = mobileNumber;
-      _patientAadharNumber = aadharNumber;
-      _appointmentSlot = appointmentSlot;
-      _patientAddress = address;
-      _xrayAppointmentNumber = _generateXRayAppointmentNumber(); // Generate the number when a patient is selected
-      _isPatientSelected = true; // Set flag to true when a patient is selected
-    });
-  }
-
-  String _generateXRayAppointmentNumber() {
-    // Get the current date in the format YYYYMMDD
-    String datePart = DateTime.now().toString().split(' ')[0].replaceAll('-', '');
-    // Generate a random number between 1000 and 9999
-    String randomPart = Random().nextInt(9000 + 1).toString().padLeft(4, '0');
-    return '$datePart$randomPart'; // Combine date and random number
-  }
+  final XrayController _controller = XrayController();
 
   void _submit() {
     // Add your submission logic here
-    print('Submitting X-Ray Appointment for $_selectedPatient');
-    print('Appointment DateTime: $_xrayAppointmentDateTime');
-    print('X-Ray Appointment Number: $_xrayAppointmentNumber');
+    print('Submitting X-Ray Appointment for $_controller.selectedPatient');
+    print('Appointment DateTime: $_controller.xrayAppointmentDateTime');
+    print('X-Ray Appointment Number: $_controller.xrayAppointmentNumber');
 
     // Reset the selected patient and navigate back to SelectPatient screen
     Navigator.pushReplacement(
@@ -64,13 +37,13 @@ class _XRayState extends State<XRay> {
 
   void _printLabel() {
     setState(() {
-      _isPrinting = true; // Show that the label is printing
+      _controller.isPrinting = true; // Show that the label is printing
     });
 
     // Simulate label printing delay
     Future.delayed(Duration(seconds: 2), () {
       setState(() {
-        _isPrinting = false; // Hide the "printing" state
+        _controller.isPrinting = false; // Hide the "printing" state
       });
     });
   }
@@ -99,7 +72,7 @@ class _XRayState extends State<XRay> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: _isPatientSelected ? _buildXRayAppointmentForm() : _buildSelectPatientButton(),
+        child: _controller.isPatientSelected ? _buildXRayAppointmentForm() : _buildSelectPatientButton(),
       ),
     );
   }
@@ -119,7 +92,7 @@ class _XRayState extends State<XRay> {
                 MaterialPageRoute(
                   builder: (context) => SelectPatient(
                     onSelect: (patientName) {
-                      _selectPatient(
+                      _controller.selectPatient(
                         patientName,
                         '9876543210',
                         '1234-5678-9123',
@@ -199,11 +172,11 @@ class _XRayState extends State<XRay> {
           children: [
             Text('Selected Patient Information', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             Divider(),
-            _buildInfoRow('Patient Name', _selectedPatient),
-            _buildInfoRow('Mobile Number', _patientMobileNumber),
-            _buildInfoRow('Aadhar Number', _patientAadharNumber),
-            _buildInfoRow('Appointment Slot', _appointmentSlot),
-            _buildInfoRow('Address', _patientAddress),
+            _buildInfoRow('Patient Name', _controller.selectedPatient),
+            _buildInfoRow('Mobile Number', _controller.patientMobileNumber),
+            _buildInfoRow('Aadhar Number', _controller.patientAadharNumber),
+            _buildInfoRow('Appointment Slot', _controller.appointmentSlot),
+            _buildInfoRow('Address', _controller.patientAddress),
           ],
         ),
       ),
@@ -234,18 +207,18 @@ class _XRayState extends State<XRay> {
           onPressed: () async {
             DateTime? pickedDate = await showDatePicker(
               context: context,
-              initialDate: _xrayAppointmentDateTime ?? DateTime.now(),
+              initialDate: _controller.xrayAppointmentDateTime ?? DateTime.now(),
               firstDate: DateTime(2000),
               lastDate: DateTime(2101),
             );
             if (pickedDate != null) {
               TimeOfDay? pickedTime = await showTimePicker(
                 context: context,
-                initialTime: TimeOfDay.fromDateTime(_xrayAppointmentDateTime ?? DateTime.now()),
+                initialTime: TimeOfDay.fromDateTime(_controller.xrayAppointmentDateTime ?? DateTime.now()),
               );
               if (pickedTime != null) {
                 setState(() {
-                  _xrayAppointmentDateTime = DateTime(
+                  _controller.xrayAppointmentDateTime = DateTime(
                     pickedDate.year,
                     pickedDate.month,
                     pickedDate.day,
@@ -256,9 +229,9 @@ class _XRayState extends State<XRay> {
               }
             }
           },
-          child: Text(_xrayAppointmentDateTime == null
+          child: Text(_controller.xrayAppointmentDateTime == null
               ? 'Pick Date & Time'
-              : 'Date & Time: ${_xrayAppointmentDateTime!.toLocal()}'),
+              : 'Date & Time: ${_controller.xrayAppointmentDateTime!.toLocal()}'),
         ),
       ],
     );
@@ -275,12 +248,12 @@ class _XRayState extends State<XRay> {
               border: OutlineInputBorder(),
               hintText: 'Automatically generated',
             ),
-            controller: TextEditingController(text: _xrayAppointmentNumber),
+            controller: TextEditingController(text: _controller.xrayAppointmentNumber),
           ),
         ),
         SizedBox(width: 10),
         ElevatedButton(
-          onPressed: _isPrinting ? null : _printLabel,
+          onPressed: _controller.isPrinting ? null : _printLabel,
           child: Text('Print Label'),
         ),
       ],

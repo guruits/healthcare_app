@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_tts/flutter_tts.dart';
+import 'package:health/presentation/controller/login.controller.dart';
 import 'package:health/presentation/screens/register.dart';
 import 'package:health/presentation/screens/start.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../widgets/language.widgets.dart';
 
@@ -14,96 +13,10 @@ class Login extends StatefulWidget {
 }
 
 class _LoginState extends State<Login> {
-  FlutterTts flutterTts = FlutterTts();
-  bool isMuted = false;
-  String selectedLanguage = 'en-US';
-  bool phoneReadOnly = false;
-  bool showContinueButton = true;
-  bool showUserDropdown = false;
-  bool showLoginButton = false;
-  String selectedUser = '';
-
-// Sample data for users
-  Map<String, Map<String, String>> userData = {
-    'Arun Kumar': {
-      'Aadhar': '1234-5678-9101',
-      'FullName': 'Arun Kumar',
-      'DOB': '01-01-1985',
-      'Address': '10, South Street, Chennai',
-      'Role': 'IT Admin'
-    },
-    'Lakshmi Narayanan': {
-      'Aadhar': '2345-6789-1012',
-      'FullName': 'Lakshmi Narayanan',
-      'DOB': '15-07-1988',
-      'Address': '45, Park Avenue, Madurai',
-      'Role': 'Doctor'
-    },
-    'Rajesh Kumar': {
-      'Aadhar': '3456-7890-1234',
-      'FullName': 'Rajesh Kumar',
-      'DOB': '20-10-1987',
-      'Address': '88, Main Road, Coimbatore',
-      'Role': 'Patient'
-    },
-    'Sita Devi': {
-      'Aadhar': '4567-8901-2345',
-      'FullName': 'Sita Devi',
-      'DOB': '25-12-1990',
-      'Address': '77, Green Street, Trichy',
-      'Role': 'Technician'
-    },
-    'Vijay Kumar': {
-      'Aadhar': '5678-9012-3456',
-      'FullName': 'Vijay Kumar',
-      'DOB': '12-04-1995',
-      'Address': '101, Blue Lane, Chennai',
-      'Role': 'Pharmacy'
-    },
-    'Kavita Sharma': {
-      'Aadhar': '6789-0123-4567',
-      'FullName': 'Kavita Sharma',
-      'DOB': '30-08-1989',
-      'Address': '123, Red Road, Madurai',
-      'Role': 'Admin'
-    },
-    'Anil Verma': {
-      'Aadhar': '7890-1234-5678',
-      'FullName': 'Anil Verma',
-      'DOB': '19-05-1980',
-      'Address': '89, Yellow Lane, Coimbatore',
-      'Role': 'Finance'
-    },
-  };
-
-  TextEditingController phoneController = TextEditingController();
-
+  final LoginController _controller = LoginController();
   @override
   void initState() {
     super.initState();
-  }
-
-  // Function to change language
-  void changeLanguage(String langCode) async {
-    setState(() {
-      selectedLanguage = langCode;
-    });
-    await flutterTts.setLanguage(langCode);
-    await flutterTts.speak("Language changed");
-  }
-
-  // Mute/Unmute the sound
-  void toggleMute() {
-    setState(() {
-      isMuted = !isMuted;
-    });
-  }
-
-  // Save user details in SharedPreferences
-  Future<void> _saveUserDetails(String userName, String userRole) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString('userName', userName);
-    await prefs.setString('userRole', userRole);
   }
 
   // Navigate to another screen
@@ -140,8 +53,8 @@ class _LoginState extends State<Login> {
                 children: [
                   // Phone number input field
                   TextField(
-                    controller: phoneController,
-                    readOnly: phoneReadOnly,
+                    controller: _controller.phoneController,
+                    readOnly: _controller.phoneReadOnly,
                     decoration: InputDecoration(
                       labelText: 'Phone Number',
                       border: OutlineInputBorder(),
@@ -150,13 +63,13 @@ class _LoginState extends State<Login> {
                   SizedBox(height: 20),
 
                   // Continue button
-                  showContinueButton
+                  _controller.showContinueButton
                       ? ElevatedButton(
                     onPressed: () {
                       setState(() {
-                        phoneReadOnly = true;
-                        showContinueButton = false;
-                        showUserDropdown = true;
+                        _controller.phoneReadOnly = true;
+                        _controller.showContinueButton = false;
+                        _controller.showUserDropdown = true;
                       });
                     },
                     child: Text('Continue'),
@@ -164,7 +77,7 @@ class _LoginState extends State<Login> {
                       : Container(),
 
                   // User dropdown
-                  if (showUserDropdown)
+                  if (_controller.showUserDropdown)
                     Container(
                       width: double.infinity,
                       padding: EdgeInsets.symmetric(horizontal: 12),
@@ -176,8 +89,8 @@ class _LoginState extends State<Login> {
                         child: DropdownButton<String>(
                           isExpanded: true,
                           hint: Text("Choose User"),
-                          value: selectedUser.isNotEmpty ? selectedUser : null,
-                          items: userData.keys.map((String user) {
+                          value: _controller.selectedUser.isNotEmpty ? _controller.selectedUser : null,
+                          items: _controller.userData.keys.map((String user) {
                             return DropdownMenuItem<String>(
                               value: user,
                               child: Text(user),
@@ -185,8 +98,8 @@ class _LoginState extends State<Login> {
                           }).toList(),
                           onChanged: (String? newUser) {
                             setState(() {
-                              selectedUser = newUser ?? '';
-                              showLoginButton = selectedUser.isNotEmpty; // Update the button visibility
+                              _controller.selectedUser = newUser ?? '';
+                              _controller.showLoginButton = _controller.selectedUser.isNotEmpty; // Update the button visibility
                             });
                           },
                         ),
@@ -196,7 +109,7 @@ class _LoginState extends State<Login> {
                   SizedBox(height: 20),
 
                   // Display user details in a card
-                  if (selectedUser.isNotEmpty)
+                  if (_controller.selectedUser.isNotEmpty)
                     Card(
                       elevation: 3,
                       child: Padding(
@@ -211,27 +124,27 @@ class _LoginState extends State<Login> {
                             ),
                             SizedBox(height: 10),
                             Text(
-                              'Aadhar: ${userData[selectedUser]?['Aadhar'] ?? ''}',
+                              'Aadhar: ${_controller.userData[_controller.selectedUser]?['Aadhar'] ?? ''}',
                               style: TextStyle(fontSize: 16),
                             ),
                             SizedBox(height: 5),
                             Text(
-                              'Full Name: ${userData[selectedUser]?['FullName'] ?? ''}',
+                              'Full Name: ${_controller.userData[_controller.selectedUser]?['FullName'] ?? ''}',
                               style: TextStyle(fontSize: 16),
                             ),
                             SizedBox(height: 5),
                             Text(
-                              'DOB: ${userData[selectedUser]?['DOB'] ?? ''}',
+                              'DOB: ${_controller.userData[_controller.selectedUser]?['DOB'] ?? ''}',
                               style: TextStyle(fontSize: 16),
                             ),
                             SizedBox(height: 5),
                             Text(
-                              'Address: ${userData[selectedUser]?['Address'] ?? ''}',
+                              'Address: ${_controller.userData[_controller.selectedUser]?['Address'] ?? ''}',
                               style: TextStyle(fontSize: 16),
                             ),
                             SizedBox(height: 5),
                             Text(
-                              'Role: ${userData[selectedUser]?['Role'] ?? ''}',
+                              'Role: ${_controller.userData[_controller.selectedUser]?['Role'] ?? ''}',
                               style: TextStyle(fontSize: 16),
                             ),
                           ],
@@ -242,13 +155,13 @@ class _LoginState extends State<Login> {
                   SizedBox(height: 20),
 
                   // Login Button
-                  if (showLoginButton)
+                  if (_controller.showLoginButton)
                     ElevatedButton(
                       onPressed: () async {
                         // Save user details before navigating to Start screen
-                        await _saveUserDetails(
-                          selectedUser,
-                          userData[selectedUser]?['Role'] ?? '',
+                        await _controller.saveUserDetails(
+                          _controller.selectedUser,
+                          _controller.userData[_controller.selectedUser]?['Role'] ?? '',
                         );
                         navigateToScreen(
                           Start(),

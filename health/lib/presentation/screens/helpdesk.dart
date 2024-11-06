@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_tts/flutter_tts.dart';
+import 'package:health/presentation/controller/helpdesk.controller.dart';
 import 'package:health/presentation/screens/appointments.dart';
 import 'package:health/presentation/screens/start.dart';
 import 'package:image_picker/image_picker.dart';
@@ -15,66 +15,8 @@ class Helpdesk extends StatefulWidget {
 }
 
 class _HelpdeskState extends State<Helpdesk> {
-  FlutterTts flutterTts = FlutterTts();
+  final HelpdeskController _controller = HelpdeskController();
 
-  // Image Picker variables
-  File? aadharFrontImage;
-  File? aadharBackImage;
-  final ImagePicker _picker = ImagePicker();
-
-  // Language and TTS variables
-  bool isMuted = false;
-  String selectedLanguage = 'en-US';
-
-  // State tracking for the form
-  bool isExistingPatient = false;
-  bool isNewPatient = false;
-  String phoneNumber = '';
-  String patientName = '';
-  String aadharNumber = '';
-  String address = '';
-  String dob = '';
-  bool isAppointmentBooked = false;
-  bool isUserAdded = false;
-
-  // Placeholder list of patient names for existing patients
-  List<String> patientList = ["John Doe", "Jane Smith", "Alice Johnson"];
-  String? selectedPatient;
-
-  // Function to change language
-  void changeLanguage(String langCode) async {
-    setState(() {
-      selectedLanguage = langCode;
-    });
-    await flutterTts.setLanguage(langCode);
-    await flutterTts.speak("Language changed");
-  }
-
-  // Function to handle Text-to-Speech
-  void speakText(String text) async {
-    if (!isMuted) {
-      await flutterTts.speak(text);
-    }
-  }
-
-  // Mute/Unmute the sound
-  void toggleMute() {
-    setState(() {
-      isMuted = !isMuted;
-    });
-  }
-
-  // Function to book appointment
-  void bookAppointment() {
-    navigateToScreen(Appointments());
-  }
-
-  // Function to add a new user
-  void addUser() {
-    setState(() {
-      isUserAdded = true; // Mark the user as added
-    });
-  }
 
   // Function to handle navigation
   void navigateToScreen(Widget screen) {
@@ -82,20 +24,12 @@ class _HelpdeskState extends State<Helpdesk> {
       MaterialPageRoute(builder: (_) => screen),
     );
   }
-
-  // Function to pick image from gallery
-  Future<void> pickImage(ImageSource source, bool isFront) async {
-    final pickedFile = await _picker.pickImage(source: source);
-    if (pickedFile != null) {
-      setState(() {
-        if (isFront) {
-          aadharFrontImage = File(pickedFile.path);
-        } else {
-          aadharBackImage = File(pickedFile.path);
-        }
-      });
-    }
+  // Function to book appointment
+  void bookAppointment() {
+    navigateToScreen(Appointments());
   }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -128,8 +62,8 @@ class _HelpdeskState extends State<Helpdesk> {
                     ),
                     onPressed: () {
                       setState(() {
-                        isExistingPatient = true;
-                        isNewPatient = false;
+                        _controller.isExistingPatient = true;
+                        _controller.isNewPatient = false;
                       });
                     },
                     child: Text(
@@ -152,8 +86,8 @@ class _HelpdeskState extends State<Helpdesk> {
                     ),
                     onPressed: () {
                       setState(() {
-                        isNewPatient = true;
-                        isExistingPatient = false;
+                        _controller.isNewPatient = true;
+                        _controller.isExistingPatient = false;
                       });
                     },
                     child: Text(
@@ -170,7 +104,7 @@ class _HelpdeskState extends State<Helpdesk> {
             SizedBox(height: 20),
 
             // Existing Patient Flow
-            if (isExistingPatient) ...[
+            if (_controller.isExistingPatient) ...[
               Card(
                 elevation: 4,
                 child: Padding(
@@ -191,20 +125,20 @@ class _HelpdeskState extends State<Helpdesk> {
                         ),
                         onChanged: (value) {
                           setState(() {
-                            phoneNumber = value;
+                            _controller.phoneNumber = value;
                           });
                         },
                       ),
                       SizedBox(height: 10),
                       DropdownButtonFormField<String>(
-                        value: selectedPatient,
+                        value: _controller.selectedPatient,
                         decoration: InputDecoration(
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
                         hint: Text('Select Patient'),
-                        items: patientList.map((String patient) {
+                        items: _controller.patientList.map((String patient) {
                           return DropdownMenuItem<String>(
                             value: patient,
                             child: Text(patient),
@@ -212,18 +146,18 @@ class _HelpdeskState extends State<Helpdesk> {
                         }).toList(),
                         onChanged: (String? value) {
                           setState(() {
-                            selectedPatient = value;
-                            aadharNumber = "1234-5678-9123"; // Sample data
-                            dob = "1990-01-01";
-                            address = "123 Main Street";
+                            _controller.selectedPatient = value;
+                            _controller.aadharNumber = "1234-5678-9123"; // Sample data
+                            _controller.dob = "1990-01-01";
+                            _controller.address = "123 Main Street";
                           });
                         },
                       ),
-                      if (selectedPatient != null) ...[
+                      if (_controller.selectedPatient != null) ...[
                         SizedBox(height: 10),
-                        Text("Aadhar Number: $aadharNumber"),
-                        Text("Date of Birth: $dob"),
-                        Text("Address: $address"),
+                        Text("Aadhar Number: $_controller.aadharNumber"),
+                        Text("Date of Birth: $_controller.dob"),
+                        Text("Address: $_controller.address"),
                         SizedBox(height: 20),
                         ElevatedButton(
                           onPressed: bookAppointment,
@@ -236,7 +170,7 @@ class _HelpdeskState extends State<Helpdesk> {
                           child: Text("Book Appointment"),
                         ),
                       ],
-                      if (isAppointmentBooked)
+                      if (_controller.isAppointmentBooked)
                         Text("Appointment booked successfully!"),
                     ],
                   ),
@@ -245,7 +179,7 @@ class _HelpdeskState extends State<Helpdesk> {
             ],
 
             // New Patient Flow
-            if (isNewPatient) ...[
+            if (_controller.isNewPatient) ...[
               Card(
                 elevation: 4,
                 child: Padding(
@@ -259,22 +193,22 @@ class _HelpdeskState extends State<Helpdesk> {
                           Column(
                             children: [
                               ElevatedButton(
-                                onPressed: () => pickImage(ImageSource.gallery, true),
+                                onPressed: () => _controller.pickImage(ImageSource.gallery, true),
                                 child: Text("Upload Aadhar Front Side"),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.blue, // Button color
                                 ),
                               ),
                               ElevatedButton(
-                                onPressed: () => pickImage(ImageSource.camera, true),
+                                onPressed: () => _controller.pickImage(ImageSource.camera, true),
                                 child: Text("Capture Aadhar Front Side"),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.blue, // Button color
                                 ),
                               ),
-                              if (aadharFrontImage != null)
+                              if (_controller.aadharFrontImage != null)
                                 Image.file(
-                                  aadharFrontImage!,
+                                  _controller.aadharFrontImage!,
                                   width: 100,
                                   height: 100,
                                 ),
@@ -284,22 +218,22 @@ class _HelpdeskState extends State<Helpdesk> {
                           Column(
                             children: [
                               ElevatedButton(
-                                onPressed: () => pickImage(ImageSource.gallery, false),
+                                onPressed: () => _controller.pickImage(ImageSource.gallery, false),
                                 child: Text("Upload Aadhar Back Side"),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.blue, // Button color
                                 ),
                               ),
                               ElevatedButton(
-                                onPressed: () => pickImage(ImageSource.camera, false),
+                                onPressed: () => _controller.pickImage(ImageSource.camera, false),
                                 child: Text("Capture Aadhar Back Side"),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.blue, // Button color
                                 ),
                               ),
-                              if (aadharBackImage != null)
+                              if (_controller.aadharBackImage != null)
                                 Image.file(
-                                  aadharBackImage!,
+                                  _controller.aadharBackImage!,
                                   width: 100,
                                   height: 100,
                                 ),
@@ -322,7 +256,7 @@ class _HelpdeskState extends State<Helpdesk> {
                         ),
                         onChanged: (value) {
                           setState(() {
-                            phoneNumber = value;
+                            _controller.phoneNumber = value;
                           });
                         },
                       ),
@@ -341,7 +275,7 @@ class _HelpdeskState extends State<Helpdesk> {
                         ),
                         onChanged: (value) {
                           setState(() {
-                            dob = value;
+                            _controller.dob = value;
                           });
                         },
                       ),
@@ -360,13 +294,13 @@ class _HelpdeskState extends State<Helpdesk> {
                         ),
                         onChanged: (value) {
                           setState(() {
-                            address = value;
+                            _controller.address = value;
                           });
                         },
                       ),
                       SizedBox(height: 20),
                       ElevatedButton(
-                        onPressed: addUser,
+                        onPressed: _controller.addUser,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.green, // Button color
                           shape: RoundedRectangleBorder(
@@ -375,7 +309,7 @@ class _HelpdeskState extends State<Helpdesk> {
                         ),
                         child: Text("Add User"),
                       ),
-                      if (isUserAdded) ...[
+                      if (_controller.isUserAdded) ...[
                         SizedBox(height: 10),
                         Text("User added successfully!"),
                         SizedBox(height: 20),

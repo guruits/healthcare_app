@@ -1,5 +1,6 @@
 import 'dart:math'; // Import this to generate random numbers
 import 'package:flutter/material.dart';
+import 'package:health/presentation/controller/echo.controller.dart';
 import 'package:health/presentation/screens/selectPatient.dart';
 import 'package:health/presentation/screens/start.dart';
 
@@ -13,41 +14,13 @@ class Echo extends StatefulWidget {
 }
 
 class _EchoState extends State<Echo> {
-  String _selectedPatient = '';
-  String _patientMobileNumber = '';
-  String _patientAadharNumber = '';
-  String _appointmentSlot = '';
-  String _patientAddress = '';
-  DateTime? _echoAppointmentDateTime;
-  String _echoAppointmentNumber = '';
-  bool _isPatientSelected = false;
-  bool _isPrinting = false;
-
-  void _selectPatient(String patientName, String mobileNumber, String aadharNumber, String appointmentSlot, String address) {
-    setState(() {
-      _selectedPatient = patientName;
-      _patientMobileNumber = mobileNumber;
-      _patientAadharNumber = aadharNumber;
-      _appointmentSlot = appointmentSlot;
-      _patientAddress = address;
-      _echoAppointmentNumber = _generateEchoAppointmentNumber(); // Generate the number when a patient is selected
-      _isPatientSelected = true; // Set flag to true when a patient is selected
-    });
-  }
-
-  String _generateEchoAppointmentNumber() {
-    // Get the current date in the format YYYYMMDD
-    String datePart = DateTime.now().toString().split(' ')[0].replaceAll('-', '');
-    // Generate a random number between 1000 and 9999
-    String randomPart = Random().nextInt(9000 + 1).toString().padLeft(4, '0');
-    return '$datePart$randomPart'; // Combine date and random number
-  }
+  final EchoController _controller = EchoController();
 
   void _submit() {
     // Add your submission logic here
-    print('Submitting Echo Appointment for $_selectedPatient');
-    print('Appointment DateTime: $_echoAppointmentDateTime');
-    print('Echo Appointment Number: $_echoAppointmentNumber');
+    print('Submitting Echo Appointment for $_controller.selectedPatient');
+    print('Appointment DateTime: $_controller.echoAppointmentDateTime');
+    print('Echo Appointment Number: $_controller.echoAppointmentNumber');
 
     // Reset the selected patient and navigate back to SelectPatient screen
     Navigator.pushReplacement(
@@ -62,18 +35,7 @@ class _EchoState extends State<Echo> {
     );
   }
 
-  void _printLabel() {
-    setState(() {
-      _isPrinting = true; // Show that the label is printing
-    });
 
-    // Simulate label printing delay
-    Future.delayed(Duration(seconds: 2), () {
-      setState(() {
-        _isPrinting = false; // Hide the "printing" state
-      });
-    });
-  }
 
   // Function to handle navigation
   void navigateToScreen(Widget screen) {
@@ -99,7 +61,7 @@ class _EchoState extends State<Echo> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: _isPatientSelected ? _buildEchoAppointmentForm() : _buildSelectPatientButton(),
+        child: _controller.isPatientSelected ? _buildEchoAppointmentForm() : _buildSelectPatientButton(),
       ),
     );
   }
@@ -119,7 +81,7 @@ class _EchoState extends State<Echo> {
                 MaterialPageRoute(
                   builder: (context) => SelectPatient(
                     onSelect: (patientName) {
-                      _selectPatient(
+                      _controller.selectPatient(
                         patientName,
                         '9876543210',
                         '1234-5678-9123',
@@ -199,11 +161,11 @@ class _EchoState extends State<Echo> {
           children: [
             Text('Selected Patient Information', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             Divider(),
-            _buildInfoRow('Patient Name', _selectedPatient),
-            _buildInfoRow('Mobile Number', _patientMobileNumber),
-            _buildInfoRow('Aadhar Number', _patientAadharNumber),
-            _buildInfoRow('Appointment Slot', _appointmentSlot),
-            _buildInfoRow('Address', _patientAddress),
+            _buildInfoRow('Patient Name', _controller.selectedPatient),
+            _buildInfoRow('Mobile Number', _controller.patientMobileNumber),
+            _buildInfoRow('Aadhar Number', _controller.patientAadharNumber),
+            _buildInfoRow('Appointment Slot', _controller.appointmentSlot),
+            _buildInfoRow('Address', _controller.patientAddress),
           ],
         ),
       ),
@@ -234,18 +196,18 @@ class _EchoState extends State<Echo> {
           onPressed: () async {
             DateTime? pickedDate = await showDatePicker(
               context: context,
-              initialDate: _echoAppointmentDateTime ?? DateTime.now(),
+              initialDate: _controller.echoAppointmentDateTime ?? DateTime.now(),
               firstDate: DateTime(2000),
               lastDate: DateTime(2101),
             );
             if (pickedDate != null) {
               TimeOfDay? pickedTime = await showTimePicker(
                 context: context,
-                initialTime: TimeOfDay.fromDateTime(_echoAppointmentDateTime ?? DateTime.now()),
+                initialTime: TimeOfDay.fromDateTime(_controller.echoAppointmentDateTime ?? DateTime.now()),
               );
               if (pickedTime != null) {
                 setState(() {
-                  _echoAppointmentDateTime = DateTime(
+                  _controller.echoAppointmentDateTime = DateTime(
                     pickedDate.year,
                     pickedDate.month,
                     pickedDate.day,
@@ -256,9 +218,9 @@ class _EchoState extends State<Echo> {
               }
             }
           },
-          child: Text(_echoAppointmentDateTime == null
+          child: Text(_controller.echoAppointmentDateTime == null
               ? 'Pick Date & Time'
-              : 'Date & Time: ${_echoAppointmentDateTime!.toLocal()}'),
+              : 'Date & Time: ${_controller.echoAppointmentDateTime!.toLocal()}'),
         ),
       ],
     );
@@ -275,12 +237,12 @@ class _EchoState extends State<Echo> {
               border: OutlineInputBorder(),
               hintText: 'Automatically generated',
             ),
-            controller: TextEditingController(text: _echoAppointmentNumber),
+            controller: TextEditingController(text: _controller.echoAppointmentNumber),
           ),
         ),
         SizedBox(width: 10),
         ElevatedButton(
-          onPressed: _isPrinting ? null : _printLabel,
+          onPressed: _controller.isPrinting ? null : _controller.printLabel,
           child: Text('Print Label'),
         ),
       ],

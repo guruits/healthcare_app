@@ -1,8 +1,7 @@
-import 'dart:math'; // Import this to generate random numbers
 import 'package:flutter/material.dart';
 import 'package:health/presentation/screens/selectPatient.dart';
 import 'package:health/presentation/screens/start.dart';
-
+import '../controller/dentist.controller.dart';
 import '../widgets/language.widgets.dart';
 
 class Dentist extends StatefulWidget {
@@ -13,74 +12,7 @@ class Dentist extends StatefulWidget {
 }
 
 class _DentistState extends State<Dentist> {
-  String _selectedPatient = '';
-  String _patientMobileNumber = '';
-  String _patientAadharNumber = '';
-  String _appointmentSlot = '';
-  String _patientAddress = '';
-  DateTime? _appointmentDateTime;
-  String _dentistAppointmentNumber = '';
-  bool _isPatientSelected = false;
-  bool _isPrinting = false;
-
-  void _selectPatient(String patientName, String mobileNumber, String aadharNumber, String appointmentSlot, String address) {
-    setState(() {
-      _selectedPatient = patientName;
-      _patientMobileNumber = mobileNumber;
-      _patientAadharNumber = aadharNumber;
-      _appointmentSlot = appointmentSlot;
-      _patientAddress = address;
-      _dentistAppointmentNumber = _generateDentistAppointmentNumber(); // Generate the number when a patient is selected
-      _isPatientSelected = true; // Set flag to true when a patient is selected
-    });
-  }
-
-  String _generateDentistAppointmentNumber() {
-    // Get the current date in the format YYYYMMDD
-    String datePart = DateTime.now().toString().split(' ')[0].replaceAll('-', '');
-    // Generate a random number between 1000 and 9999
-    String randomPart = Random().nextInt(9000 + 1).toString().padLeft(4, '0');
-    return '$datePart$randomPart'; // Combine date and random number
-  }
-
-  void _submit() {
-    // Add your submission logic here
-    print('Submitting Dentist Appointment for $_selectedPatient');
-    print('Appointment DateTime: $_appointmentDateTime');
-    print('Dentist Appointment Number: $_dentistAppointmentNumber');
-
-    // Reset the selected patient and navigate back to SelectPatient screen
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => SelectPatient(
-          onSelect: (patientName) {
-            print('$patientName state: completed');
-          },
-        ),
-      ),
-    );
-  }
-
-  void _printLabel() {
-    setState(() {
-      _isPrinting = true; // Show that the label is printing
-    });
-
-    // Simulate label printing delay
-    Future.delayed(Duration(seconds: 2), () {
-      setState(() {
-        _isPrinting = false; // Hide the "printing" state
-      });
-    });
-  }
-
-  // Function to handle navigation
-  void navigateToScreen(Widget screen) {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => screen),
-    );
-  }
+  final DentistController _controller = DentistController(); // Instantiate the controller
 
   @override
   Widget build(BuildContext context) {
@@ -99,8 +31,16 @@ class _DentistState extends State<Dentist> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: _isPatientSelected ? _buildDentistAppointmentForm() : _buildSelectPatientButton(),
+        child: _controller.isPatientSelected
+            ? _buildDentistAppointmentForm()
+            : _buildSelectPatientButton(),
       ),
+    );
+  }
+
+  void navigateToScreen(Widget screen) {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => screen),
     );
   }
 
@@ -119,13 +59,14 @@ class _DentistState extends State<Dentist> {
                 MaterialPageRoute(
                   builder: (context) => SelectPatient(
                     onSelect: (patientName) {
-                      _selectPatient(
+                      _controller.selectPatient(
                         patientName,
                         '9876543210',
                         '1234-5678-9123',
                         '10:00 AM - 10:30 AM',
                         '123, Example Street, City, Country',
                       );
+                      setState(() {}); // Refresh UI after selection
                     },
                   ),
                 ),
@@ -179,7 +120,9 @@ class _DentistState extends State<Dentist> {
             _buildDentistAppointmentNumberAndLabel(),
             SizedBox(height: 20),
             ElevatedButton(
-              onPressed: _submit,
+              onPressed: () {
+                _controller.submit(context, _controller.selectedPatient, _controller.appointmentDateTime);
+              },
               child: Text('Submit'),
             ),
           ],
@@ -199,11 +142,11 @@ class _DentistState extends State<Dentist> {
           children: [
             Text('Selected Patient Information', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             Divider(),
-            _buildInfoRow('Patient Name', _selectedPatient),
-            _buildInfoRow('Mobile Number', _patientMobileNumber),
-            _buildInfoRow('Aadhar Number', _patientAadharNumber),
-            _buildInfoRow('Appointment Slot', _appointmentSlot),
-            _buildInfoRow('Address', _patientAddress),
+            _buildInfoRow('Patient Name', _controller.selectedPatient),
+            _buildInfoRow('Mobile Number', _controller.patientMobileNumber),
+            _buildInfoRow('Aadhar Number', _controller.patientAadharNumber),
+            _buildInfoRow('Appointment Slot', _controller.appointmentSlot),
+            _buildInfoRow('Address', _controller.patientAddress),
           ],
         ),
       ),
@@ -234,18 +177,18 @@ class _DentistState extends State<Dentist> {
           onPressed: () async {
             DateTime? pickedDate = await showDatePicker(
               context: context,
-              initialDate: _appointmentDateTime ?? DateTime.now(),
+              initialDate: _controller.appointmentDateTime ?? DateTime.now(),
               firstDate: DateTime(2000),
               lastDate: DateTime(2101),
             );
             if (pickedDate != null) {
               TimeOfDay? pickedTime = await showTimePicker(
                 context: context,
-                initialTime: TimeOfDay.fromDateTime(_appointmentDateTime ?? DateTime.now()),
+                initialTime: TimeOfDay.fromDateTime(_controller.appointmentDateTime ?? DateTime.now()),
               );
               if (pickedTime != null) {
                 setState(() {
-                  _appointmentDateTime = DateTime(
+                  _controller.appointmentDateTime = DateTime(
                     pickedDate.year,
                     pickedDate.month,
                     pickedDate.day,
@@ -256,9 +199,9 @@ class _DentistState extends State<Dentist> {
               }
             }
           },
-          child: Text(_appointmentDateTime == null
+          child: Text(_controller.appointmentDateTime == null
               ? 'Pick Date & Time'
-              : 'Date & Time: ${_appointmentDateTime!.toLocal()}'),
+              : 'Date & Time: ${_controller.appointmentDateTime!.toLocal()}'),
         ),
       ],
     );
@@ -275,12 +218,12 @@ class _DentistState extends State<Dentist> {
               border: OutlineInputBorder(),
               hintText: 'Automatically generated',
             ),
-            controller: TextEditingController(text: _dentistAppointmentNumber),
+            controller: TextEditingController(text: _controller.dentistAppointmentNumber),
           ),
         ),
         SizedBox(width: 10),
         ElevatedButton(
-          onPressed: _isPrinting ? null : _printLabel,
+          onPressed: _controller.isPrinting ? null : _controller.printLabel,
           child: Text('Print Label'),
         ),
       ],
