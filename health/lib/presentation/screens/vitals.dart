@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:health/presentation/screens/start.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../widgets/language.widgets.dart';
+
 class Vitals extends StatefulWidget {
   const Vitals({super.key});
 
@@ -34,6 +36,9 @@ class _VitalsState extends State<Vitals> {
         ),
         title: const Text('Bluetooth Native'),
         centerTitle: true,
+        actions: [
+          LanguageToggle(),
+        ],
       ),
       body: Column(
         children: [

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:health/presentation/screens/start.dart';
 
+import '../widgets/language.widgets.dart';
+
 class Doctors extends StatefulWidget {
   const Doctors({super.key});
 
@@ -111,6 +113,9 @@ class _DoctorsState extends State<Doctors> {
           },
         ),
         title: Text('Doctors List'),
+        actions: [
+          LanguageToggle()
+        ],
       ),
       body: ListView.builder(
         itemCount: doctors.length,

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:health/presentation/screens/start.dart';
 
+import '../widgets/language.widgets.dart';
+
 class Employees extends StatefulWidget {
   const Employees({super.key});
 
@@ -101,6 +103,9 @@ class _EmployeesState extends State<Employees> {
           },
         ),
         title: Text('Employees List'),
+        actions: [
+          LanguageToggle()
+        ],
       ),
       body: ListView.builder(
         itemCount: employees.length,

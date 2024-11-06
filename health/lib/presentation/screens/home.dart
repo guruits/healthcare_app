@@ -4,6 +4,8 @@ import 'package:health/presentation/controller/home.controller.dart';
 import 'package:health/presentation/screens/login.dart';
 import 'package:health/presentation/screens/register.dart';
 
+import '../widgets/language.widgets.dart';
+
 class Home extends StatefulWidget {
   const Home({super.key});
 
@@ -27,42 +29,9 @@ class _HomeState extends State<Home> {
     return Scaffold(
       appBar: AppBar(
         actions: [
+          LanguageToggle(),
           // Language Change Dropdown
-          DropdownButton<String>(
-            value: _controller.selectedLanguage,
-            icon: Icon(Icons.language),
-            items: const [
-              DropdownMenuItem(
-                value: 'en-US',
-                child: Text('English'),
-              ),
-              DropdownMenuItem(
-                value: 'es-ES',
-                child: Text('Spanish'),
-              ),
-              DropdownMenuItem(
-                value: 'fr-FR',
-                child: Text('French'),
-              ),
-              DropdownMenuItem(
-                child: Text("Tamil"),
-                value: 'ta-Ta',
-              ),
-            ],
-            onChanged: (String? newLang) {
-              if (newLang != null) {
-                setState(() => _controller.changeLanguage(newLang));
-              }
-            },
-          ),
-          // Mute Icon
-          IconButton(
-            icon:
-                Icon(_controller.isMuted ? Icons.volume_off : Icons.volume_up),
-            onPressed: () {
-              setState(() => _controller.toggleMute());
-            },
-          ),
+
         ],
       ),
       body: Padding(

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:health/presentation/screens/selectPatient.dart';
 import 'package:health/presentation/screens/start.dart';
 
+import '../widgets/language.widgets.dart';
+
 class Bloodcollection extends StatefulWidget {
   const Bloodcollection({super.key});
 
@@ -96,6 +98,9 @@ class _BloodcollectionState extends State<Bloodcollection> {
           },
         ),
         title: Text('Blood Collection'),
+        actions: [
+          LanguageToggle(),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -106,59 +111,59 @@ class _BloodcollectionState extends State<Bloodcollection> {
 
   Widget _buildSelectPatientButton() {
     return Center(
-      child: Column(
-        children: [
-          Center(
-            child: Image.asset('assets/images/bloodcollection.png', height: 250, width: 250),
-          ),
-          SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: () async {
-              await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => SelectPatient(
-                    onSelect: (patientName) {
-                      _selectPatient(
-                        patientName,
-                        '9876543210',
-                        '1234-5678-9123',
-                        '10:00 AM - 10:30 AM',
-                        '123, Example Street, City, Country',
-                      );
-                    },
+        child: Column(
+          children: [
+            Center(
+              child: Image.asset('assets/images/bloodcollection.png', height: 250, width: 250),
+            ),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => SelectPatient(
+                      onSelect: (patientName) {
+                        _selectPatient(
+                          patientName,
+                          '9876543210',
+                          '1234-5678-9123',
+                          '10:00 AM - 10:30 AM',
+                          '123, Example Street, City, Country',
+                        );
+                      },
+                    ),
                   ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                padding: EdgeInsets.symmetric(horizontal: 40, vertical: 15), // Increase button size
+                backgroundColor: Colors.purpleAccent, // Change background color
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30), // Rounded corners
                 ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              padding: EdgeInsets.symmetric(horizontal: 40, vertical: 15), // Increase button size
-              backgroundColor: Colors.purpleAccent, // Change background color
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30), // Rounded corners
+                elevation: 10, // Add shadow to make it stand out
+                shadowColor: Colors.purple.withOpacity(0.5), // Shadow color
               ),
-              elevation: 10, // Add shadow to make it stand out
-              shadowColor: Colors.purple.withOpacity(0.5), // Shadow color
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.person_add, color: Colors.white), // Add an icon
-                SizedBox(width: 10),
-                Text(
-                  'Select Patient',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white, // White text for better contrast
-                    letterSpacing: 1.2, // Slight letter spacing
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.person_add, color: Colors.white), // Add an icon
+                  SizedBox(width: 10),
+                  Text(
+                    'Select Patient',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white, // White text for better contrast
+                      letterSpacing: 1.2, // Slight letter spacing
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
-      )
+          ],
+        )
     );
   }
 

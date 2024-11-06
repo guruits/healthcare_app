@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:health/presentation/screens/selectPatient.dart';
 import 'package:health/presentation/screens/start.dart';
 
+import '../widgets/language.widgets.dart';
+
 class DexaScan extends StatefulWidget {
   const DexaScan({super.key});
 
@@ -91,6 +93,9 @@ class _DexaScanState extends State<DexaScan> {
           },
         ),
         title: Text('Dexa Scan Appointment'),
+        actions: [
+          LanguageToggle(),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

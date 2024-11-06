@@ -4,6 +4,8 @@ import 'package:health/presentation/screens/login.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
+import '../widgets/language.widgets.dart';
+
 class Register extends StatefulWidget {
   const Register({super.key});
 
@@ -104,37 +106,7 @@ class _RegisterState extends State<Register> {
           },
         ),
         actions: [
-          // Language Change Dropdown
-          DropdownButton<String>(
-            value: selectedLanguage,
-            icon: Icon(Icons.language),
-            items: [
-              DropdownMenuItem(
-                value: 'en-US',
-                child: Text('English'),
-              ),
-              DropdownMenuItem(
-                value: 'es-ES',
-                child: Text('Spanish'),
-              ),
-              DropdownMenuItem(
-                value: 'fr-FR',
-                child: Text('French'),
-              ),
-              DropdownMenuItem(
-                value: 'ta-IN',
-                child: Text('Tamil'),
-              ),
-            ],
-            onChanged: (String? newLang) {
-              if (newLang != null) changeLanguage(newLang);
-            },
-          ),
-          // Mute Icon
-          IconButton(
-            icon: Icon(isMuted ? Icons.volume_off : Icons.volume_up),
-            onPressed: toggleMute,
-          ),
+          LanguageToggle(),
         ],
       ),
       body: SingleChildScrollView(
@@ -142,30 +114,30 @@ class _RegisterState extends State<Register> {
           padding: const EdgeInsets.all(16.0),
           child: isLargeScreen
               ? Row(
-                  children: [
-                    Expanded(
-                      child: Image.asset(
-                        'assets/images/register.png',
-                        fit: BoxFit.contain,
-                      ),
-                    ),
-                    SizedBox(width: 20),
-                    Expanded(
-                      child: _buildFormFields(),
-                    ),
-                  ],
-                )
-              : Column(
-                  children: [
-                    Image.asset(
-                      'assets/images/register.png',
-                      height: 150,
-                      fit: BoxFit.contain,
-                    ),
-                    SizedBox(height: 20),
-                    _buildFormFields(),
-                  ],
+            children: [
+              Expanded(
+                child: Image.asset(
+                  'assets/images/register.png',
+                  fit: BoxFit.contain,
                 ),
+              ),
+              SizedBox(width: 20),
+              Expanded(
+                child: _buildFormFields(),
+              ),
+            ],
+          )
+              : Column(
+            children: [
+              Image.asset(
+                'assets/images/register.png',
+                height: 150,
+                fit: BoxFit.contain,
+              ),
+              SizedBox(height: 20),
+              _buildFormFields(),
+            ],
+          ),
         ),
       ),
     );
@@ -321,7 +293,7 @@ class _RegisterState extends State<Register> {
       builder: (context) {
         TextEditingController newPasswordController = TextEditingController();
         TextEditingController confirmPasswordController =
-            TextEditingController();
+        TextEditingController();
 
         return AlertDialog(
           title: Text("Set Password"),

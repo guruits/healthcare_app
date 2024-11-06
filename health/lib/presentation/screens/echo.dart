@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:health/presentation/screens/selectPatient.dart';
 import 'package:health/presentation/screens/start.dart';
 
+import '../widgets/language.widgets.dart';
+
 class Echo extends StatefulWidget {
   const Echo({super.key});
 
@@ -91,6 +93,9 @@ class _EchoState extends State<Echo> {
           },
         ),
         title: Text('Echo Appointment'),
+        actions: [
+          LanguageToggle()
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

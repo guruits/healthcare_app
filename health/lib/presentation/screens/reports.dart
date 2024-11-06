@@ -3,6 +3,8 @@ import 'package:health/presentation/screens/pdfView.dart';
 import 'package:health/presentation/screens/selectPatient.dart';
 import 'package:health/presentation/screens/start.dart';
 
+import '../widgets/language.widgets.dart';
+
 class Reports extends StatefulWidget {
   const Reports({super.key});
 
@@ -98,6 +100,9 @@ class _ReportsState extends State<Reports> {
           },
         ),
         title: const Text('Select Test'),
+        actions: [
+          LanguageToggle(),
+        ],
       ),
       body: GridView.builder(
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(

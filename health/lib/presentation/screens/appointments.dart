@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:health/presentation/screens/start.dart';
+import 'package:health/presentation/widgets/language.widgets.dart';
 import 'package:intl/intl.dart';
+
+import '../controller/appointments.controller.dart';
 
 class Appointments extends StatefulWidget {
   const Appointments({super.key});
@@ -10,40 +13,7 @@ class Appointments extends StatefulWidget {
 }
 
 class _AppointmentsState extends State<Appointments> {
-  bool isNewAppointment = true; // Track which button is selected
-  DateTime selectedDate = DateTime.now();
-  String? selectedSlot; // Track selected slot
-  String patientName = ''; // Track patient name input
-
-  // Example data for slot availability and patient names
-  Map<String, int> slotAvailability = {
-    '08:00 AM': 25,
-    '10:00 AM': 15,
-    '12:00 PM': 5,
-    '02:00 PM': 0,
-  };
-
-  List<String> samplePatients = [
-    'Arjun Kumar',
-    'Priya Nair',
-    'Rajeshwaran',
-    'Sita Rani',
-    'Anjali Devi',
-    'Vikram Singh',
-    'Lakshmi',
-    'Karthik',
-  ];
-
-  List<String> selectedPatientNames = []; // Store selected patient names for slots
-
-  @override
-  void initState() {
-    super.initState();
-    // Set the initial patient name to the first patient in the list
-    if (samplePatients.isNotEmpty) {
-      patientName = samplePatients[0]; // Set initial patient name to the first patient
-    }
-  }
+  final AppointmentsController controller = AppointmentsController();
 
   // Function to show confirmation dialog
   void _confirmAppointment() {
@@ -52,10 +22,10 @@ class _AppointmentsState extends State<Appointments> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text('Appointment Confirmed'),
-          content: Text('Your appointment for ${DateFormat('MMM dd, yyyy').format(selectedDate)} at $selectedSlot has been confirmed for $patientName!'),
+          content: Text('Your appointment for ${controller.getFormattedDate()} at ${controller.selectedSlot} has been confirmed for ${controller.patientName}!'),
           actions: <Widget>[
             TextButton(
-              child: Text('OK'),
+              child: const Text('OK'),
               onPressed: () {
                 Navigator.of(context).pop();
               },
@@ -69,49 +39,44 @@ class _AppointmentsState extends State<Appointments> {
   // Function to build the calendar
   Widget _buildCalendar() {
     final DateFormat monthFormatter = DateFormat('MMMM yyyy');
-
-    // Get the first and last day of the month
-    DateTime firstDayOfMonth = DateTime(selectedDate.year, selectedDate.month, 1);
-    DateTime lastDayOfMonth = DateTime(selectedDate.year, selectedDate.month + 1, 0);
-
-    // Calculate the number of rows needed
+    DateTime firstDayOfMonth = DateTime(controller.selectedDate.year, controller.selectedDate.month, 1);
+    DateTime lastDayOfMonth = DateTime(controller.selectedDate.year, controller.selectedDate.month + 1, 0);
     int totalDays = lastDayOfMonth.day;
-    int startingWeekday = firstDayOfMonth.weekday; // Get the first day of the month (1-7)
+    int startingWeekday = firstDayOfMonth.weekday;
     int numberOfRows = ((totalDays + startingWeekday - 1) / 7).ceil();
 
     return Column(
       children: [
-        Text(monthFormatter.format(selectedDate), style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        Text(monthFormatter.format(controller.selectedDate), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
         Table(
           children: List<TableRow>.generate(numberOfRows, (row) {
             return TableRow(
               children: List<Widget>.generate(7, (col) {
                 int day = row * 7 + col + 1 - startingWeekday;
                 if (day > 0 && day <= totalDays) {
-                  DateTime date = DateTime(selectedDate.year, selectedDate.month, day);
+                  DateTime date = DateTime(controller.selectedDate.year, controller.selectedDate.month, day);
                   return GestureDetector(
                     onTap: () {
                       setState(() {
-                        selectedDate = date; // Set the selected date
-                        selectedSlot = null; // Reset selected slot
+                        controller.setSelectedDate(date);
                       });
                     },
                     child: Container(
                       margin: const EdgeInsets.all(4.0),
                       decoration: BoxDecoration(
-                        color: date == selectedDate ? Colors.blue : Colors.grey[300],
+                        color: date == controller.selectedDate ? Colors.blue : Colors.grey[300],
                         borderRadius: BorderRadius.circular(8),
                       ),
                       padding: const EdgeInsets.all(8.0),
                       alignment: Alignment.center,
                       child: Text(
                         day.toString(),
-                        style: TextStyle(color: date == selectedDate ? Colors.white : Colors.black),
+                        style: TextStyle(color: date == controller.selectedDate ? Colors.white : Colors.black),
                       ),
                     ),
                   );
                 } else {
-                  return Container(); // Empty cell for days outside the month
+                  return Container();
                 }
               }),
             );
@@ -119,20 +84,6 @@ class _AppointmentsState extends State<Appointments> {
         ),
       ],
     );
-  }
-
-  // Function to move to the next month
-  void _nextMonth() {
-    setState(() {
-      selectedDate = DateTime(selectedDate.year, selectedDate.month + 1);
-    });
-  }
-
-  // Function to move to the previous month
-  void _previousMonth() {
-    setState(() {
-      selectedDate = DateTime(selectedDate.year, selectedDate.month - 1);
-    });
   }
 
   void navigateToScreen(Widget screen) {
@@ -146,18 +97,19 @@ class _AppointmentsState extends State<Appointments> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back),
           onPressed: () {
             navigateToScreen(Start());
           },
         ),
         title: const Text('Appointments'),
         actions: [
+          LanguageToggle(),
           IconButton(
-            icon: Icon(isNewAppointment ? Icons.event : Icons.history),
+            icon: Icon(controller.isNewAppointment ? Icons.event : Icons.history),
             onPressed: () {
               setState(() {
-                isNewAppointment = !isNewAppointment; // Toggle appointment view
+                controller.toggleAppointmentView();
               });
             },
           ),
@@ -168,19 +120,17 @@ class _AppointmentsState extends State<Appointments> {
           padding: const EdgeInsets.all(8.0),
           child: Column(
             children: [
-              // Monthly Calendar
               _buildCalendar(),
               const SizedBox(height: 20),
-              // Dropdown for patient name
-              if (isNewAppointment) ...[
+              if (controller.isNewAppointment) ...[
                 DropdownButton<String>(
-                  value: patientName.isNotEmpty ? patientName : null, // Ensure the value is not empty
+                  value: controller.patientName.isNotEmpty ? controller.patientName : null,
                   onChanged: (String? newValue) {
                     setState(() {
-                      patientName = newValue!;
+                      controller.setPatientName(newValue!);
                     });
                   },
-                  items: samplePatients.map<DropdownMenuItem<String>>((String patient) {
+                  items: controller.samplePatients.map<DropdownMenuItem<String>>((String patient) {
                     return DropdownMenuItem<String>(
                       value: patient,
                       child: Text(patient),
@@ -192,35 +142,39 @@ class _AppointmentsState extends State<Appointments> {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     ElevatedButton(
-                      onPressed: _previousMonth,
+                      onPressed: () {
+                        setState(() {
+                          controller.previousMonth();
+                        });
+                      },
                       child: const Text('Previous Month'),
                     ),
                     ElevatedButton(
-                      onPressed: _nextMonth,
+                      onPressed: () {
+                        setState(() {
+                          controller.nextMonth();
+                        });
+                      },
                       child: const Text('Next Month'),
                     ),
                   ],
                 ),
                 const SizedBox(height: 20),
-                // Show available slots for the selected date
-                Text('Available Slots for ${DateFormat('MMM dd, yyyy').format(selectedDate)}'),
+                Text('Available Slots for ${controller.getFormattedDate()}'),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: slotAvailability.keys.map((slot) {
-                    Color slotColor = Colors.blue; // Same color for all slots
+                  children: controller.slotAvailability.keys.map((slot) {
                     return GestureDetector(
                       onTap: () {
                         setState(() {
-                          selectedSlot = slot; // Set selected slot
-                          // Populate sample patients based on selected slot
-                          selectedPatientNames = samplePatients;
+                          controller.setSelectedSlot(slot);
                         });
                       },
                       child: Container(
                         margin: const EdgeInsets.symmetric(vertical: 5),
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: slotColor,
+                          color: Colors.blue,
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
@@ -231,12 +185,11 @@ class _AppointmentsState extends State<Appointments> {
                     );
                   }).toList(),
                 ),
-                // Show sample patient names below selected slot
-                if (selectedSlot != null && selectedPatientNames.isNotEmpty) ...[
-                  Text('Patients for $selectedSlot:'),
+                if (controller.selectedSlot != null && controller.selectedPatientNames.isNotEmpty) ...[
+                  Text('Patients for ${controller.selectedSlot}:'),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: selectedPatientNames.map((name) {
+                    children: controller.selectedPatientNames.map((name) {
                       return Container(
                         margin: const EdgeInsets.symmetric(vertical: 4),
                         padding: const EdgeInsets.all(8),
@@ -249,31 +202,35 @@ class _AppointmentsState extends State<Appointments> {
                     }).toList(),
                   ),
                 ],
-                // Confirm Appointment Button
                 ElevatedButton(
-                  onPressed: selectedSlot != null && patientName.isNotEmpty ? _confirmAppointment : null,
+                  onPressed: controller.canConfirmAppointment() ? _confirmAppointment : null,
                   child: const Text('Confirm Appointment'),
                 ),
               ],
-              // Appointment History
-              if (!isNewAppointment) ...[
+              if (!controller.isNewAppointment) ...[
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     ElevatedButton(
-                      onPressed: _previousMonth,
+                      onPressed: () {
+                        setState(() {
+                          controller.previousMonth();
+                        });
+                      },
                       child: const Text('Previous Month'),
                     ),
                     ElevatedButton(
-                      onPressed: _nextMonth,
+                      onPressed: () {
+                        setState(() {
+                          controller.nextMonth();
+                        });
+                      },
                       child: const Text('Next Month'),
                     ),
                   ],
                 ),
                 const SizedBox(height: 20),
-                Text('Appointment History for ${DateFormat('MMM yyyy').format(selectedDate)}'),
-                // Sample implementation of appointment history (can be expanded)
-                Text('No appointment history available yet.'),
+                Text('View Previous Appointments'),
               ],
             ],
           ),

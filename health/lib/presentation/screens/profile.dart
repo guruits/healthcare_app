@@ -3,6 +3,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:health/presentation/screens/start.dart';
 
+import '../widgets/language.widgets.dart';
+
 class Profile extends StatefulWidget {
   const Profile({super.key});
 
@@ -97,6 +99,10 @@ class _ProfileState extends State<Profile> {
             navigateToScreen(Start());
           },
         ),
+        actions: [
+          LanguageToggle(),
+        ],
+
       ),
       body: SingleChildScrollView( // Use SingleChildScrollView to avoid overflow
         child: Padding(

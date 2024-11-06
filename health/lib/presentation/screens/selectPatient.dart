@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:health/presentation/screens/start.dart';
 
+import '../widgets/language.widgets.dart';
+
 class SelectPatient extends StatefulWidget {
   final Function(String) onSelect;
 
@@ -129,6 +131,9 @@ class _SelectPatientState extends State<SelectPatient> {
           },
         ),
         title: Text('Select Patient'),
+        actions: [
+          LanguageToggle(),
+        ],
       ),
       body: Column(
         children: [

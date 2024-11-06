@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:health/presentation/screens/start.dart';
 import 'package:flutter_signature_pad/flutter_signature_pad.dart';
 
+import '../widgets/language.widgets.dart';
+
 class Consultation extends StatefulWidget {
   const Consultation({super.key});
 
@@ -81,107 +83,110 @@ class _ConsultationState extends State<Consultation> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back),
-          onPressed: () {
-            navigateToScreen(Start());
-          },
+        appBar: AppBar(
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back),
+            onPressed: () {
+              navigateToScreen(Start());
+            },
+          ),
+          title: Text('Consultation'),
+          actions: [
+            LanguageToggle(),
+          ],
         ),
-        title: Text('Consultation'),
-      ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              DropdownButtonFormField<String>(
-                value: _selectedDoctor,
-                hint: Text('Select Doctor'),
-                items: doctors.map((doctor) {
-                  return DropdownMenuItem(
-                    value: doctor['name'],
-                    child: Text(doctor['name']!),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedDoctor = value;
-                  });
-                },
-              ),
-              SizedBox(height: 10),
-              _buildPatientReportSummary(),
-              SizedBox(height: 10),
-              TextField(
-                controller: _prescriptionController,
-                decoration: InputDecoration(
-                  labelText: 'Enter Prescription',
-                  border: OutlineInputBorder(),
+        body: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                DropdownButtonFormField<String>(
+                  value: _selectedDoctor,
+                  hint: Text('Select Doctor'),
+                  items: doctors.map((doctor) {
+                    return DropdownMenuItem(
+                      value: doctor['name'],
+                      child: Text(doctor['name']!),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedDoctor = value;
+                    });
+                  },
                 ),
-                maxLines: 3,
-              ),
-              SizedBox(height: 10),
-              TextField(
-                controller: _tabletsController,
-                decoration: InputDecoration(
-                  labelText: 'Tablets / Injections (and duration)',
-                  border: OutlineInputBorder(),
+                SizedBox(height: 10),
+                _buildPatientReportSummary(),
+                SizedBox(height: 10),
+                TextField(
+                  controller: _prescriptionController,
+                  decoration: InputDecoration(
+                    labelText: 'Enter Prescription',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 3,
                 ),
-              ),
-              SizedBox(height: 10),
-              GestureDetector(
-                onTap: () => _selectNextVisitDate(context),
-                child: AbsorbPointer(
-                  child: TextField(
-                    decoration: InputDecoration(
-                      labelText: 'Next Visit Date',
-                      border: OutlineInputBorder(),
-                      hintText: _nextVisitDate == null
-                          ? 'Select a date'
-                          : '${_nextVisitDate!.toLocal()}'.split(' ')[0], // Format the date
+                SizedBox(height: 10),
+                TextField(
+                  controller: _tabletsController,
+                  decoration: InputDecoration(
+                    labelText: 'Tablets / Injections (and duration)',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                SizedBox(height: 10),
+                GestureDetector(
+                  onTap: () => _selectNextVisitDate(context),
+                  child: AbsorbPointer(
+                    child: TextField(
+                      decoration: InputDecoration(
+                        labelText: 'Next Visit Date',
+                        border: OutlineInputBorder(),
+                        hintText: _nextVisitDate == null
+                            ? 'Select a date'
+                            : '${_nextVisitDate!.toLocal()}'.split(' ')[0], // Format the date
+                      ),
                     ),
                   ),
                 ),
-              ),
-              SizedBox(height: 10),
-              Text('Doctor Signature:', style: TextStyle(fontSize: 16)),
-              Container(
-                height: 100,
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.black),
-                ),
-                child: Signature(
-                  key: _signatureKey,
-                  onSign: () {
-                    setState(() {
-                      _points = [];
-                    });
-                  },
-                  backgroundPainter: _SignaturePainter(_points),
-                  strokeWidth: 2.0,
-                ),
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  ElevatedButton(
-                    onPressed: _clearSignature,
-                    child: Text('Clear Signature'),
+                SizedBox(height: 10),
+                Text('Doctor Signature:', style: TextStyle(fontSize: 16)),
+                Container(
+                  height: 100,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.black),
                   ),
-                  ElevatedButton(
-                    onPressed: () {
-                      // Logic to generate and save prescription
-                      _generatePrescription();
+                  child: Signature(
+                    key: _signatureKey,
+                    onSign: () {
+                      setState(() {
+                        _points = [];
+                      });
                     },
-                    child: Text('Generate Prescription'),
+                    backgroundPainter: _SignaturePainter(_points),
+                    strokeWidth: 2.0,
                   ),
-                ],
-              ),
-            ],
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    ElevatedButton(
+                      onPressed: _clearSignature,
+                      child: Text('Clear Signature'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () {
+                        // Logic to generate and save prescription
+                        _generatePrescription();
+                      },
+                      child: Text('Generate Prescription'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-        ),
-      )
+        )
     );
   }
 

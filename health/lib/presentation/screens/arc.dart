@@ -1,7 +1,9 @@
-import 'dart:math'; // Import this to generate random numbers
 import 'package:flutter/material.dart';
+import 'package:health/presentation/widgets/language.widgets.dart';
 import 'package:health/presentation/screens/selectPatient.dart';
 import 'package:health/presentation/screens/start.dart';
+
+import '../controller/arc.controller.dart';
 
 class Arc extends StatefulWidget {
   const Arc({super.key});
@@ -11,70 +13,7 @@ class Arc extends StatefulWidget {
 }
 
 class _ArcState extends State<Arc> {
-  String _selectedPatient = '';
-  String _patientMobileNumber = '';
-  String _patientAadharNumber = '';
-  String _appointmentSlot = '';
-  String _patientAddress = '';
-  DateTime? _appointmentDateTime;
-  String _arcTestNumber = '';
-  bool _isPatientSelected = false;
-  bool _isPrinting = false;
-  String _statusMessage = '';
-
-  void _selectPatient(String patientName, String mobileNumber, String aadharNumber, String appointmentSlot, String address) {
-    setState(() {
-      _selectedPatient = patientName;
-      _patientMobileNumber = mobileNumber;
-      _patientAadharNumber = aadharNumber;
-      _appointmentSlot = appointmentSlot;
-      _patientAddress = address;
-      _arcTestNumber = _generateArcTestNumber(); // Generate the number when a patient is selected
-      _isPatientSelected = true; // Set flag to true when a patient is selected
-    });
-  }
-
-  String _generateArcTestNumber() {
-    // Get the current date in the format YYYYMMDD
-    String datePart = DateTime.now().toString().split(' ')[0].replaceAll('-', '');
-    // Generate a random number between 1000 and 9999
-    String randomPart = Random().nextInt(9000 + 1).toString().padLeft(4, '0');
-    return '$datePart$randomPart'; // Combine date and random number
-  }
-
-  void _submit() {
-    // Add your submission logic here
-    print('Submitting Eye Arc Test for $_selectedPatient');
-    print('Appointment DateTime: $_appointmentDateTime');
-    print('Arc Test Number: $_arcTestNumber');
-
-    // Reset the selected patient and navigate back to SelectPatient screen
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => SelectPatient(
-          onSelect: (patientName) {
-            print('$patientName state: completed');
-          },
-        ),
-      ),
-    );
-  }
-
-  void _printLabel() {
-    setState(() {
-      _isPrinting = true; // Show that the label is printing
-      _statusMessage = 'Label is printing...';
-    });
-
-    // Simulate label printing delay
-    Future.delayed(Duration(seconds: 2), () {
-      setState(() {
-        _isPrinting = false; // Hide the "printing" state
-        _statusMessage = 'Label printing done'; // Show done message
-      });
-    });
-  }
+  final ArcController controller = ArcController();
 
   // Function to handle navigation
   void navigateToScreen(Widget screen) {
@@ -94,10 +33,16 @@ class _ArcState extends State<Arc> {
           },
         ),
         title: Text('Eye Arc Test'),
+        actions: [
+          LanguageToggle(),
+
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: _isPatientSelected ? _buildArcTestForm() : _buildSelectPatientButton(),
+        child: controller.isPatientSelected
+            ? _buildArcTestForm()
+            : _buildSelectPatientButton(),
       ),
     );
   }
@@ -117,13 +62,15 @@ class _ArcState extends State<Arc> {
                 MaterialPageRoute(
                   builder: (context) => SelectPatient(
                     onSelect: (patientName) {
-                      _selectPatient(
-                        patientName,
-                        '9876543210',
-                        '1234-5678-9123',
-                        '10:00 AM - 10:30 AM',
-                        '123, Example Street, City, Country',
-                      );
+                      setState(() {
+                        controller.selectPatient(
+                          patientName,
+                          '9876543210',
+                          '1234-5678-9123',
+                          '10:00 AM - 10:30 AM',
+                          '123, Example Street, City, Country',
+                        );
+                      });
                     },
                   ),
                 ),
@@ -177,7 +124,7 @@ class _ArcState extends State<Arc> {
             _buildArcTestNumberAndLabel(),
             SizedBox(height: 20),
             ElevatedButton(
-              onPressed: _submit,
+              onPressed: controller.submit,
               child: Text('Submit'),
             ),
           ],
@@ -197,11 +144,11 @@ class _ArcState extends State<Arc> {
           children: [
             Text('Selected Patient Information', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             Divider(),
-            _buildInfoRow('Patient Name', _selectedPatient),
-            _buildInfoRow('Mobile Number', _patientMobileNumber),
-            _buildInfoRow('Aadhar Number', _patientAadharNumber),
-            _buildInfoRow('Appointment Slot', _appointmentSlot),
-            _buildInfoRow('Address', _patientAddress),
+            _buildInfoRow('Patient Name', controller.selectedPatient),
+            _buildInfoRow('Mobile Number', controller.patientMobileNumber),
+            _buildInfoRow('Aadhar Number', controller.patientAadharNumber),
+            _buildInfoRow('Appointment Slot', controller.appointmentSlot),
+            _buildInfoRow('Address', controller.patientAddress),
           ],
         ),
       ),
@@ -232,18 +179,18 @@ class _ArcState extends State<Arc> {
           onPressed: () async {
             DateTime? pickedDate = await showDatePicker(
               context: context,
-              initialDate: _appointmentDateTime ?? DateTime.now(),
+              initialDate: controller.appointmentDateTime ?? DateTime.now(),
               firstDate: DateTime(2000),
               lastDate: DateTime(2101),
             );
             if (pickedDate != null) {
               TimeOfDay? pickedTime = await showTimePicker(
                 context: context,
-                initialTime: TimeOfDay.fromDateTime(_appointmentDateTime ?? DateTime.now()),
+                initialTime: TimeOfDay.fromDateTime(controller.appointmentDateTime ?? DateTime.now()),
               );
               if (pickedTime != null) {
                 setState(() {
-                  _appointmentDateTime = DateTime(
+                  controller.appointmentDateTime = DateTime(
                     pickedDate.year,
                     pickedDate.month,
                     pickedDate.day,
@@ -254,9 +201,9 @@ class _ArcState extends State<Arc> {
               }
             }
           },
-          child: Text(_appointmentDateTime == null
+          child: Text(controller.appointmentDateTime == null
               ? 'Pick Date & Time'
-              : 'Date & Time: ${_appointmentDateTime!.toLocal()}'),
+              : 'Date & Time: ${controller.appointmentDateTime!.toLocal()}'),
         ),
       ],
     );
@@ -271,14 +218,16 @@ class _ArcState extends State<Arc> {
             decoration: InputDecoration(
               labelText: 'Generated Arc Test Number',
               border: OutlineInputBorder(),
-              hintText: 'Automatically generated',
             ),
-            controller: TextEditingController(text: _arcTestNumber),
+            controller: TextEditingController(text: controller.arcTestNumber),
           ),
         ),
         SizedBox(width: 10),
         ElevatedButton(
-          onPressed: _isPrinting ? null : _printLabel,
+          onPressed: () async {
+            await controller.printLabel();
+            setState(() {}); // Update status message
+          },
           child: Text('Print Label'),
         ),
       ],

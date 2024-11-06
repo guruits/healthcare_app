@@ -3,6 +3,8 @@ import 'package:flutter_tts/flutter_tts.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
 import 'package:health/presentation/screens/start.dart';
 
+import '../widgets/language.widgets.dart';
+
 // Sample list of report types and their corresponding reports
 Map<String, List<String>> reportCategories = {
   'Blood Tests': ['Blood Test', 'Drug Prescription'],
@@ -116,6 +118,8 @@ class _PrinterState extends State<Printer> {
               onPressed: () => Navigator.pop(context),
               child: Text('OK'),
             ),
+            LanguageToggle(),
+
           ],
         ),
       );

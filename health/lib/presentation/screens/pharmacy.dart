@@ -4,6 +4,8 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
+import '../widgets/language.widgets.dart';
+
 class Pharmacy extends StatefulWidget {
   const Pharmacy({super.key});
 
@@ -136,6 +138,9 @@ class _PharmacyState extends State<Pharmacy> {
         ),
         title: Text('Pharmacy'),
         centerTitle: true,
+        actions: [
+          LanguageToggle(),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

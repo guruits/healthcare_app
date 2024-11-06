@@ -1,9 +1,8 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:health/presentation/widgets/language.widgets.dart';
 import 'package:health/presentation/screens/start.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
-import 'package:path_provider/path_provider.dart';
+
+import '../controller/awareness.controller.dart';
 
 class Awareness extends StatefulWidget {
   const Awareness({super.key});
@@ -13,9 +12,7 @@ class Awareness extends StatefulWidget {
 }
 
 class _AwarenessState extends State<Awareness> {
-  final TextEditingController _weightController = TextEditingController();
-  String _selectedDiet = 'Vegetarian';
-  String _dietPlan = '';
+  final AwarenessController _controller = AwarenessController();
 
   // Function to handle navigation
   void navigateToScreen(Widget screen) {
@@ -24,54 +21,13 @@ class _AwarenessState extends State<Awareness> {
     );
   }
 
-  void _generateDietPlan() {
-    double weight = double.tryParse(_weightController.text) ?? 0;
-
-    if (weight > 0) {
-      if (_selectedDiet == 'Vegetarian') {
-        _dietPlan = 'Diet Plan for Vegetarian (Weight: ${weight}kg)\n\n'
-            '- Breakfast: Oatmeal with fruits\n'
-            '- Lunch: Quinoa salad with beans\n'
-            '- Dinner: Stir-fried vegetables with tofu\n';
-      } else {
-        _dietPlan = 'Diet Plan for Non-Vegetarian (Weight: ${weight}kg)\n\n'
-            '- Breakfast: Eggs with whole grain toast\n'
-            '- Lunch: Grilled chicken salad\n'
-            '- Dinner: Fish with steamed vegetables\n';
-      }
-      setState(() {});
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Please enter a valid weight.'),
-      ));
+  void _onDietPlanGenerated() {
+    setState(() {});
+    if (_controller.dietPlan.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please enter a valid weight.')),
+      );
     }
-  }
-
-  Future<void> _generatePDF() async {
-    final pdf = pw.Document();
-    pdf.addPage(
-      pw.Page(
-        build: (pw.Context context) {
-          return pw.Center(
-            child: pw.Text(
-              _dietPlan.isNotEmpty ? _dietPlan : 'No diet plan generated.',
-              style: pw.TextStyle(fontSize: 18),
-            ),
-          );
-        },
-      ),
-    );
-
-    // Get the application documents directory
-    final directory = await getApplicationDocumentsDirectory();
-    final file = File('${directory.path}/diet_plan.pdf');
-
-    // Save the PDF document
-    await file.writeAsBytes(await pdf.save());
-
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text('Diet plan PDF generated!'),
-    ));
   }
 
   @override
@@ -85,6 +41,9 @@ class _AwarenessState extends State<Awareness> {
           },
         ),
         title: Text('Diabetic Awareness'),
+        actions: [
+          LanguageToggle(),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -96,7 +55,7 @@ class _AwarenessState extends State<Awareness> {
               style: TextStyle(fontSize: 16),
             ),
             TextField(
-              controller: _weightController,
+              controller: _controller.weightController,
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
                 border: OutlineInputBorder(),
@@ -109,7 +68,7 @@ class _AwarenessState extends State<Awareness> {
               style: TextStyle(fontSize: 16),
             ),
             DropdownButton<String>(
-              value: _selectedDiet,
+              value: _controller.selectedDiet,
               items: <String>['Vegetarian', 'Non-Vegetarian']
                   .map<DropdownMenuItem<String>>((String value) {
                 return DropdownMenuItem<String>(
@@ -119,13 +78,15 @@ class _AwarenessState extends State<Awareness> {
               }).toList(),
               onChanged: (String? newValue) {
                 setState(() {
-                  _selectedDiet = newValue!;
+                  _controller.selectedDiet = newValue!;
                 });
               },
             ),
             SizedBox(height: 20),
             ElevatedButton(
-              onPressed: _generateDietPlan,
+              onPressed: () {
+                _controller.generateDietPlan(_onDietPlanGenerated);
+              },
               child: Text('Generate Diet Plan'),
             ),
             SizedBox(height: 20),
@@ -135,12 +96,16 @@ class _AwarenessState extends State<Awareness> {
             ),
             SizedBox(height: 10),
             Text(
-              _dietPlan.isNotEmpty ? _dietPlan : 'No diet plan generated yet.',
+              _controller.dietPlan.isNotEmpty
+                  ? _controller.dietPlan
+                  : 'No diet plan generated yet.',
               style: TextStyle(fontSize: 14),
             ),
             SizedBox(height: 20),
             ElevatedButton(
-              onPressed: _dietPlan.isNotEmpty ? _generatePDF : null,
+              onPressed: _controller.dietPlan.isNotEmpty
+                  ? () => _controller.generatePDF(context)
+                  : null,
               child: Text('Download as PDF'),
             ),
           ],

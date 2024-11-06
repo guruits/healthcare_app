@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:health/presentation/screens/selectPatient.dart';
 import 'package:health/presentation/screens/start.dart';
 
+import '../widgets/language.widgets.dart';
+
 class Urinecollection extends StatefulWidget {
   const Urinecollection({super.key});
 
@@ -94,6 +96,9 @@ class _UrineCollectionState extends State<Urinecollection> {
           },
         ),
         title: Text('Urine Collection'),
+        actions: [
+          LanguageToggle(),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
