@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:health/presentation/controller/ultrasound.controller.dart';
 import 'package:health/presentation/screens/selectPatient.dart';
 import 'package:health/presentation/screens/start.dart';
+import 'package:health/presentation/widgets/dateandtimepicker.widgets.dart';
 
 import '../widgets/language.widgets.dart';
 
@@ -136,7 +137,7 @@ class _UltraSoundState extends State<UltraSound> {
             SizedBox(height: 20),
             _buildPatientInfoBox(),
             SizedBox(height: 20),
-            _buildAppointmentDateTimePicker(),
+            Dateandtimepicker(),
             SizedBox(height: 20),
             _buildUltraSoundAppointmentNumberAndLabel(),
             SizedBox(height: 20),
@@ -187,44 +188,7 @@ class _UltraSoundState extends State<UltraSound> {
     );
   }
 
-  Widget _buildAppointmentDateTimePicker() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text('Appointment Date and Time', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-        ElevatedButton(
-          onPressed: () async {
-            DateTime? pickedDate = await showDatePicker(
-              context: context,
-              initialDate: _controller.ultrasoundAppointmentDateTime ?? DateTime.now(),
-              firstDate: DateTime(2000),
-              lastDate: DateTime(2101),
-            );
-            if (pickedDate != null) {
-              TimeOfDay? pickedTime = await showTimePicker(
-                context: context,
-                initialTime: TimeOfDay.fromDateTime(_controller.ultrasoundAppointmentDateTime ?? DateTime.now()),
-              );
-              if (pickedTime != null) {
-                setState(() {
-                  _controller.ultrasoundAppointmentDateTime = DateTime(
-                    pickedDate.year,
-                    pickedDate.month,
-                    pickedDate.day,
-                    pickedTime.hour,
-                    pickedTime.minute,
-                  );
-                });
-              }
-            }
-          },
-          child: Text(_controller.ultrasoundAppointmentDateTime == null
-              ? 'Pick Date & Time'
-              : 'Date & Time: ${_controller.ultrasoundAppointmentDateTime!.toLocal()}'),
-        ),
-      ],
-    );
-  }
+
 
   Widget _buildUltraSoundAppointmentNumberAndLabel() {
     return Row(

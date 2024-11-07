@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:health/presentation/controller/language.controller.dart';
 
 class LanguageToggle extends StatefulWidget {
   final Locale? initialLocale;
@@ -12,7 +13,8 @@ class LanguageToggle extends StatefulWidget {
 }
 
 class _LanguageToggleState extends State<LanguageToggle> {
-  late Locale _selectedLocale;
+  LanguageController _controller = LanguageController();
+  Locale _selectedLocale = const Locale('en', 'US');
   final FlutterTts flutterTts = FlutterTts();
   bool isMuted = false;
 
@@ -20,7 +22,7 @@ class _LanguageToggleState extends State<LanguageToggle> {
   void initState() {
     super.initState();
     // Default to English if initialLocale is null
-    _selectedLocale = widget.initialLocale ?? Locale('en', 'US');
+    _selectedLocale = widget.initialLocale ?? const Locale('en', 'US');
     _setTtsLanguage(_selectedLocale);
   }
 
@@ -66,26 +68,12 @@ class _LanguageToggleState extends State<LanguageToggle> {
     setState(() {
       _selectedLocale = locale;
     });
-    widget.onLocaleChanged?.call(locale);  // Call if onLocaleChanged is not null
     await _setTtsLanguage(locale);
-    String languageSpoken;
-    switch (locale.languageCode) {
-      case 'en':
-        languageSpoken = 'English';
-        break;
-      case 'ta':
-        languageSpoken = 'தமிழ்';
-        break;
-      case 'es':
-        languageSpoken = 'Spanish';
-        break;
-      case 'fr':
-        languageSpoken = 'French';
-        break;
-      default:
-        languageSpoken = 'English';
-    }
+    String languageSpoken = locale.languageCode == 'en' ? 'English' : locale.languageCode == 'ta' ? 'தமிழ்' : locale.languageCode == 'es' ? 'Spanish' : 'French';
     await _speak('Language changed to $languageSpoken');
+    if (widget.onLocaleChanged != null) {
+      widget.onLocaleChanged!(locale);
+    }
   }
 
   @override
@@ -99,9 +87,7 @@ class _LanguageToggleState extends State<LanguageToggle> {
         const SizedBox(width: 8),
         PopupMenuButton<Locale>(
           icon: const Icon(Icons.language, color: Colors.black),
-          onSelected: (locale) {
-            _handleLanguageChange(locale);
-          },
+          onSelected: _handleLanguageChange,
           itemBuilder: (BuildContext context) {
             return [
               const PopupMenuItem<Locale>(

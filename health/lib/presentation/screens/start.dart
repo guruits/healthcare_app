@@ -15,9 +15,14 @@ class _StartState extends State<Start> {
   @override
   void initState() {
     super.initState();
-    _controller.loadUserDetails();
+    _loadUserData();
   }
-
+  Future<void> _loadUserData() async {
+    await _controller.loadUserDetails();
+    if (mounted) {
+      setState(() {});
+    }
+  }
 
 
   void navigateToScreen(Widget screen) {
@@ -32,7 +37,7 @@ class _StartState extends State<Start> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('$_controller.userName - $_controller.userRole'),
+        title: Text('${_controller.userName} - ${_controller.userRole}'),
         leading: IconButton(
           icon: Icon(Icons.logout),
           onPressed: () async {
@@ -67,9 +72,9 @@ class _StartState extends State<Start> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset('assets/images/${title.toLowerCase().replaceAll(' ', '')}.png', height: 200, width: 200),
-            SizedBox(height: 10),
-            //Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)), // Uncomment this to show titles
+            Image.asset('assets/images/${title.toLowerCase().replaceAll(' ', '')}.png', height: 200, width: 200,fit: BoxFit.contain,),
+            SizedBox(height: 0.2),
+            Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
           ],
         ),
       ),

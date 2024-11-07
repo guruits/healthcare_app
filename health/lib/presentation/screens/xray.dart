@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:health/presentation/controller/xray.controller.dart';
 import 'package:health/presentation/screens/selectPatient.dart';
 import 'package:health/presentation/screens/start.dart';
+import 'package:health/presentation/widgets/dateandtimepicker.widgets.dart';
 
 import '../widgets/language.widgets.dart';
 
@@ -147,7 +148,7 @@ class _XRayState extends State<XRay> {
             SizedBox(height: 20),
             _buildPatientInfoBox(),
             SizedBox(height: 20),
-            _buildAppointmentDateTimePicker(),
+            Dateandtimepicker(),
             SizedBox(height: 20),
             _buildXRayAppointmentNumberAndLabel(),
             SizedBox(height: 20),
@@ -198,44 +199,7 @@ class _XRayState extends State<XRay> {
     );
   }
 
-  Widget _buildAppointmentDateTimePicker() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text('Appointment Date and Time', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-        ElevatedButton(
-          onPressed: () async {
-            DateTime? pickedDate = await showDatePicker(
-              context: context,
-              initialDate: _controller.xrayAppointmentDateTime ?? DateTime.now(),
-              firstDate: DateTime(2000),
-              lastDate: DateTime(2101),
-            );
-            if (pickedDate != null) {
-              TimeOfDay? pickedTime = await showTimePicker(
-                context: context,
-                initialTime: TimeOfDay.fromDateTime(_controller.xrayAppointmentDateTime ?? DateTime.now()),
-              );
-              if (pickedTime != null) {
-                setState(() {
-                  _controller.xrayAppointmentDateTime = DateTime(
-                    pickedDate.year,
-                    pickedDate.month,
-                    pickedDate.day,
-                    pickedTime.hour,
-                    pickedTime.minute,
-                  );
-                });
-              }
-            }
-          },
-          child: Text(_controller.xrayAppointmentDateTime == null
-              ? 'Pick Date & Time'
-              : 'Date & Time: ${_controller.xrayAppointmentDateTime!.toLocal()}'),
-        ),
-      ],
-    );
-  }
+
 
   Widget _buildXRayAppointmentNumberAndLabel() {
     return Row(

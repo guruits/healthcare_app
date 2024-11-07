@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:health/presentation/screens/selectPatient.dart';
 import 'package:health/presentation/screens/start.dart';
+import 'package:health/presentation/widgets/dateandtimepicker.widgets.dart';
 import '../controller/dentist.controller.dart';
 import '../widgets/language.widgets.dart';
 
@@ -115,7 +116,7 @@ class _DentistState extends State<Dentist> {
             SizedBox(height: 20),
             _buildPatientInfoBox(),
             SizedBox(height: 20),
-            _buildAppointmentDateTimePicker(),
+            Dateandtimepicker(),
             SizedBox(height: 20),
             _buildDentistAppointmentNumberAndLabel(),
             SizedBox(height: 20),
@@ -168,44 +169,7 @@ class _DentistState extends State<Dentist> {
     );
   }
 
-  Widget _buildAppointmentDateTimePicker() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text('Appointment Date and Time', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-        ElevatedButton(
-          onPressed: () async {
-            DateTime? pickedDate = await showDatePicker(
-              context: context,
-              initialDate: _controller.appointmentDateTime ?? DateTime.now(),
-              firstDate: DateTime(2000),
-              lastDate: DateTime(2101),
-            );
-            if (pickedDate != null) {
-              TimeOfDay? pickedTime = await showTimePicker(
-                context: context,
-                initialTime: TimeOfDay.fromDateTime(_controller.appointmentDateTime ?? DateTime.now()),
-              );
-              if (pickedTime != null) {
-                setState(() {
-                  _controller.appointmentDateTime = DateTime(
-                    pickedDate.year,
-                    pickedDate.month,
-                    pickedDate.day,
-                    pickedTime.hour,
-                    pickedTime.minute,
-                  );
-                });
-              }
-            }
-          },
-          child: Text(_controller.appointmentDateTime == null
-              ? 'Pick Date & Time'
-              : 'Date & Time: ${_controller.appointmentDateTime!.toLocal()}'),
-        ),
-      ],
-    );
-  }
+
 
   Widget _buildDentistAppointmentNumberAndLabel() {
     return Row(

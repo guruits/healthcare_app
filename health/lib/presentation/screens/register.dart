@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_tts/flutter_tts.dart';
 import 'package:health/presentation/controller/register.controller.dart';
 import 'package:health/presentation/screens/login.dart';
-import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
 import '../widgets/language.widgets.dart';

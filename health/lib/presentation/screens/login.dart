@@ -34,7 +34,8 @@ class _LoginState extends State<Login> {
           LanguageToggle(),
         ],
       ),
-      body: Padding(
+      body: SingleChildScrollView(
+        child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Row(
           children: [
@@ -189,6 +190,7 @@ class _LoginState extends State<Login> {
               ),
             ),
           ],
+          ),
         ),
       ),
     );
