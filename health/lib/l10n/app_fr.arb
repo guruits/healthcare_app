@@ -1,0 +1,13 @@
+{
+  "appTitle": "Application de Santé",
+  "welcomeMessage": "Bienvenue sur l'Application de Santé",
+  "selectLanguage": "Sélectionnez votre langue",
+  "language": "Français",
+  "english": "Anglais",
+  "tamil": "Tamoul",
+  "spanish": "Espagnol",
+  "french": "Français",
+  "languageChanged": "Langue changée en {language}",
+  "login": "Connexion",
+  "signUp": "S'inscrire"
+}

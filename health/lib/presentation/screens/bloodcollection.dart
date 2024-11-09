@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:health/presentation/screens/selectPatient.dart';
 import 'package:health/presentation/screens/start.dart';
+import 'package:health/presentation/widgets/dateandtimepicker.widgets.dart';
 import '../controller/bloodcollection.controller.dart';
 import '../widgets/language.widgets.dart';
 
@@ -139,7 +140,7 @@ class _BloodcollectionState extends State<Bloodcollection> {
             SizedBox(height: 20),
             _buildPatientInfoBox(),
             SizedBox(height: 20),
-            _buildCollectionDateTimePicker(),
+            Dateandtimepicker(),
             SizedBox(height: 20),
             _buildBloodCollectionNumberAndLabel(),
             SizedBox(height: 20),
@@ -190,44 +191,7 @@ class _BloodcollectionState extends State<Bloodcollection> {
     );
   }
 
-  Widget _buildCollectionDateTimePicker() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text('Collection Date and Time', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-        ElevatedButton(
-          onPressed: () async {
-            DateTime? pickedDate = await showDatePicker(
-              context: context,
-              initialDate: _controller.collectionDateTime ?? DateTime.now(),
-              firstDate: DateTime(2000),
-              lastDate: DateTime(2101),
-            );
-            if (pickedDate != null) {
-              TimeOfDay? pickedTime = await showTimePicker(
-                context: context,
-                initialTime: TimeOfDay.fromDateTime(_controller.collectionDateTime ?? DateTime.now()),
-              );
-              if (pickedTime != null) {
-                setState(() {
-                  _controller.updateCollectionDateTime(DateTime(
-                    pickedDate.year,
-                    pickedDate.month,
-                    pickedDate.day,
-                    pickedTime.hour,
-                    pickedTime.minute,
-                  ));
-                });
-              }
-            }
-          },
-          child: Text(_controller.collectionDateTime == null
-              ? 'Pick Date & Time'
-              : 'Date & Time Selected'),
-        ),
-      ],
-    );
-  }
+
 
   Widget _buildBloodCollectionNumberAndLabel() {
     return Column(

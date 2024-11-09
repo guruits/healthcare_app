@@ -1,0 +1,13 @@
+{
+  "english": "English",
+  "appTitle": "My Health App",
+  "login": "Sign In",
+  "signUp": "Sign Up",
+
+  "languageChanged": "Language changed to {languageName}",
+  "tamil": "Tamil",
+  "spanish": "Spanish",
+  "french": "French"
+
+
+}

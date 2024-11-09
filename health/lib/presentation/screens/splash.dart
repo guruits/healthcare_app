@@ -1,9 +1,10 @@
 // splash.dart
 import 'package:flutter/material.dart';
+import 'package:health/main.dart';
 import 'package:health/presentation/controller/splash.controller.dart';
 
 class Splash extends StatefulWidget {
-  const Splash({super.key});
+
 
   @override
   State<Splash> createState() => _SplashState();

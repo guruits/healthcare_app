@@ -1,13 +1,13 @@
-// home.dart
 import 'package:flutter/material.dart';
 import 'package:health/presentation/controller/home.controller.dart';
 import 'package:health/presentation/screens/login.dart';
 import 'package:health/presentation/screens/register.dart';
-
 import '../widgets/language.widgets.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class Home extends StatefulWidget {
-  const Home({super.key});
+  //const Home({super.key});
+
 
   @override
   State<Home> createState() => _HomeState();
@@ -16,22 +16,37 @@ class Home extends StatefulWidget {
 class _HomeState extends State<Home> {
   late final HomeController _controller;
 
+
   @override
   void initState() {
     super.initState();
     _controller = HomeController();
   }
 
+ /* @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }*/
+
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
+    if (localizations == null) {
+      print('Localizations is null!');
+      return Container();
+    }
     double screenHeight = MediaQuery.of(context).size.height;
     double screenWidth = MediaQuery.of(context).size.width;
+
+    print('Current locale: ${Localizations.localeOf(context)}');
+    print('Login text: ${localizations.login}');
+
     return Scaffold(
       appBar: AppBar(
+        title: Text(localizations.appTitle),
         actions: [
           LanguageToggle(),
-          // Language Change Dropdown
-
         ],
       ),
       body: Padding(
@@ -52,7 +67,7 @@ class _HomeState extends State<Home> {
                   SizedBox(height: 20),
                   ElevatedButton(
                     onPressed: () {
-                      _controller.speakText("Navigating to Sign Up");
+                      _controller.speakText(localizations.signUp);
                       Navigator.of(context).pushReplacement(
                         MaterialPageRoute(builder: (_) => Register()),
                       );
@@ -66,9 +81,9 @@ class _HomeState extends State<Home> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 32, vertical: 16),
                     ),
-                    child: const Text(
-                      'Sign Up',
-                      style: TextStyle(
+                    child: Text(
+                      localizations.signUp,
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
@@ -96,7 +111,7 @@ class _HomeState extends State<Home> {
                   SizedBox(height: 20),
                   ElevatedButton(
                     onPressed: () {
-                      _controller.speakText("Navigating to Login");
+                      _controller.speakText(localizations.login);
                       Navigator.of(context).pushReplacement(
                         MaterialPageRoute(builder: (_) => Login()),
                       );
@@ -110,14 +125,14 @@ class _HomeState extends State<Home> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 32, vertical: 16),
                     ),
-                    child: const Text(
-                      'Login',
-                      style: TextStyle(
+                    child: Text(
+                      localizations.login,
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                  )
+                  ),
                 ],
               ),
             ),
