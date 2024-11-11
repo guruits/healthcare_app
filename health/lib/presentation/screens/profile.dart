@@ -3,6 +3,8 @@ import 'package:health/presentation/controller/profile.controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:health/presentation/screens/start.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+
 
 import '../widgets/language.widgets.dart';
 
@@ -52,9 +54,11 @@ class _ProfileState extends State<Profile> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('Profile'),
+        title: Text(localizations.profile),
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
           onPressed: () {
@@ -73,13 +77,13 @@ class _ProfileState extends State<Profile> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // Profile fields as text input fields
-              _buildTextField('Full Name', _controller.fullNameController),
-              _buildTextField('Email', _controller.emailController),
-              _buildTextField('Phone Number', _controller.phoneNumberController),
-              _buildTextField('Role', _controller.roleController),
-              _buildTextField('Aadhar Number', _controller.aadharNumberController),
-              _buildTextField('Date of Birth', _controller.dobController),
-              _buildTextField('Address for Communication', _controller.addressController),
+              _buildTextField(localizations.fullName, _controller.fullNameController),
+              _buildTextField(localizations.email, _controller.emailController),
+              _buildTextField(localizations.phoneNumber, _controller.phoneNumberController),
+              _buildTextField(localizations.role, _controller.roleController),
+              _buildTextField(localizations.aadharNumber, _controller.aadharNumberController),
+              _buildTextField(localizations.dob, _controller.dobController),
+              _buildTextField(localizations.address, _controller.addressController),
 
               SizedBox(height: 30),
               ElevatedButton(
@@ -91,7 +95,7 @@ class _ProfileState extends State<Profile> {
                   textStyle: TextStyle(fontSize: 18),
                   minimumSize: Size(200, 50),
                 ),
-                child: Text('Change Password'),
+                child: Text(localizations.changePassword),
               ),
               SizedBox(height: 20),
               ElevatedButton(
@@ -101,10 +105,10 @@ class _ProfileState extends State<Profile> {
                   textStyle: TextStyle(fontSize: 18),
                   minimumSize: Size(200, 50),
                 ),
-                child: Text('Update Profile'),
+                child: Text(localizations.updateProfile),
               ),
               SizedBox(height: 30),
-              Text('Leave Calendar', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+              Text(localizations.leaveCalendar, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
               SizedBox(height: 10),
               Container(
                 height: 400,

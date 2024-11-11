@@ -3,7 +3,7 @@ import 'package:health/presentation/controller/helpdesk.controller.dart';
 import 'package:health/presentation/screens/appointments.dart';
 import 'package:health/presentation/screens/start.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../widgets/language.widgets.dart';
 
@@ -33,6 +33,7 @@ class _HelpdeskState extends State<Helpdesk> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -67,7 +68,7 @@ class _HelpdeskState extends State<Helpdesk> {
                       });
                     },
                     child: Text(
-                      "Existing Patient",
+                      localizations.existing_patient,
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -91,7 +92,7 @@ class _HelpdeskState extends State<Helpdesk> {
                       });
                     },
                     child: Text(
-                      "New Patient",
+                      localizations.new_patient,
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -113,7 +114,7 @@ class _HelpdeskState extends State<Helpdesk> {
                     children: [
                       TextField(
                         decoration: InputDecoration(
-                          labelText: 'Enter Phone Number',
+                          labelText: localizations.enter_phone_number,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                             borderSide: BorderSide(),
@@ -137,7 +138,7 @@ class _HelpdeskState extends State<Helpdesk> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                        hint: Text('Select Patient'),
+                        hint: Text(localizations.select_patient),
                         items: _controller.patientList.map((String patient) {
                           return DropdownMenuItem<String>(
                             value: patient,
@@ -155,9 +156,9 @@ class _HelpdeskState extends State<Helpdesk> {
                       ),
                       if (_controller.selectedPatient != null) ...[
                         SizedBox(height: 10),
-                        Text("Aadhar Number: $_controller.aadharNumber"),
-                        Text("Date of Birth: $_controller.dob"),
-                        Text("Address: $_controller.address"),
+                        Text("${localizations.aadhar_number}: $_controller.aadharNumber"),
+                        Text("${localizations.dob}: $_controller.dob"),
+                        Text("${localizations.address}: $_controller.address"),
                         SizedBox(height: 20),
                         ElevatedButton(
                           onPressed: bookAppointment,
@@ -167,11 +168,11 @@ class _HelpdeskState extends State<Helpdesk> {
                               borderRadius: BorderRadius.circular(10),
                             ),
                           ),
-                          child: Text("Book Appointment"),
+                          child: Text(localizations.book_appointment),
                         ),
                       ],
                       if (_controller.isAppointmentBooked)
-                        Text("Appointment booked successfully!"),
+                        Text(localizations.appointment_booked),
                     ],
                   ),
                 ),
@@ -186,7 +187,7 @@ class _HelpdeskState extends State<Helpdesk> {
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
                     children: [
-                      Text("Upload Aadhar Card", style: TextStyle(fontSize: 18)),
+                      Text(localizations.upload_aadhar_card, style: TextStyle(fontSize: 18)),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
@@ -194,14 +195,14 @@ class _HelpdeskState extends State<Helpdesk> {
                             children: [
                               ElevatedButton(
                                 onPressed: () => _controller.pickImage(ImageSource.gallery, true),
-                                child: Text("Upload Aadhar Front Side"),
+                                child: Text(localizations.upload_aadhar_front_side),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.blue, // Button color
                                 ),
                               ),
                               ElevatedButton(
                                 onPressed: () => _controller.pickImage(ImageSource.camera, true),
-                                child: Text("Capture Aadhar Front Side"),
+                                child: Text(localizations.capture_aadhar_front_side),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.blue, // Button color
                                 ),
@@ -219,14 +220,14 @@ class _HelpdeskState extends State<Helpdesk> {
                             children: [
                               ElevatedButton(
                                 onPressed: () => _controller.pickImage(ImageSource.gallery, false),
-                                child: Text("Upload Aadhar Back Side"),
+                                child: Text(localizations.upload_aadhar_back_side),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.blue, // Button color
                                 ),
                               ),
                               ElevatedButton(
                                 onPressed: () => _controller.pickImage(ImageSource.camera, false),
-                                child: Text("Capture Aadhar Back Side"),
+                                child: Text(localizations.capture_aadhar_back_side),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.blue, // Button color
                                 ),
@@ -244,7 +245,7 @@ class _HelpdeskState extends State<Helpdesk> {
                       SizedBox(height: 10),
                       TextField(
                         decoration: InputDecoration(
-                          labelText: 'Enter Phone Number',
+                          labelText: localizations.enter_phone_number,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                             borderSide: BorderSide(),
@@ -263,7 +264,7 @@ class _HelpdeskState extends State<Helpdesk> {
                       SizedBox(height: 10),
                       TextField(
                         decoration: InputDecoration(
-                          labelText: 'Enter Date of Birth',
+                          labelText: localizations.dob,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                             borderSide: BorderSide(),
@@ -282,7 +283,7 @@ class _HelpdeskState extends State<Helpdesk> {
                       SizedBox(height: 10),
                       TextField(
                         decoration: InputDecoration(
-                          labelText: 'Enter Address',
+                          labelText: localizations.address,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                             borderSide: BorderSide(),
@@ -307,11 +308,11 @@ class _HelpdeskState extends State<Helpdesk> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                        child: Text("Add User"),
+                        child: Text(localizations.add_user),
                       ),
                       if (_controller.isUserAdded) ...[
                         SizedBox(height: 10),
-                        Text("User added successfully!"),
+                        Text(localizations.user_added,),
                         SizedBox(height: 20),
                         ElevatedButton(
                           onPressed: bookAppointment,
@@ -321,7 +322,7 @@ class _HelpdeskState extends State<Helpdesk> {
                               borderRadius: BorderRadius.circular(10),
                             ),
                           ),
-                          child: Text("Book Appointment"),
+                          child: Text(localizations.book_appointment),
                         ),
                       ],
                     ],

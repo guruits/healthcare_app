@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:health/presentation/controller/language.controller.dart';
 import 'package:health/presentation/controller/login.controller.dart';
 import 'package:health/presentation/screens/register.dart';
 import 'package:health/presentation/screens/start.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../widgets/language.widgets.dart';
 
@@ -14,6 +16,7 @@ class Login extends StatefulWidget {
 
 class _LoginState extends State<Login> {
   final LoginController _controller = LoginController();
+  final LanguageController _languageController = LanguageController();
   @override
   void initState() {
     super.initState();
@@ -28,9 +31,14 @@ class _LoginState extends State<Login> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
+    if (localizations == null) {
+      print('Localizations is null!');
+      return Container();
+    }
     return Scaffold(
       appBar: AppBar(
-        actions: [
+        actions:    [
           LanguageToggle(),
         ],
       ),
@@ -57,7 +65,7 @@ class _LoginState extends State<Login> {
                     controller: _controller.phoneController,
                     readOnly: _controller.phoneReadOnly,
                     decoration: InputDecoration(
-                      labelText: 'Phone Number',
+                      labelText: localizations.phone_number,
                       border: OutlineInputBorder(),
                     ),
                   ),
@@ -67,14 +75,15 @@ class _LoginState extends State<Login> {
                   _controller.showContinueButton
                       ? ElevatedButton(
                     onPressed: () {
+                      _languageController.speakText(localizations.continueButton);
                       setState(() {
                         _controller.phoneReadOnly = true;
                         _controller.showContinueButton = false;
                         _controller.showUserDropdown = true;
                       });
                     },
-                    child: Text('Continue'),
-                  )
+                        child:Text(localizations?.continueButton ?? "Continue"),
+                        )
                       : Container(),
 
                   // User dropdown
@@ -89,7 +98,7 @@ class _LoginState extends State<Login> {
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
                           isExpanded: true,
-                          hint: Text("Choose User"),
+                          hint: Text(localizations.choose_user),
                           value: _controller.selectedUser.isNotEmpty ? _controller.selectedUser : null,
                           items: _controller.userData.keys.map((String user) {
                             return DropdownMenuItem<String>(
@@ -119,33 +128,34 @@ class _LoginState extends State<Login> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'User Information',
+                              localizations.user_information,
                               style: TextStyle(
                                   fontSize: 18, fontWeight: FontWeight.bold),
                             ),
                             SizedBox(height: 10),
                             Text(
-                              'Aadhar: ${_controller.userData[_controller.selectedUser]?['Aadhar'] ?? ''}',
+                              '${localizations.aadhar}: ${_controller.userData[_controller.selectedUser]?['Aadhar'] ?? ''}',
+                              style: TextStyle(fontSize: 16),
+                            ),
+
+                            SizedBox(height: 5),
+                            Text(
+                              '${localizations.full_name}: ${_controller.userData[_controller.selectedUser]?['FullName'] ?? ''}',
                               style: TextStyle(fontSize: 16),
                             ),
                             SizedBox(height: 5),
                             Text(
-                              'Full Name: ${_controller.userData[_controller.selectedUser]?['FullName'] ?? ''}',
+                              '${localizations.dob}: ${_controller.userData[_controller.selectedUser]?['DOB'] ?? ''}',
                               style: TextStyle(fontSize: 16),
                             ),
                             SizedBox(height: 5),
                             Text(
-                              'DOB: ${_controller.userData[_controller.selectedUser]?['DOB'] ?? ''}',
+                              '${localizations.address}: ${_controller.userData[_controller.selectedUser]?['Address'] ?? ''}',
                               style: TextStyle(fontSize: 16),
                             ),
                             SizedBox(height: 5),
                             Text(
-                              'Address: ${_controller.userData[_controller.selectedUser]?['Address'] ?? ''}',
-                              style: TextStyle(fontSize: 16),
-                            ),
-                            SizedBox(height: 5),
-                            Text(
-                              'Role: ${_controller.userData[_controller.selectedUser]?['Role'] ?? ''}',
+                              '${localizations.role}: ${_controller.userData[_controller.selectedUser]?['Role'] ?? ''}',
                               style: TextStyle(fontSize: 16),
                             ),
                           ],
@@ -159,7 +169,6 @@ class _LoginState extends State<Login> {
                   if (_controller.showLoginButton)
                     ElevatedButton(
                       onPressed: () async {
-                        // Save user details before navigating to Start screen
                         await _controller.saveUserDetails(
                           _controller.selectedUser,
                           _controller.userData[_controller.selectedUser]?['Role'] ?? '',
@@ -168,7 +177,7 @@ class _LoginState extends State<Login> {
                           Start(),
                         );
                       },
-                      child: Text("Login"),
+                      child: Text(localizations.login),
                     ),
 
                   // Ask if user wants to create an account
@@ -180,8 +189,7 @@ class _LoginState extends State<Login> {
                           MaterialPageRoute(builder: (context) => Register()),
                         );
                       },
-                      child: Text(
-                        "Are you want to create an account?",
+                      child: Text(localizations.create_account,
                         style: TextStyle(color: Colors.blue),
                       ),
                     ),

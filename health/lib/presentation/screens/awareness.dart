@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:health/presentation/widgets/language.widgets.dart';
 import 'package:health/presentation/screens/start.dart';
-
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../controller/awareness.controller.dart';
 
 class Awareness extends StatefulWidget {
@@ -32,6 +32,7 @@ class _AwarenessState extends State<Awareness> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -40,7 +41,7 @@ class _AwarenessState extends State<Awareness> {
             navigateToScreen(Start());
           },
         ),
-        title: Text('Diabetic Awareness'),
+        title: Text(localizations.diabeticAwarenessTitle),
         actions: [
           LanguageToggle(),
         ],
@@ -51,7 +52,7 @@ class _AwarenessState extends State<Awareness> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Enter Your Weight (in kg):',
+              localizations.enterWeight,
               style: TextStyle(fontSize: 16),
             ),
             TextField(
@@ -64,7 +65,7 @@ class _AwarenessState extends State<Awareness> {
             ),
             SizedBox(height: 20),
             Text(
-              'Select Diet Plan:',
+              localizations.dietPlanPrompt,
               style: TextStyle(fontSize: 16),
             ),
             DropdownButton<String>(
@@ -87,18 +88,18 @@ class _AwarenessState extends State<Awareness> {
               onPressed: () {
                 _controller.generateDietPlan(_onDietPlanGenerated);
               },
-              child: Text('Generate Diet Plan'),
+              child: Text(localizations.generateDietPlan),
             ),
             SizedBox(height: 20),
             Text(
-              'Generated Diet Plan:',
+              localizations.generatedDietPlan,
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 10),
             Text(
               _controller.dietPlan.isNotEmpty
                   ? _controller.dietPlan
-                  : 'No diet plan generated yet.',
+                  : localizations.noDietPlan,
               style: TextStyle(fontSize: 14),
             ),
             SizedBox(height: 20),
@@ -106,7 +107,7 @@ class _AwarenessState extends State<Awareness> {
               onPressed: _controller.dietPlan.isNotEmpty
                   ? () => _controller.generatePDF(context)
                   : null,
-              child: Text('Download as PDF'),
+              child: Text(localizations.downloadPDF),
             ),
           ],
         ),

@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:health/presentation/screens/appointments.dart';
@@ -21,6 +22,7 @@ import 'package:health/presentation/screens/profile.dart';
 import 'package:health/presentation/screens/ultrasound.dart';
 import 'package:health/presentation/screens/urinecollection.dart';
 import 'package:health/presentation/screens/xray.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class StartController {
   FlutterTts flutterTts = FlutterTts();
@@ -149,6 +151,52 @@ class StartController {
     {
       isMuted = !isMuted;
     };
+  }
+  String getLocalizedTitle(BuildContext context, String key) {
+    final l10n = AppLocalizations.of(context)!;
+    switch (key.toLowerCase()) {
+      case 'helpdesk':
+        return l10n.helpdesk;
+      case 'appointments':
+        return l10n.appointments;
+      case 'vitals':
+        return l10n.vitals;
+      case 'blood collection':
+        return l10n.bloodCollection;
+      case 'urine collection':
+        return l10n.urineCollection;
+      case 'arc':
+        return l10n.arc;
+      case 'dentist':
+        return l10n.dentist;
+      case 'x-ray':
+        return l10n.xray;
+      case 'dexa scan':
+        return l10n.dexaScan;
+      case 'echo':
+        return l10n.echo;
+      case 'ultrasound':
+        return l10n.ultrasound;
+      case 'awareness':
+        return l10n.awareness;
+      case 'consultation':
+        return l10n.consultation;
+      case 'reports':
+        return l10n.reports;
+      case 'profile':
+        return l10n.profile;
+      case 'doctors':
+        return l10n.doctors;
+      case 'employees':
+        return l10n.employees;
+      case 'pharmacy':
+        return l10n.pharmacy;
+      case 'printer':
+        return l10n.printer;
+
+      default:
+        return key;
+    }
   }
 }
 

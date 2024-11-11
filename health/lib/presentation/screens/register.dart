@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:health/presentation/controller/register.controller.dart';
 import 'package:health/presentation/screens/login.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'dart:io';
-
 import '../widgets/language.widgets.dart';
 
 class Register extends StatefulWidget {
@@ -24,6 +24,7 @@ class _RegisterState extends State<Register> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     double screenWidth = MediaQuery.of(context).size.width;
     bool isLargeScreen = screenWidth > 600;
 
@@ -74,6 +75,7 @@ class _RegisterState extends State<Register> {
   }
 
   Widget _buildFormFields() {
+    final localizations = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -81,7 +83,7 @@ class _RegisterState extends State<Register> {
           controller: _controller.phoneController,
           keyboardType: TextInputType.phone,
           decoration: InputDecoration(
-            labelText: 'Phone Number',
+            labelText:localizations.phone_number ,
             border: OutlineInputBorder(),
           ),
           onChanged: (value) {
@@ -103,7 +105,7 @@ class _RegisterState extends State<Register> {
                   });
                   _controller.speakText("Aadhar QR Code scan activated");
                 },
-                child: Text("Scan Aadhar QR Code"),
+                child: Text(localizations.scan_aadhar_qr),
               ),
               ElevatedButton(
                 onPressed: () {
@@ -113,7 +115,7 @@ class _RegisterState extends State<Register> {
                   });
                   _controller.speakText("Aadhar card front and back scan activated");
                 },
-                child: Text("Scan Aadhar Card (Front & Back)"),
+                child: Text(localizations.scan_aadhar_front_back),
               ),
             ],
           ),
@@ -130,7 +132,7 @@ class _RegisterState extends State<Register> {
                 ),
                 ElevatedButton(
                   onPressed: _controller.scanQrCode,
-                  child: Text("Scan QR Code"),
+                  child: Text(localizations.scan_aadhar_qr),
                 ),
               ],
             ),
@@ -138,18 +140,18 @@ class _RegisterState extends State<Register> {
         if (_controller.showCameraOptions)
           Column(
             children: [
-              Text("Scan Aadhar Card Front & Back"),
+              Text(localizations.scan_aadhar_front_back),
               SizedBox(height: 10),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   ElevatedButton(
                     onPressed: () => _controller.pickImage('front'),
-                    child: Text("Scan Front"),
+                    child: Text(localizations.scan_aadhar_front),
                   ),
                   ElevatedButton(
                     onPressed: () => _controller.pickImage('back'),
-                    child: Text("Scan Back"),
+                    child: Text(localizations.scan_aadhar_back),
                   ),
                 ],
               ),
@@ -158,7 +160,7 @@ class _RegisterState extends State<Register> {
         if (_controller.showPreview)
           Column(
             children: [
-              Text("Preview of Scanned Images:"),
+              Text(localizations.preview_scanned_images),
               SizedBox(height: 10),
               Image.file(File(_controller.frontImagePath!), height: 100),
               SizedBox(height: 10),
@@ -171,7 +173,7 @@ class _RegisterState extends State<Register> {
               TextField(
                 readOnly: true,
                 decoration: InputDecoration(
-                  labelText: 'Aadhar Number',
+                  labelText: localizations.aadhar_number,
                   hintText: _controller.aadharNumber,
                   border: OutlineInputBorder(),
                 ),
@@ -180,7 +182,7 @@ class _RegisterState extends State<Register> {
               TextField(
                 readOnly: true,
                 decoration: InputDecoration(
-                  labelText: 'Full Name',
+                  labelText: localizations.full_name,
                   hintText: _controller.fullName,
                   border: OutlineInputBorder(),
                 ),
@@ -189,7 +191,7 @@ class _RegisterState extends State<Register> {
               TextField(
                 readOnly: true,
                 decoration: InputDecoration(
-                  labelText: 'DOB',
+                  labelText: localizations.dob,
                   hintText: _controller.dob,
                   border: OutlineInputBorder(),
                 ),
@@ -198,7 +200,7 @@ class _RegisterState extends State<Register> {
               TextField(
                 readOnly: true,
                 decoration: InputDecoration(
-                  labelText: 'Address',
+                  labelText: localizations.address,
                   hintText: _controller.address,
                   border: OutlineInputBorder(),
                 ),
@@ -209,7 +211,7 @@ class _RegisterState extends State<Register> {
                   _controller.speakText("Sign Up button pressed");
                   showPasswordPopup();
                 },
-                child: Text("Sign Up"),
+                child: Text(localizations.sign_up),
               ),
             ],
           ),
@@ -218,6 +220,7 @@ class _RegisterState extends State<Register> {
   }
 
   void showPasswordPopup() {
+    final localizations = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (context) {
@@ -226,7 +229,7 @@ class _RegisterState extends State<Register> {
         TextEditingController();
 
         return AlertDialog(
-          title: Text("Set Password"),
+          title: Text(localizations.set_password),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -234,7 +237,7 @@ class _RegisterState extends State<Register> {
                 controller: newPasswordController,
                 obscureText: true,
                 decoration: InputDecoration(
-                  labelText: 'New Password',
+                  labelText: localizations.new_password,
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -243,7 +246,7 @@ class _RegisterState extends State<Register> {
                 controller: confirmPasswordController,
                 obscureText: true,
                 decoration: InputDecoration(
-                  labelText: 'Confirm Password',
+                  labelText: localizations.confirm_password,
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -257,7 +260,7 @@ class _RegisterState extends State<Register> {
                   MaterialPageRoute(builder: (_) => Login()),
                 );
               },
-              child: Text("Submit"),
+              child: Text(localizations.submit),
             ),
           ],
         );
