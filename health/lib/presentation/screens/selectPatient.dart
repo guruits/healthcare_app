@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:health/presentation/controller/selectPatient.controller.dart';
-import 'package:health/presentation/screens/start.dart';
-
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../widgets/language.widgets.dart';
+import 'package:health/presentation/screens/start.dart';
+import 'package:health/presentation/controller/selectPatient.controller.dart';
 
 class SelectPatient extends StatefulWidget {
   final Function(String) onSelect;
@@ -16,51 +16,75 @@ class SelectPatient extends StatefulWidget {
 class _SelectPatientState extends State<SelectPatient> {
   final SelectpatientController _controller = SelectpatientController();
 
-
-
-  @override
-  void initState() {
-    super.initState();
-    // Generate patient list with Tamil names
-    _controller.patients = List.generate(25, (index) {
-      return {
-        'serialNumber': index + 1,
-        'patientName': _controller.tamilNames[index % _controller.tamilNames.length], // Tamil names from list
-        'bloodTestStatus': 'In Progress',
-        'urineTestStatus': 'Completed',
-        'arcTestStatus': 'Yet to Start',
-        'dentistStatus': 'Completed',
-        'xrayStatus': 'In Progress',
-        'dexaScanStatus': 'Yet to Start',
-        'echoTestStatus': 'Completed',
-        'ultrasoundStatus': 'In Progress',
-        'consultationStatus': 'Completed',
-      };
-    });
-  }
-
-  List<Map<String, dynamic>> get _filteredPatients {
-    List<Map<String, dynamic>> filtered = _controller.patients;
-
-    if (_controller.selectedTest != null && _controller.selectedStatus != null) {
-      filtered = filtered.where((patient) {
-        String testStatus = patient[_controller.selectedTest!.replaceAll(' ', '').toLowerCase() + 'Status'] ?? '';
-        return testStatus == _controller.selectedStatus;
-      }).toList();
+  String _getLocalizedTest(String testKey, AppLocalizations localizations) {
+    switch (testKey) {
+      case 'blood_test_label':
+        return localizations.blood_test_label;
+      case 'urine_test_label':
+        return localizations.urine_test_label;
+      case 'arc_test_label':
+        return localizations.arc_test_label;
+      case 'dentist_test_label':
+        return localizations.dentist_test_label;
+      case 'xray_label':
+        return localizations.xray_label;
+      case 'dexa_scan_label':
+        return localizations.dexa_scan_label;
+      case 'echo_test_label':
+        return localizations.echo_test_label;
+      case 'ultrasound_label':
+        return localizations.ultrasound_label;
+      case 'consultation_label':
+        return localizations.consultation_label;
+      default:
+        return testKey;
     }
-
-    return filtered.skip(_controller.currentPage * _controller.rowsPerPage).take(_controller.rowsPerPage).toList();
   }
 
+  String _getStatusKey(String testType) {
+    switch (testType) {
+      case 'blood_test':
+        return 'bloodTestStatus';
+      case 'urine_test':
+        return 'urineTestStatus';
+      case 'arc_test':
+        return 'arcTestStatus';
+      case 'dentist':
+        return 'dentistTestStatus';
+      case 'xray':
+        return 'xrayStatus';
+      case 'dexa_scan':
+        return 'dexaScanStatus';
+      case 'echo_test':
+        return 'echoTestStatus';
+      case 'ultrasound':
+        return 'ultrasoundStatus';
+      case 'consultation':
+        return 'consultationStatus';
+      default:
+        return '${testType}Status';
+    }
+  }
 
+  String _getLocalizedStatus(String statusKey, AppLocalizations localizations) {
+    switch (statusKey) {
+      case SelectpatientController.STATUS_IN_PROGRESS:
+        return localizations.status_in_progress;
+      case SelectpatientController.STATUS_COMPLETED:
+        return localizations.status_completed;
+      case SelectpatientController.STATUS_YET_TO_START:
+        return localizations.status_yet_to_start;
+      default:
+        return statusKey;
+    }
+  }
 
   void _selectPatient(Map<String, dynamic> patient) {
-    widget.onSelect(patient['patientName']); // Call the callback with patient name
-    Navigator.pop(context); // Navigate back after selection
+    widget.onSelect(patient['patientName'] ?? '');
+    Navigator.pop(context);
   }
 
-  // Function to handle navigation
-  void navigateToScreen(Widget screen) {
+  void _navigateToScreen(Widget screen) {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => screen),
     );
@@ -68,41 +92,40 @@ class _SelectPatientState extends State<SelectPatient> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: Icon(Icons.arrow_back),
-          onPressed: () {
-            navigateToScreen(Start());
-          },
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => _navigateToScreen(Start()),
         ),
-        title: Text('Select Patient'),
-        actions: [
+        title: Text(localizations.select_patient),
+        actions: const [
           LanguageToggle(),
         ],
       ),
       body: Column(
         children: [
-          _buildFilterSection(),
-          _buildDataTable(),
-          _buildPaginationControls(),
+          _buildFilterSection(localizations),
+          _buildDataTable(localizations),
+          _buildPaginationControls(localizations),
         ],
       ),
     );
   }
 
-  Widget _buildFilterSection() {
+  Widget _buildFilterSection(AppLocalizations localizations) {
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: Row(
         children: [
           DropdownButton<String>(
             value: _controller.selectedTest,
-            hint: Text('Select Test'),
-            items: _controller.tests.map((test) {
+            hint: Text(localizations.select_test),
+            items: _controller.testKeys.map((testKey) {
               return DropdownMenuItem(
-                value: test,
-                child: Text(test),
+                value: testKey,
+                child: Text(_getLocalizedTest(testKey, localizations)),
               );
             }).toList(),
             onChanged: (value) {
@@ -111,14 +134,14 @@ class _SelectPatientState extends State<SelectPatient> {
               });
             },
           ),
-          SizedBox(width: 10),
+          const SizedBox(width: 10),
           DropdownButton<String>(
             value: _controller.selectedStatus,
-            hint: Text('Select Status'),
-            items: _controller.statuses.map((status) {
+            hint: Text(localizations.select_status),
+            items: _controller.statusKeys.map((statusKey) {
               return DropdownMenuItem(
-                value: status,
-                child: Text(status),
+                value: statusKey,
+                child: Text(_getLocalizedStatus(statusKey, localizations)),
               );
             }).toList(),
             onChanged: (value) {
@@ -127,48 +150,53 @@ class _SelectPatientState extends State<SelectPatient> {
               });
             },
           ),
-          SizedBox(width: 10),
+          const SizedBox(width: 10),
           ElevatedButton(
-            onPressed: _controller.clearFilter,
-            child: Text('Clear Filter'),
+            onPressed: () {
+              setState(() {
+                _controller.clearFilter();
+              });
+            },
+            child: Text(localizations.clear_filter),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildDataTable() {
+  Widget _buildDataTable(AppLocalizations localizations) {
+    final filteredPatients = _controller.getFilteredPatients();
     return Expanded(
       child: ListView.builder(
-        itemCount: _filteredPatients.length,
+        itemCount: filteredPatients.length,
         itemBuilder: (context, index) {
-          final patient = _filteredPatients[index];
+          final patient = filteredPatients[index];
           return Card(
             elevation: 4,
             margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-            child:GestureDetector(
+            child: GestureDetector(
+              onTap: () => _selectPatient(patient),
               child: Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Patient Name: ${patient['patientName']}',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      '${localizations.patient_name}: ${patient['patientName'] ?? ''}',
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
-                    _buildStatusDropdownRow('Blood Test', patient['bloodTestStatus'], index, 'bloodTestStatus'),
-                    _buildStatusDropdownRow('Urine Test', patient['urineTestStatus'], index, 'urineTestStatus'),
-                    _buildStatusDropdownRow('ARC Test', patient['arcTestStatus'], index, 'arcTestStatus'),
-                    _buildStatusDropdownRow('Dentist Test', patient['dentistStatus'], index, 'dentistStatus'),
-                    _buildStatusDropdownRow('X-ray', patient['xrayStatus'], index, 'xrayStatus'),
-                    _buildStatusDropdownRow('Dexa Scan', patient['dexaScanStatus'], index, 'dexaScanStatus'),
-                    _buildStatusDropdownRow('Echo Test', patient['echoTestStatus'], index, 'echoTestStatus'),
-                    _buildStatusDropdownRow('Ultrasound', patient['ultrasoundStatus'], index, 'ultrasoundStatus'),
-                    _buildStatusDropdownRow('Consultation', patient['consultationStatus'], index, 'consultationStatus'),
+                    _buildStatusRow('blood_test', patient['bloodTestStatus'] ?? _controller.getDefaultStatus(), index, localizations),
+                    _buildStatusRow('urine_test', patient['urineTestStatus'] ?? _controller.getDefaultStatus(), index, localizations),
+                    _buildStatusRow('arc_test', patient['arcTestStatus'] ?? _controller.getDefaultStatus(), index, localizations),
+                    _buildStatusRow('dentist_test', patient['dentistTestStatus'] ?? _controller.getDefaultStatus(), index, localizations),
+                    _buildStatusRow('xray', patient['xrayStatus'] ?? _controller.getDefaultStatus(), index, localizations),
+                    _buildStatusRow('dexa_scan', patient['dexaScanStatus'] ?? _controller.getDefaultStatus(), index, localizations),
+                    _buildStatusRow('echo_test', patient['echoTestStatus'] ?? _controller.getDefaultStatus(), index, localizations),
+                    _buildStatusRow('ultrasound', patient['ultrasoundStatus'] ?? _controller.getDefaultStatus(), index, localizations),
+                    _buildStatusRow('consultation', patient['consultationStatus'] ?? _controller.getDefaultStatus(), index, localizations),
                   ],
                 ),
               ),
-              onTap: () => _selectPatient(patient),
             ),
           );
         },
@@ -176,22 +204,28 @@ class _SelectPatientState extends State<SelectPatient> {
     );
   }
 
-  Widget _buildStatusDropdownRow(String testType, String currentStatus, int index, String statusKey) {
+  Widget _buildStatusRow(String testType, String currentStatus, int index, AppLocalizations localizations) {
+    String statusKey = _getStatusKey(testType);
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(testType, style: TextStyle(fontSize: 16)),
+        Text(
+          _getLocalizedTest('${testType}_label', localizations),
+          style: const TextStyle(fontSize: 16),
+        ),
         DropdownButton<String>(
           value: currentStatus,
-          items: _controller.statuses.map((status) {
-            return DropdownMenuItem(
+          items: _controller.statusKeys.map((status) {
+            return DropdownMenuItem<String>(
               value: status,
-              child: Text(status),
+              child: Text(_getLocalizedStatus(status, localizations)),
             );
           }).toList(),
-          onChanged: (value) {
-            if (value != null) {
-              _controller.changeStatus(index, statusKey, value);
+          onChanged: (String? newValue) {
+            if (newValue != null) {
+              setState(() {
+                _controller.changeStatus(index, statusKey, newValue);
+              });
             }
           },
         ),
@@ -199,14 +233,14 @@ class _SelectPatientState extends State<SelectPatient> {
     );
   }
 
-  Widget _buildPaginationControls() {
+  Widget _buildPaginationControls(AppLocalizations localizations) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           IconButton(
-            icon: Icon(Icons.arrow_back),
+            icon: const Icon(Icons.arrow_back),
             onPressed: _controller.currentPage > 0
                 ? () {
               setState(() {
@@ -215,10 +249,11 @@ class _SelectPatientState extends State<SelectPatient> {
             }
                 : null,
           ),
-          Text('Page ${_controller.currentPage + 1}'),
+          Text('${localizations.page} ${_controller.currentPage + 1}'),
           IconButton(
-            icon: Icon(Icons.arrow_forward),
-            onPressed: (_controller.currentPage + 1) * _controller.rowsPerPage < _controller.patients.length
+            icon: const Icon(Icons.arrow_forward),
+            onPressed: (_controller.currentPage + 1) * _controller.rowsPerPage <
+                _controller.patients.length
                 ? () {
               setState(() {
                 _controller.currentPage++;

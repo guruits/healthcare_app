@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:health/presentation/controller/vitals.controller.dart';
 import 'package:health/presentation/screens/start.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../widgets/language.widgets.dart';
 
@@ -24,6 +25,7 @@ class _VitalsState extends State<Vitals> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -32,7 +34,7 @@ class _VitalsState extends State<Vitals> {
             navigateToScreen(Start());
           },
         ),
-        title: const Text('Bluetooth Native'),
+        title:  Text(localizations.blutooth_vitals),
         centerTitle: true,
         actions: [
           LanguageToggle(),
@@ -48,21 +50,21 @@ class _VitalsState extends State<Vitals> {
                 onPressed: () {
                   _controller.requestBluetoothPermissions(_controller.connectToDevices);
                 },
-                child: const Text('Connect to Devices'),
+                child: Text(localizations.connectedDevices),
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[500]),
                 onPressed: () {
                   _controller.requestBluetoothPermissions(_controller.discoverBlue);
                 },
-                child: const Text('Discover Devices'),
+                child:  Text(localizations.discoverDevices),
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[500]),
                 onPressed: () {
                   _controller.requestBluetoothPermissions(_controller.getAllPaired);
                 },
-                child: const Text('All Paired Devices'),
+                child:  Text(localizations.allPairedDevices),
               ),
             ],
           ),
@@ -72,7 +74,7 @@ class _VitalsState extends State<Vitals> {
               children: [
                 Padding(
                   padding: const EdgeInsets.all(8.0),
-                  child: Text('Available Devices', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  child: Text(localizations.availableDevices, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 ),
                 ..._controller.discoveredDevices.map((device) => ListTile(
                   title: Text(device),
@@ -82,7 +84,7 @@ class _VitalsState extends State<Vitals> {
                 )),
                 Padding(
                   padding: const EdgeInsets.all(8.0),
-                  child: Text('Connected Devices', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  child: Text(localizations.connectedDevices, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 ),
                 ..._controller.connectedDevices.map((device) => ListTile(
                   title: Text(device),
@@ -92,7 +94,7 @@ class _VitalsState extends State<Vitals> {
                 )),
                 Padding(
                   padding: const EdgeInsets.all(8.0),
-                  child: Text('Previously Connected Devices', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  child: Text(localizations.previouslyConnectedDevices, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 ),
                 ..._controller.previouslyConnectedDevices.map((device) => ListTile(
                   title: Text(device),

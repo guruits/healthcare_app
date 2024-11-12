@@ -3,6 +3,7 @@ import 'package:health/presentation/controller/reports.controller.dart';
 import 'package:health/presentation/screens/pdfView.dart';
 import 'package:health/presentation/screens/selectPatient.dart';
 import 'package:health/presentation/screens/start.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../widgets/language.widgets.dart';
 
@@ -15,7 +16,6 @@ class Reports extends StatefulWidget {
 
 class _ReportsState extends State<Reports> {
   final ReportsController _controller = ReportsController();
-
 
   void _navigateToSelectPatient(String test) async {
     final patientName = await Navigator.of(context).push(
@@ -73,7 +73,6 @@ class _ReportsState extends State<Reports> {
     );
   }
 
-  // Function to handle navigation
   void navigateToScreen(Widget screen) {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => screen),
@@ -82,6 +81,7 @@ class _ReportsState extends State<Reports> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -90,23 +90,26 @@ class _ReportsState extends State<Reports> {
             navigateToScreen(Start());
           },
         ),
-        title: const Text('Select Test'),
+        title: Text(localizations.select_test),
         actions: [
           LanguageToggle(),
         ],
       ),
       body: GridView.builder(
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 5, // Adjust number of columns as needed
+          crossAxisCount: 5,
           crossAxisSpacing: 10,
           mainAxisSpacing: 10,
-          childAspectRatio: 0.8, // Adjust the height of the grid items
+          childAspectRatio: 0.8,
         ),
         itemCount: _controller.tests.length,
         itemBuilder: (context, index) {
+          final testName = _controller.tests[index];
+          final localizedTestName = _getLocalizedTestName(testName, localizations);
+
           return GestureDetector(
             onTap: () {
-              _navigateToSelectPatient(_controller.tests[index]);
+              _navigateToSelectPatient(testName);
             },
             child: Card(
               elevation: 4,
@@ -114,13 +117,13 @@ class _ReportsState extends State<Reports> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
-                    Icons.folder, // Use folder icon
-                    size: 50, // Size of the icon
+                    Icons.folder,
+                    size: 50,
                     color: Theme.of(context).primaryColor,
                   ),
-                  const SizedBox(height: 10), // Space between icon and label
+                  const SizedBox(height: 10),
                   Text(
-                    _controller.tests[index],
+                    localizedTestName,
                     textAlign: TextAlign.center,
                     style: const TextStyle(fontSize: 16),
                   ),
@@ -131,5 +134,32 @@ class _ReportsState extends State<Reports> {
         },
       ),
     );
+  }
+
+  String _getLocalizedTestName(String test, AppLocalizations localizations) {
+    switch (test) {
+      case 'Blood Test':
+        return localizations.bloodTest;
+      case 'Urine Test':
+        return localizations.urineTest;
+      case 'Drug Prescription':
+        return localizations.drugPrescription;
+      case 'Eye Arc Test':
+        return localizations.eye_arc_test;
+      case 'Dental Report':
+        return localizations.dentalReport;
+      case 'X-ray':
+        return localizations.xray;
+      case 'DEXA Scan':
+        return localizations.dexaScan;
+      case 'Echo Test':
+        return localizations.echoTest;
+      case 'Ultrasound Test':
+        return localizations.ultrasoundTest;
+      case 'Diet Plan':
+        return localizations.dietPlan;
+      default:
+        return test;
+    }
   }
 }

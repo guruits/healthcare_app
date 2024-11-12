@@ -3,7 +3,7 @@ import 'package:health/presentation/widgets/dateandtimepicker.widgets.dart';
 import 'package:health/presentation/widgets/language.widgets.dart';
 import 'package:health/presentation/screens/selectPatient.dart';
 import 'package:health/presentation/screens/start.dart';
-
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../controller/arc.controller.dart';
 
 class Arc extends StatefulWidget {
@@ -24,6 +24,7 @@ class _ArcState extends State<Arc> {
   }
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -32,7 +33,7 @@ class _ArcState extends State<Arc> {
             navigateToScreen(Start());
           },
         ),
-        title: Text('Eye Arc Test'),
+        title: Text(localizations.eye_arc_test),
         actions: [
           LanguageToggle(),
 
@@ -48,6 +49,7 @@ class _ArcState extends State<Arc> {
   }
 
   Widget _buildSelectPatientButton() {
+    final localizations = AppLocalizations.of(context)!;
     return Center(
       child: Column(
         children: [
@@ -91,7 +93,7 @@ class _ArcState extends State<Arc> {
                 Icon(Icons.person_add, color: Colors.white),
                 SizedBox(width: 10),
                 Text(
-                  'Select Patient',
+                  localizations.select_patient,
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -108,6 +110,7 @@ class _ArcState extends State<Arc> {
   }
 
   Widget _buildArcTestForm() {
+    final localizations = AppLocalizations.of(context)!;
     return Center(
       child: SingleChildScrollView(
         child: Column(
@@ -125,7 +128,7 @@ class _ArcState extends State<Arc> {
             SizedBox(height: 20),
             ElevatedButton(
               onPressed: controller.submit,
-              child: Text('Submit'),
+              child: Text(localizations.submit),
             ),
           ],
         ),
@@ -134,6 +137,7 @@ class _ArcState extends State<Arc> {
   }
 
   Widget _buildPatientInfoBox() {
+    final localizations = AppLocalizations.of(context)!;
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -142,13 +146,13 @@ class _ArcState extends State<Arc> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Selected Patient Information', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(localizations.selected_patient_info, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             Divider(),
-            _buildInfoRow('Patient Name', controller.selectedPatient),
-            _buildInfoRow('Mobile Number', controller.patientMobileNumber),
-            _buildInfoRow('Aadhar Number', controller.patientAadharNumber),
-            _buildInfoRow('Appointment Slot', controller.appointmentSlot),
-            _buildInfoRow('Address', controller.patientAddress),
+            _buildInfoRow(localizations.patient_name, controller.selectedPatient),
+            _buildInfoRow(localizations.mobile_number, controller.patientMobileNumber),
+            _buildInfoRow(localizations.aadhar_number, controller.patientAadharNumber),
+            _buildInfoRow(localizations.appointment_slot, controller.appointmentSlot),
+            _buildInfoRow(localizations.address, controller.patientAddress),
           ],
         ),
       ),
@@ -172,13 +176,14 @@ class _ArcState extends State<Arc> {
 
 
   Widget _buildArcTestNumberAndLabel() {
+    final localizations = AppLocalizations.of(context)!;
     return Row(
       children: [
         Expanded(
           child: TextField(
             readOnly: true,
             decoration: InputDecoration(
-              labelText: 'Generated Arc Test Number',
+              labelText: localizations.generated_arc_test_number,
               border: OutlineInputBorder(),
             ),
             controller: TextEditingController(text: controller.arcTestNumber),
@@ -190,7 +195,7 @@ class _ArcState extends State<Arc> {
             await controller.printLabel();
             setState(() {}); // Update status message
           },
-          child: Text('Print Label'),
+          child: Text(localizations.print_label),
         ),
       ],
     );

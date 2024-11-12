@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
 import 'package:health/presentation/screens/start.dart';
-
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../widgets/language.widgets.dart';
 
 // Sample list of report types and their corresponding reports
@@ -105,18 +105,19 @@ class _PrinterState extends State<Printer> {
   }
 
   Future<void> checkPrinterConnection() async {
+    final localizations = AppLocalizations.of(context)!;
     bool isConnected = await checkConnection(); // Simulate checking the connection
 
     if (!isConnected) {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          title: Text('Printer not connected'),
-          content: Text('Please connect to the selected printer.'),
+          title: Text(localizations.printerNotConnected),
+          content: Text(localizations.connectToPrinter),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('OK'),
+              child: Text(localizations.ok),
             ),
             LanguageToggle(),
 
@@ -132,17 +133,18 @@ class _PrinterState extends State<Printer> {
 
   // Function to show print progress
   void showPrintProgress() {
+    final localizations = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: Text('Printing...'),
+        title: Text(localizations.printProgress),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             CircularProgressIndicator(),
             SizedBox(height: 20),
-            Text('Printing to $selectedPrinter...'),
+            Text('${localizations.printProgress} $selectedPrinter...'),
           ],
         ),
       ),
@@ -150,16 +152,17 @@ class _PrinterState extends State<Printer> {
 
     // Simulate a delay
     Future.delayed(Duration(seconds: 3), () {
+      final localizations = AppLocalizations.of(context)!;
       Navigator.pop(context); // Close the progress dialog
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          title: Text('Print Complete'),
-          content: Text('Your report has been sent to $selectedPrinter.'),
+          title: Text(localizations.printComplete),
+          content: Text('${localizations.printSuccess} $selectedPrinter.'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('OK'),
+              child: Text(localizations.ok),
             ),
           ],
         ),
@@ -191,9 +194,10 @@ class _PrinterState extends State<Printer> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: Text('Print Reports'),
+        title: Text(localizations.printer),
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
           onPressed: () {
@@ -201,23 +205,7 @@ class _PrinterState extends State<Printer> {
           },
         ),
         actions: [
-          DropdownButton<String>(
-            value: selectedLanguage,
-            icon: Icon(Icons.language),
-            items: [
-              DropdownMenuItem(value: 'en-US', child: Text('English')),
-              DropdownMenuItem(value: 'es-ES', child: Text('Spanish')),
-              DropdownMenuItem(value: 'fr-FR', child: Text('French')),
-              DropdownMenuItem(value: 'ta-IN', child: Text('Tamil')),
-            ],
-            onChanged: (String? newLang) {
-              if (newLang != null) changeLanguage(newLang);
-            },
-          ),
-          IconButton(
-            icon: Icon(isMuted ? Icons.volume_off : Icons.volume_up),
-            onPressed: toggleMute,
-          ),
+          LanguageToggle(),
         ],
       ),
       body: Padding(
@@ -226,7 +214,7 @@ class _PrinterState extends State<Printer> {
           children: [
             // Category selection dropdown
             DropdownButton<String>(
-              hint: Text('Select Report Category'),
+              hint: Text(localizations.selectReportCategory),
               value: selectedCategory,
               items: reportCategories.keys.map((category) {
                 return DropdownMenuItem<String>(
@@ -256,18 +244,18 @@ class _PrinterState extends State<Printer> {
                               } else {
                                 // Handle error if report path is not found
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Report not found!')),
+                                  SnackBar(content: Text(localizations.reportNotFound)),
                                 );
                               }
                             },
-                            child: Text('Preview'),
+                            child: Text(localizations.preview),
                           ),
                           SizedBox(width: 8),
                           ElevatedButton(
                             onPressed: () {
                               printReport(reportName); // Call print function
                             },
-                            child: Text('Print'),
+                            child: Text(localizations.print),
                           ),
                         ],
                       ),
@@ -290,9 +278,10 @@ class PDFViewerScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: Text('PDF Viewer'),
+        title: Text(localizations.preview),
       ),
       body: PDFView(
         filePath: reportPath,

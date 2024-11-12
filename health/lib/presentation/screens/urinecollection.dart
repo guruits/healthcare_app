@@ -4,6 +4,7 @@ import 'package:health/presentation/controller/urinecollection.contoller.dart';
 import 'package:health/presentation/screens/selectPatient.dart';
 import 'package:health/presentation/screens/start.dart';
 import 'package:health/presentation/widgets/dateandtimepicker.widgets.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../widgets/language.widgets.dart';
 
@@ -61,6 +62,7 @@ class _UrineCollectionState extends State<Urinecollection> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -69,7 +71,7 @@ class _UrineCollectionState extends State<Urinecollection> {
             navigateToScreen(Start());
           },
         ),
-        title: Text('Urine Collection'),
+        title: Text(localizations.urine_collection),
         actions: [
           LanguageToggle(),
         ],
@@ -82,6 +84,7 @@ class _UrineCollectionState extends State<Urinecollection> {
   }
 
   Widget _buildSelectPatientButton() {
+    final localizations = AppLocalizations.of(context)!;
     return Center(
       child: Column(
         children: [
@@ -103,6 +106,7 @@ class _UrineCollectionState extends State<Urinecollection> {
                         '10:00 AM - 10:30 AM',
                         '123, Example Street, City, Country',
                       );
+                      setState(() {});
                     },
                   ),
                 ),
@@ -123,7 +127,7 @@ class _UrineCollectionState extends State<Urinecollection> {
                 Icon(Icons.person_add, color: Colors.white), // Add an icon
                 SizedBox(width: 10),
                 Text(
-                  'Select Patient',
+                  localizations.select_patient,
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -140,6 +144,7 @@ class _UrineCollectionState extends State<Urinecollection> {
   }
 
   Widget _buildUrineCollectionForm() {
+    final localizations = AppLocalizations.of(context)!;
     return Center(
       child: SingleChildScrollView(
         child: Column(
@@ -157,7 +162,7 @@ class _UrineCollectionState extends State<Urinecollection> {
             SizedBox(height: 20),
             ElevatedButton(
               onPressed: _submit,
-              child: Text('Submit'),
+              child: Text(localizations.submit),
             ),
           ],
         ),
@@ -166,6 +171,7 @@ class _UrineCollectionState extends State<Urinecollection> {
   }
 
   Widget _buildPatientInfoBox() {
+    final localizations = AppLocalizations.of(context)!;
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -174,13 +180,13 @@ class _UrineCollectionState extends State<Urinecollection> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Selected Patient Information', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(localizations.selected_patient_info, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             Divider(),
-            _buildInfoRow('Patient Name', _controller.selectedPatient),
-            _buildInfoRow('Mobile Number', _controller.patientMobileNumber),
-            _buildInfoRow('Aadhar Number', _controller.patientAadharNumber),
-            _buildInfoRow('Appointment Slot', _controller.appointmentSlot),
-            _buildInfoRow('Address', _controller.patientAddress),
+            _buildInfoRow(localizations.patient_name,_controller.selectedPatient),
+            _buildInfoRow(localizations.mobile_number, _controller.patientMobileNumber),
+            _buildInfoRow(localizations.aadhar_number, _controller.patientAadharNumber),
+            _buildInfoRow(localizations.appointment_slot, _controller.appointmentSlot),
+            _buildInfoRow(localizations.address, _controller.patientAddress),
           ],
         ),
       ),
@@ -204,6 +210,7 @@ class _UrineCollectionState extends State<Urinecollection> {
 
 
   Widget _buildUrineCollectionNumberAndLabel() {
+    final localizations = AppLocalizations.of(context)!;
     return Row(
       children: [
         Expanded(

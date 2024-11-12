@@ -4,6 +4,7 @@ import 'package:health/presentation/screens/start.dart';
 import 'package:health/presentation/widgets/dateandtimepicker.widgets.dart';
 import '../controller/dentist.controller.dart';
 import '../widgets/language.widgets.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class Dentist extends StatefulWidget {
   const Dentist({super.key});
@@ -17,6 +18,7 @@ class _DentistState extends State<Dentist> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -25,7 +27,7 @@ class _DentistState extends State<Dentist> {
             navigateToScreen(Start());
           },
         ),
-        title: Text('Dentist Appointment'),
+        title: Text(localizations.dentist_appointment),
         actions: [
           LanguageToggle(),
         ],
@@ -46,6 +48,7 @@ class _DentistState extends State<Dentist> {
   }
 
   Widget _buildSelectPatientButton() {
+    final localizations = AppLocalizations.of(context)!;
     return Center(
       child: Column(
         children: [
@@ -88,7 +91,7 @@ class _DentistState extends State<Dentist> {
                 Icon(Icons.person_add, color: Colors.white),
                 SizedBox(width: 10),
                 Text(
-                  'Select Patient',
+                  localizations.select_patient,
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -105,6 +108,7 @@ class _DentistState extends State<Dentist> {
   }
 
   Widget _buildDentistAppointmentForm() {
+    final localizations = AppLocalizations.of(context)!;
     return Center(
       child: SingleChildScrollView(
         child: Column(
@@ -124,7 +128,7 @@ class _DentistState extends State<Dentist> {
               onPressed: () {
                 _controller.submit(context, _controller.selectedPatient, _controller.appointmentDateTime);
               },
-              child: Text('Submit'),
+              child: Text(localizations.submit),
             ),
           ],
         ),
@@ -133,6 +137,7 @@ class _DentistState extends State<Dentist> {
   }
 
   Widget _buildPatientInfoBox() {
+    final localizations = AppLocalizations.of(context)!;
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -141,13 +146,14 @@ class _DentistState extends State<Dentist> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Selected Patient Information', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(localizations.selected_patient_info, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             Divider(),
-            _buildInfoRow('Patient Name', _controller.selectedPatient),
-            _buildInfoRow('Mobile Number', _controller.patientMobileNumber),
-            _buildInfoRow('Aadhar Number', _controller.patientAadharNumber),
-            _buildInfoRow('Appointment Slot', _controller.appointmentSlot),
-            _buildInfoRow('Address', _controller.patientAddress),
+            _buildInfoRow(localizations.patient_name,_controller.selectedPatient),
+            _buildInfoRow(localizations.mobile_number, _controller.patientMobileNumber),
+            _buildInfoRow(localizations.aadhar_number, _controller.patientAadharNumber),
+            _buildInfoRow(localizations.appointment_slot, _controller.appointmentSlot),
+            _buildInfoRow(localizations.address, _controller.patientAddress),
+
           ],
         ),
       ),
@@ -172,13 +178,14 @@ class _DentistState extends State<Dentist> {
 
 
   Widget _buildDentistAppointmentNumberAndLabel() {
+    final localizations = AppLocalizations.of(context)!;
     return Row(
       children: [
         Expanded(
           child: TextField(
             readOnly: true,
             decoration: InputDecoration(
-              labelText: 'Generated Dentist Appointment Number',
+              labelText: localizations.generated_dentist_appointment_number,
               border: OutlineInputBorder(),
               hintText: 'Automatically generated',
             ),
@@ -188,7 +195,7 @@ class _DentistState extends State<Dentist> {
         SizedBox(width: 10),
         ElevatedButton(
           onPressed: _controller.isPrinting ? null : _controller.printLabel,
-          child: Text('Print Label'),
+          child: Text(localizations.print_label),
         ),
       ],
     );

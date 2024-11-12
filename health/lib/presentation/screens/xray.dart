@@ -4,6 +4,7 @@ import 'package:health/presentation/controller/xray.controller.dart';
 import 'package:health/presentation/screens/selectPatient.dart';
 import 'package:health/presentation/screens/start.dart';
 import 'package:health/presentation/widgets/dateandtimepicker.widgets.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../widgets/language.widgets.dart';
 
@@ -58,6 +59,7 @@ class _XRayState extends State<XRay> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -66,7 +68,7 @@ class _XRayState extends State<XRay> {
             navigateToScreen(Start());
           },
         ),
-        title: Text('X-Ray Appointment'),
+        title: Text(localizations.xray_appointment),
         actions: [
           LanguageToggle(),
         ],
@@ -79,6 +81,7 @@ class _XRayState extends State<XRay> {
   }
 
   Widget _buildSelectPatientButton() {
+    final localizations = AppLocalizations.of(context)!;
     return Center(
       child: Column(
         children: [
@@ -100,6 +103,7 @@ class _XRayState extends State<XRay> {
                         '10:00 AM - 10:30 AM',
                         '123, Example Street, City, Country',
                       );
+                      setState(() {});
                     },
                   ),
                 ),
@@ -120,7 +124,7 @@ class _XRayState extends State<XRay> {
                 Icon(Icons.person_add, color: Colors.white),
                 SizedBox(width: 10),
                 Text(
-                  'Select Patient',
+                  localizations.select_patient,
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -137,6 +141,7 @@ class _XRayState extends State<XRay> {
   }
 
   Widget _buildXRayAppointmentForm() {
+    final localizations = AppLocalizations.of(context)!;
     return Center(
       child: SingleChildScrollView(
         child: Column(
@@ -154,7 +159,7 @@ class _XRayState extends State<XRay> {
             SizedBox(height: 20),
             ElevatedButton(
               onPressed: _submit,
-              child: Text('Submit'),
+              child: Text(localizations.submit),
             ),
           ],
         ),
@@ -163,6 +168,7 @@ class _XRayState extends State<XRay> {
   }
 
   Widget _buildPatientInfoBox() {
+    final localizations = AppLocalizations.of(context)!;
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -171,13 +177,13 @@ class _XRayState extends State<XRay> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Selected Patient Information', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(localizations.selected_patient_info, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             Divider(),
-            _buildInfoRow('Patient Name', _controller.selectedPatient),
-            _buildInfoRow('Mobile Number', _controller.patientMobileNumber),
-            _buildInfoRow('Aadhar Number', _controller.patientAadharNumber),
-            _buildInfoRow('Appointment Slot', _controller.appointmentSlot),
-            _buildInfoRow('Address', _controller.patientAddress),
+            _buildInfoRow(localizations.patient_name,_controller.selectedPatient),
+            _buildInfoRow(localizations.mobile_number, _controller.patientMobileNumber),
+            _buildInfoRow(localizations.aadhar_number, _controller.patientAadharNumber),
+            _buildInfoRow(localizations.appointment_slot, _controller.appointmentSlot),
+            _buildInfoRow(localizations.address, _controller.patientAddress),
           ],
         ),
       ),
@@ -202,13 +208,14 @@ class _XRayState extends State<XRay> {
 
 
   Widget _buildXRayAppointmentNumberAndLabel() {
+    final localizations = AppLocalizations.of(context)!;
     return Row(
       children: [
         Expanded(
           child: TextField(
             readOnly: true,
             decoration: InputDecoration(
-              labelText: 'Generated X-Ray Appointment Number',
+              labelText: localizations.generated_xray_appointment_number,
               border: OutlineInputBorder(),
               hintText: 'Automatically generated',
             ),
@@ -218,7 +225,7 @@ class _XRayState extends State<XRay> {
         SizedBox(width: 10),
         ElevatedButton(
           onPressed: _controller.isPrinting ? null : _printLabel,
-          child: Text('Print Label'),
+          child: Text(localizations.print_label),
         ),
       ],
     );

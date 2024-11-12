@@ -4,6 +4,7 @@ import 'package:health/presentation/controller/echo.controller.dart';
 import 'package:health/presentation/screens/selectPatient.dart';
 import 'package:health/presentation/screens/start.dart';
 import 'package:health/presentation/widgets/dateandtimepicker.widgets.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../widgets/language.widgets.dart';
 
@@ -47,6 +48,7 @@ class _EchoState extends State<Echo> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -55,7 +57,7 @@ class _EchoState extends State<Echo> {
             navigateToScreen(Start());
           },
         ),
-        title: Text('Echo Appointment'),
+        title: Text(localizations.echo_appointment),
         actions: [
           LanguageToggle()
         ],
@@ -68,6 +70,7 @@ class _EchoState extends State<Echo> {
   }
 
   Widget _buildSelectPatientButton() {
+    final localizations = AppLocalizations.of(context)!;
     return Center(
       child: Column(
         children: [
@@ -89,6 +92,7 @@ class _EchoState extends State<Echo> {
                         '10:00 AM - 10:30 AM',
                         '123, Example Street, City, Country',
                       );
+                      setState(() {});
                     },
                   ),
                 ),
@@ -109,7 +113,7 @@ class _EchoState extends State<Echo> {
                 Icon(Icons.person_add, color: Colors.white),
                 SizedBox(width: 10),
                 Text(
-                  'Select Patient',
+                  localizations.select_patient,
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -126,6 +130,7 @@ class _EchoState extends State<Echo> {
   }
 
   Widget _buildEchoAppointmentForm() {
+    final localizations = AppLocalizations.of(context)!;
     return Center(
       child: SingleChildScrollView(
         child: Column(
@@ -143,7 +148,7 @@ class _EchoState extends State<Echo> {
             SizedBox(height: 20),
             ElevatedButton(
               onPressed: _submit,
-              child: Text('Submit'),
+              child: Text(localizations.submit),
             ),
           ],
         ),
@@ -152,6 +157,7 @@ class _EchoState extends State<Echo> {
   }
 
   Widget _buildPatientInfoBox() {
+    final localizations = AppLocalizations.of(context)!;
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -160,13 +166,13 @@ class _EchoState extends State<Echo> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Selected Patient Information', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(localizations.selected_patient_info, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             Divider(),
-            _buildInfoRow('Patient Name', _controller.selectedPatient),
-            _buildInfoRow('Mobile Number', _controller.patientMobileNumber),
-            _buildInfoRow('Aadhar Number', _controller.patientAadharNumber),
-            _buildInfoRow('Appointment Slot', _controller.appointmentSlot),
-            _buildInfoRow('Address', _controller.patientAddress),
+            _buildInfoRow(localizations.patient_name,_controller.selectedPatient),
+            _buildInfoRow(localizations.mobile_number, _controller.patientMobileNumber),
+            _buildInfoRow(localizations.aadhar_number, _controller.patientAadharNumber),
+            _buildInfoRow(localizations.appointment_slot, _controller.appointmentSlot),
+            _buildInfoRow(localizations.address, _controller.patientAddress),
           ],
         ),
       ),
@@ -191,13 +197,14 @@ class _EchoState extends State<Echo> {
 
 
   Widget _buildEchoAppointmentNumberAndLabel() {
+    final localizations = AppLocalizations.of(context)!;
     return Row(
       children: [
         Expanded(
           child: TextField(
             readOnly: true,
             decoration: InputDecoration(
-              labelText: 'Generated Echo Appointment Number',
+              labelText: localizations.generated_echo_appointment_number,
               border: OutlineInputBorder(),
               hintText: 'Automatically generated',
             ),
@@ -207,7 +214,7 @@ class _EchoState extends State<Echo> {
         SizedBox(width: 10),
         ElevatedButton(
           onPressed: _controller.isPrinting ? null : _controller.printLabel,
-          child: Text('Print Label'),
+          child: Text(localizations.print_label),
         ),
       ],
     );

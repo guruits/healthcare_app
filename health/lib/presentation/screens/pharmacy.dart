@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:health/presentation/controller/pharmacy.controller.dart';
 import 'package:health/presentation/screens/start.dart';
-
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../widgets/language.widgets.dart';
 
 class Pharmacy extends StatefulWidget {
@@ -17,6 +17,7 @@ class _PharmacyState extends State<Pharmacy> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -25,7 +26,7 @@ class _PharmacyState extends State<Pharmacy> {
             Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => Start()));
           },
         ),
-        title: Text('Pharmacy'),
+        title: Text(localizations.pharmacy),
         centerTitle: true,
         actions: [
           LanguageToggle(),
@@ -41,9 +42,9 @@ class _PharmacyState extends State<Pharmacy> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Expanded(child: _buildProductSelection()),
-                SizedBox(width: 10), // Space between widgets
+                SizedBox(width: 10),
                 Expanded(child: _buildQuantityInput()),
-                SizedBox(width: 10), // Space between widgets
+                SizedBox(width: 10),
                 _buildAddToBillButton(),
               ],
             ),
@@ -54,7 +55,7 @@ class _PharmacyState extends State<Pharmacy> {
             SizedBox(height: 20),
             ElevatedButton(
               onPressed: _controller.printBill,
-              child: Text('Generate Bill'),
+              child: Text(localizations.generate_bill),
             ),
           ],
         ),
@@ -63,9 +64,10 @@ class _PharmacyState extends State<Pharmacy> {
   }
 
   Widget _buildProductSelection() {
+    final localizations = AppLocalizations.of(context)!;
     return DropdownButtonFormField<String>(
       value: _controller.selectedProduct.isEmpty ? null : _controller.selectedProduct,
-      hint: Text('Select Product'),
+      hint: Text(localizations.select_product),
       onChanged: (String? newValue) {
         setState(() {
           _controller.selectedProduct = newValue ?? '';
@@ -80,7 +82,7 @@ class _PharmacyState extends State<Pharmacy> {
             children: [
               Text(product),
               Text(
-                'Available: ${_controller.productAvailability[product]}',
+                '${localizations.available}: ${_controller.productAvailability[product]}',
                 style: TextStyle(color: Colors.grey),
               ),
             ],
@@ -96,9 +98,10 @@ class _PharmacyState extends State<Pharmacy> {
   }
 
   Widget _buildQuantityInput() {
+    final localizations = AppLocalizations.of(context)!;
     return Row(
       children: [
-        Text('Quantity:', style: TextStyle(fontSize: 16)),
+        Text(localizations.quantity, style: TextStyle(fontSize: 16)),
         SizedBox(width: 10),
         Expanded(
           child: TextField(
@@ -111,7 +114,7 @@ class _PharmacyState extends State<Pharmacy> {
             },
             decoration: InputDecoration(
               border: OutlineInputBorder(),
-              hintText: 'Enter Quantity',
+              hintText:localizations.enter_quantity,
               filled: true,
               fillColor: Colors.white,
             ),
@@ -122,6 +125,7 @@ class _PharmacyState extends State<Pharmacy> {
   }
 
   Widget _buildAddToBillButton() {
+    final localizations = AppLocalizations.of(context)!;
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.green,
@@ -129,11 +133,12 @@ class _PharmacyState extends State<Pharmacy> {
         textStyle: TextStyle(fontSize: 18),
       ),
       onPressed: _controller.addToBillingList,
-      child: Text('Add - Total: ₹${_controller.totalPrice.toStringAsFixed(2)}'),
+      child: Text('${localizations.add_to_bill}: ₹${_controller.totalPrice.toStringAsFixed(2)}'),
     );
   }
 
   Widget _buildBillingList() {
+    final localizations = AppLocalizations.of(context)!;
     return Expanded(
       child: ListView.builder(
         itemCount: _controller.billingList.length,
@@ -153,9 +158,10 @@ class _PharmacyState extends State<Pharmacy> {
 
   // Cash received input method
   Widget _buildCashReceivedInput() {
+    final localizations = AppLocalizations.of(context)!;
     return Row(
       children: [
-        Text('Cash Received:', style: TextStyle(fontSize: 16)),
+        Text(localizations.cash_received, style: TextStyle(fontSize: 16)),
         SizedBox(width: 10),
         Expanded(
           child: TextField(
@@ -167,7 +173,7 @@ class _PharmacyState extends State<Pharmacy> {
             },
             decoration: InputDecoration(
               border: OutlineInputBorder(),
-              hintText: 'Enter Cash Received',
+              hintText: localizations.enter_cash_received,
               filled: true,
               fillColor: Colors.white,
             ),

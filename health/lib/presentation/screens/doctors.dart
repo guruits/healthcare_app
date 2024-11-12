@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:health/presentation/controller/doctors.controller.dart';
 import 'package:health/presentation/screens/start.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../widgets/language.widgets.dart';
 
@@ -23,6 +24,8 @@ class _DoctorsState extends State<Doctors> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -31,7 +34,7 @@ class _DoctorsState extends State<Doctors> {
             navigateToScreen(Start());
           },
         ),
-        title: Text('Doctors List'),
+        title: Text(localizations.doctors_list),
         actions: [
           LanguageToggle()
         ],
@@ -61,14 +64,13 @@ class _DoctorsState extends State<Doctors> {
                           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                         ),
                         SizedBox(height: 4),
-                        Text('Specialization: ${doctor['specialization']}'),
-                        Text('Availability: ${doctor['availability']}'),
-                        Text('Next Leave: ${doctor['nextLeaveDate']}'),
-                        Text('Mobile: ${doctor['mobile']}'),
+                        Text('${localizations.specialization}: ${doctor['specialization']}'),
+                        Text('${localizations.availability}: ${doctor['availability']}'),
+                        Text('${localizations.next_leave}: ${doctor['nextLeaveDate']}'),
+                        Text('${localizations.mobile}: ${doctor['mobile']}'),
                       ],
                     ),
                   ),
-                  // Action icons
                   Column(
                     children: [
                       IconButton(

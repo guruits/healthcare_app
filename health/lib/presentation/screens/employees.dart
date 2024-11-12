@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:health/presentation/controller/employees.controller.dart';
 import 'package:health/presentation/screens/start.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../widgets/language.widgets.dart';
 
@@ -23,6 +24,7 @@ class _EmployeesState extends State<Employees> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -31,7 +33,7 @@ class _EmployeesState extends State<Employees> {
             navigateToScreen(Start());
           },
         ),
-        title: Text('Employees List'),
+        title: Text(localizations.employees_list),
         actions: [
           LanguageToggle()
         ],
@@ -61,9 +63,9 @@ class _EmployeesState extends State<Employees> {
                           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                         ),
                         SizedBox(height: 4),
-                        Text('Job Title: ${employee['jobTitle']}'),
-                        Text('Mobile: ${employee['mobile']}'),
-                        Text('Email: ${employee['email']}'),
+                        Text('${localizations.job_title}: ${employee['jobTitle']}'),
+                        Text('${localizations.mobile}: ${employee['mobile']}'),
+                        Text('${localizations.email}: ${employee['email']}'),
                       ],
                     ),
                   ),

@@ -4,6 +4,7 @@ import 'package:health/presentation/screens/start.dart';
 import 'package:health/presentation/widgets/dateandtimepicker.widgets.dart';
 import '../controller/bloodcollection.controller.dart';
 import '../widgets/language.widgets.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class Bloodcollection extends StatefulWidget {
   const Bloodcollection({super.key});
@@ -50,6 +51,7 @@ class _BloodcollectionState extends State<Bloodcollection> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -58,7 +60,7 @@ class _BloodcollectionState extends State<Bloodcollection> {
             navigateToScreen(Start());
           },
         ),
-        title: Text('Blood Collection'),
+        title: Text(localizations.bloodCollection),
         actions: [
           LanguageToggle(),
         ],
@@ -71,6 +73,7 @@ class _BloodcollectionState extends State<Bloodcollection> {
   }
 
   Widget _buildSelectPatientButton() {
+    final localizations = AppLocalizations.of(context)!;
     return Center(
         child: Column(
           children: [
@@ -112,7 +115,7 @@ class _BloodcollectionState extends State<Bloodcollection> {
                   Icon(Icons.person_add, color: Colors.white),
                   SizedBox(width: 10),
                   Text(
-                    'Select Patient',
+                    localizations.select_patient,
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -129,6 +132,7 @@ class _BloodcollectionState extends State<Bloodcollection> {
   }
 
   Widget _buildBloodCollectionForm() {
+    final localizations = AppLocalizations.of(context)!;
     return Center(
       child: SingleChildScrollView(
         child: Column(
@@ -146,7 +150,7 @@ class _BloodcollectionState extends State<Bloodcollection> {
             SizedBox(height: 20),
             ElevatedButton(
               onPressed: _submit,
-              child: Text('Submit'),
+              child: Text(localizations.submit),
             ),
           ],
         ),
@@ -155,6 +159,7 @@ class _BloodcollectionState extends State<Bloodcollection> {
   }
 
   Widget _buildPatientInfoBox() {
+    final localizations = AppLocalizations.of(context)!;
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -163,13 +168,13 @@ class _BloodcollectionState extends State<Bloodcollection> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Selected Patient Information', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(localizations.selected_patient_info, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             Divider(),
-            _buildInfoRow('Patient Name', _controller.selectedPatient),
-            _buildInfoRow('Mobile Number', _controller.patientMobileNumber),
-            _buildInfoRow('Aadhar Number', _controller.patientAadharNumber),
-            _buildInfoRow('Appointment Slot', _controller.appointmentSlot),
-            _buildInfoRow('Address', _controller.patientAddress),
+            _buildInfoRow(localizations.patient_name,_controller.selectedPatient),
+            _buildInfoRow(localizations.mobile_number, _controller.patientMobileNumber),
+            _buildInfoRow(localizations.aadhar_number, _controller.patientAadharNumber),
+            _buildInfoRow(localizations.appointment_slot, _controller.appointmentSlot),
+            _buildInfoRow(localizations.address, _controller.patientAddress),
           ],
         ),
       ),
@@ -194,15 +199,16 @@ class _BloodcollectionState extends State<Bloodcollection> {
 
 
   Widget _buildBloodCollectionNumberAndLabel() {
+    final localizations = AppLocalizations.of(context)!;
     return Column(
       children: [
-        Text('Collection Number: ${_controller.collectionNumber}', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        Text( localizations.collection_number.replaceFirst('{number}', _controller.collectionNumber.toString()), style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         SizedBox(height: 10),
         ElevatedButton(
           onPressed: _printLabel,
           child: _controller.isPrinting
               ? CircularProgressIndicator()
-              : Text('Print Label'),
+              : Text(localizations.print_label),
         ),
         if (_controller.statusMessage.isNotEmpty) Text(_controller.statusMessage),
       ],

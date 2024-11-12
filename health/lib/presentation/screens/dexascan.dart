@@ -4,6 +4,7 @@ import 'package:health/presentation/screens/start.dart';
 import 'package:health/presentation/widgets/dateandtimepicker.widgets.dart';
 import '../controller/dexascan.controller.dart';
 import '../widgets/language.widgets.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class DexaScan extends StatefulWidget {
   const DexaScan({super.key});
@@ -40,6 +41,7 @@ class _DexaScanState extends State<DexaScan> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -48,7 +50,7 @@ class _DexaScanState extends State<DexaScan> {
             _navigateToScreen(Start());
           },
         ),
-        title: Text('Dexa Scan Appointment'),
+        title: Text(localizations.dexa_scan_appointment),
         actions: [
           LanguageToggle(),
         ],
@@ -61,6 +63,7 @@ class _DexaScanState extends State<DexaScan> {
   }
 
   Widget _buildSelectPatientButton() {
+    final localizations = AppLocalizations.of(context)!;
     return Center(
       child: Column(
         children: [
@@ -104,7 +107,7 @@ class _DexaScanState extends State<DexaScan> {
                 Icon(Icons.person_add, color: Colors.white),
                 SizedBox(width: 10),
                 Text(
-                  'Select Patient',
+                  localizations.select_patient,
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -121,6 +124,7 @@ class _DexaScanState extends State<DexaScan> {
   }
 
   Widget _buildDexaScanAppointmentForm() {
+    final localizations = AppLocalizations.of(context)!;
     return Center(
       child: SingleChildScrollView(
         child: Column(
@@ -138,7 +142,7 @@ class _DexaScanState extends State<DexaScan> {
             SizedBox(height: 20),
             ElevatedButton(
               onPressed: _submit,
-              child: Text('Submit'),
+              child: Text( localizations.submit),
             ),
           ],
         ),
@@ -147,6 +151,7 @@ class _DexaScanState extends State<DexaScan> {
   }
 
   Widget _buildPatientInfoBox() {
+    final localizations = AppLocalizations.of(context)!;
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -155,13 +160,13 @@ class _DexaScanState extends State<DexaScan> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Selected Patient Information', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(localizations.selected_patient_info, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             Divider(),
-            _buildInfoRow('Patient Name', _controller.selectedPatient),
-            _buildInfoRow('Mobile Number', _controller.patientMobileNumber),
-            _buildInfoRow('Aadhar Number', _controller.patientAadharNumber),
-            _buildInfoRow('Appointment Slot', _controller.appointmentSlot),
-            _buildInfoRow('Address', _controller.patientAddress),
+            _buildInfoRow(localizations.patient_name,_controller.selectedPatient),
+            _buildInfoRow(localizations.mobile_number, _controller.patientMobileNumber),
+            _buildInfoRow(localizations.aadhar_number, _controller.patientAadharNumber),
+            _buildInfoRow(localizations.appointment_slot, _controller.appointmentSlot),
+            _buildInfoRow(localizations.address, _controller.patientAddress),
           ],
         ),
       ),
@@ -186,13 +191,14 @@ class _DexaScanState extends State<DexaScan> {
 
 
   Widget _buildDexaScanAppointmentNumberAndLabel() {
+    final localizations = AppLocalizations.of(context)!;
     return Row(
       children: [
         Expanded(
           child: TextField(
             readOnly: true,
             decoration: InputDecoration(
-              labelText: 'Generated Dexa Scan Appointment Number',
+              labelText: localizations.generated_dexa_scan_appointment_number,
               border: OutlineInputBorder(),
               hintText: 'Automatically generated',
             ),
@@ -208,7 +214,7 @@ class _DexaScanState extends State<DexaScan> {
               });
             });
           },
-          child: Text(_controller.isPrinting ? 'Printing...' : 'Print Label'),
+          child: Text(_controller.isPrinting ? 'Printing...' : localizations.print_label),
         ),
       ],
     );

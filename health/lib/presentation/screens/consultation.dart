@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:health/presentation/screens/start.dart';
 import 'package:flutter_signature_pad/flutter_signature_pad.dart';
-
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../controller/consultation.controller.dart';
 import '../widgets/language.widgets.dart';
 
@@ -24,6 +24,7 @@ class _ConsultationState extends State<Consultation> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return Scaffold(
         appBar: AppBar(
           leading: IconButton(
@@ -32,7 +33,7 @@ class _ConsultationState extends State<Consultation> {
               navigateToScreen(Start());
             },
           ),
-          title: Text('Consultation'),
+          title: Text(localizations.consultation),
           actions: [
             LanguageToggle(),
           ],
@@ -44,7 +45,7 @@ class _ConsultationState extends State<Consultation> {
               children: [
                 DropdownButtonFormField<String>(
                   value: _controller.selectedDoctor,
-                  hint: Text('Select Doctor'),
+                  hint: Text(localizations.select_doctor),
                   items: _controller.doctors.map((doctor) {
                     return DropdownMenuItem(
                       value: doctor['name'],
@@ -63,7 +64,7 @@ class _ConsultationState extends State<Consultation> {
                 TextField(
                   controller: _controller.prescriptionController,
                   decoration: InputDecoration(
-                    labelText: 'Enter Prescription',
+                    labelText: localizations.enter_prescription,
                     border: OutlineInputBorder(),
                   ),
                   maxLines: 3,
@@ -72,7 +73,7 @@ class _ConsultationState extends State<Consultation> {
                 TextField(
                   controller: _controller.tabletsController,
                   decoration: InputDecoration(
-                    labelText: 'Tablets / Injections (and duration)',
+                    labelText: localizations.tablets_injections,
                     border: OutlineInputBorder(),
                   ),
                 ),
@@ -82,7 +83,7 @@ class _ConsultationState extends State<Consultation> {
                   child: AbsorbPointer(
                     child: TextField(
                       decoration: InputDecoration(
-                        labelText: 'Next Visit Date',
+                        labelText: localizations.next_visit_date,
                         border: OutlineInputBorder(),
                         hintText: _controller.nextVisitDate == null
                             ? 'Select a date'
@@ -92,7 +93,7 @@ class _ConsultationState extends State<Consultation> {
                   ),
                 ),
                 SizedBox(height: 10),
-                Text('Doctor Signature:', style: TextStyle(fontSize: 16)),
+                Text(localizations.doctor_signature, style: TextStyle(fontSize: 16)),
                 Container(
                   height: 100,
                   decoration: BoxDecoration(
@@ -114,11 +115,11 @@ class _ConsultationState extends State<Consultation> {
                   children: [
                     ElevatedButton(
                       onPressed: _controller.clearSignature,
-                      child: Text('Clear Signature'),
+                      child: Text(localizations.clear_signature),
                     ),
                     ElevatedButton(
                       onPressed: _controller.generatePrescription,
-                      child: Text('Generate Prescription'),
+                      child: Text(localizations.generate_prescription),
                     ),
                   ],
                 ),
@@ -130,6 +131,7 @@ class _ConsultationState extends State<Consultation> {
   }
 
   Widget _buildPatientReportSummary() {
+    final localizations = AppLocalizations.of(context)!;
     return Card(
       margin: EdgeInsets.symmetric(vertical: 10),
       child: Padding(
@@ -138,20 +140,20 @@ class _ConsultationState extends State<Consultation> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Patient Report Summary',
+              localizations.patient_report_summary,
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 10),
-            Text('Name: ${_controller.patientReport['name']}'),
-            Text('Age: ${_controller.patientReport['age']}'),
-            Text('Alcoholic: ${_controller.patientReport['alcoholic'] ? 'Yes' : 'No'}'),
+            Text('${localizations.name}: ${_controller.patientReport['name']}'),
+            Text('${localizations.age}: ${_controller.patientReport['age']}'),
+            Text('${localizations.alcoholic}: ${_controller.patientReport['alcoholic'] ? 'Yes' : 'No'}'),
             if (_controller.patientReport['alcoholic'])
-              Text('Drinking Age: ${_controller.patientReport['drinkingAge']}'),
-            Text('Smoking: ${_controller.patientReport['smoking'] ? 'Yes' : 'No'}'),
+              Text('${localizations.drinking_age}: ${_controller.patientReport['drinkingAge']}'),
+            Text('${localizations.smoking}: ${_controller.patientReport['smoking'] ? 'Yes' : 'No'}'),
             if (_controller.patientReport['smoking'])
-              Text('Smoking Age: ${_controller.patientReport['smokingAge']}'),
-            Text('Family History: ${_controller.patientReport['familyHistory']['relation']} has ${_controller.patientReport['familyHistory']['condition']}'),
-            Text('Medical History: ${_controller.patientReport['medicalHistory']}'),
+              Text('${localizations.smoking_age}: ${_controller.patientReport['smokingAge']}'),
+            Text('${localizations.family_history}: ${_controller.patientReport['familyHistory']['relation']} has ${_controller.patientReport['familyHistory']['condition']}'),
+            Text('${localizations.medical_history}: ${_controller.patientReport['medicalHistory']}'),
           ],
         ),
       ),
