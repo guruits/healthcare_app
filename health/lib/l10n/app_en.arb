@@ -82,19 +82,19 @@
   "noDietPlan": "No diet plan generated yet.",
   "downloadPDF": "Download as PDF",
   "invalidWeight": "Please enter a valid weight.",
-
-
   "dietPlanForVegetarian": "Diet Plan for Vegetarian (Weight: {weight}kg)",
   "dietPlanForNonVegetarian": "Diet Plan for Non-Vegetarian (Weight: {weight}kg)",
   "breakfast": "Breakfast",
   "lunch": "Lunch",
   "dinner": "Dinner",
-  "vegetarianBreakfast": "Oatmeal with fruits",
-  "vegetarianLunch": "Quinoa salad with beans",
-  "vegetarianDinner": "Stir-fried vegetables with tofu",
-  "nonVegetarianBreakfast": "Eggs with whole grain toast",
-  "nonVegetarianLunch": "Grilled chicken salad",
-  "nonVegetarianDinner": "Fish with steamed vegetables",
+  "weight": "weight",
+  "dietPlanFor": "Diet Plan for",
+  "vegBreakfast": "Oatmeal with fruits",
+  "vegLunch": "Quinoa salad with beans",
+  "vegDinner": "Stir-fried vegetables with tofu",
+  "nonVegBreakfast": "Eggs with whole grain toast",
+  "nonVegLunch": "Grilled chicken salad",
+  "nonVegDinner": "Fish with steamed vegetables",
   "noDietPlan": "No diet plan generated.",
   "dietPlanGeneratedMessage": "Diet plan PDF generated!",
 
@@ -172,6 +172,7 @@
   "relation_has_condition": "{relation} has {condition}",
 
   "screen": "selectpatient",
+  "selected_patient": "Selected patient {patientName}",
   "select_patient": "Select Patient",
   "select_test": "Select Test",
   "select_status": "Select Status",
@@ -309,7 +310,9 @@
   "confirmation": "Are you sure you want to proceed?",
   "noData": "No data available",
   "errorOccurred": "An error occurred. Please try again.",
-  "back": "Back"
+  "back": "Back",
+  "imaging": "Imaging",
+  "dietReport": "Diet Report"
 }
 
 

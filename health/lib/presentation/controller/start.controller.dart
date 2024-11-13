@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter_tts/flutter_tts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:health/presentation/screens/appointments.dart';
 import 'package:health/presentation/screens/doctors.dart';
@@ -25,7 +24,7 @@ import 'package:health/presentation/screens/xray.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class StartController {
-  FlutterTts flutterTts = FlutterTts();
+
   String userName = '';
   String userRole = '';
 
@@ -133,25 +132,7 @@ class StartController {
         return [];
     }
   }
-  void changeLanguage(String langCode) async {
-   {
-      selectedLanguage = langCode;
-    };
-    await flutterTts.setLanguage(langCode);
-    await flutterTts.speak("Language changed");
-  }
 
-  void speakText(String text) async {
-    if (!isMuted) {
-      await flutterTts.speak(text);
-    }
-  }
-
-  void toggleMute() {
-    {
-      isMuted = !isMuted;
-    };
-  }
   String getLocalizedTitle(BuildContext context, String key) {
     final l10n = AppLocalizations.of(context)!;
     switch (key.toLowerCase()) {

@@ -156,9 +156,9 @@ class _HelpdeskState extends State<Helpdesk> {
                       ),
                       if (_controller.selectedPatient != null) ...[
                         SizedBox(height: 10),
-                        Text("${localizations.aadhar_number}: $_controller.aadharNumber"),
-                        Text("${localizations.dob}: $_controller.dob"),
-                        Text("${localizations.address}: $_controller.address"),
+                        Text("${localizations.aadhar_number}: ${_controller.aadharNumber}"),
+                        Text("${localizations.dob}: ${_controller.dob}"),
+                        Text("${localizations.address}: ${_controller.address}"),
                         SizedBox(height: 20),
                         ElevatedButton(
                           onPressed: bookAppointment,

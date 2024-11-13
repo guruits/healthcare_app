@@ -14,7 +14,18 @@ class Awareness extends StatefulWidget {
 class _AwarenessState extends State<Awareness> {
   final AwarenessController _controller = AwarenessController();
 
-  // Function to handle navigation
+  @override
+  void initState() {
+    super.initState();
+    // Initialize controller after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final localizations = AppLocalizations.of(context)!;
+      setState(() {
+        _controller.selectedDiet = localizations.dietPlanVegetarian;
+      });
+    });
+  }
+
   void navigateToScreen(Widget screen) {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => screen),
@@ -33,6 +44,13 @@ class _AwarenessState extends State<Awareness> {
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context)!;
+
+    // List of diet types using localized strings
+    final List<String> dietTypes = [
+      localizations.dietPlanVegetarian,
+      localizations.dietPlanNonVegetarian,
+    ];
+
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -68,25 +86,31 @@ class _AwarenessState extends State<Awareness> {
               localizations.dietPlanPrompt,
               style: TextStyle(fontSize: 16),
             ),
-            DropdownButton<String>(
-              value: _controller.selectedDiet,
-              items: <String>['Vegetarian', 'Non-Vegetarian']
-                  .map<DropdownMenuItem<String>>((String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(value),
-                );
-              }).toList(),
-              onChanged: (String? newValue) {
-                setState(() {
-                  _controller.selectedDiet = newValue!;
-                });
-              },
-            ),
+            // Only show dropdown when selectedDiet is initialized
+            if (_controller.selectedDiet.isNotEmpty)
+              DropdownButton<String>(
+                value: _controller.selectedDiet,
+                items: dietTypes.map<DropdownMenuItem<String>>((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value),
+                  );
+                }).toList(),
+                onChanged: (String? newValue) {
+                  if (newValue != null) {
+                    setState(() {
+                      _controller.selectedDiet = newValue;
+                    });
+                  }
+                },
+              ),
             SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
-                _controller.generateDietPlan(_onDietPlanGenerated);
+                _controller.generateDietPlan(
+                  _onDietPlanGenerated,
+                  localizations,
+                );
               },
               child: Text(localizations.generateDietPlan),
             ),

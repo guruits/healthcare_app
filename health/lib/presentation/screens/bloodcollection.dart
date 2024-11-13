@@ -3,6 +3,7 @@ import 'package:health/presentation/screens/selectPatient.dart';
 import 'package:health/presentation/screens/start.dart';
 import 'package:health/presentation/widgets/dateandtimepicker.widgets.dart';
 import '../controller/bloodcollection.controller.dart';
+import '../controller/language.controller.dart';
 import '../widgets/language.widgets.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
@@ -15,6 +16,7 @@ class Bloodcollection extends StatefulWidget {
 
 class _BloodcollectionState extends State<Bloodcollection> {
   final BloodCollectionController _controller = BloodCollectionController();
+  final LanguageController _languageController = LanguageController();
 
   void _selectPatient(String patientName, String mobileNumber, String aadharNumber, String appointmentSlot, String address) {
     setState(() {
@@ -83,6 +85,7 @@ class _BloodcollectionState extends State<Bloodcollection> {
             SizedBox(height: 20),
             ElevatedButton(
               onPressed: () async {
+                _languageController.speakText(localizations.select_patient);
                 await Navigator.push(
                   context,
                   MaterialPageRoute(

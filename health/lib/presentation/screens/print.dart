@@ -1,33 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
+import 'package:health/presentation/controller/print.controller.dart';
 import 'package:health/presentation/screens/start.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../widgets/language.widgets.dart';
 
-// Sample list of report types and their corresponding reports
-Map<String, List<String>> reportCategories = {
-  'Blood Tests': ['Blood Test', 'Drug Prescription'],
-  'Imaging': ['X-ray', 'Dexa Scan', 'Ultrasound', 'Echo Test'],
-  'Dental': ['Dentist', 'Arc Test'],
-  'Diet': ['Diet Report', 'Urine Test'],
-};
 
-// Map of report names to their file paths
-Map<String, String> reportData = {
-  'Blood Test': 'assets/data/Blood Test Report.pdf',
-  'Urine Test': 'assets/data/Urine Test Report.pdf',
-  'Drug Prescription': 'assets/data/Drug Prescription.pdf',
-  'Arc Test': 'assets/data/Eye Arc Test Report.pdf',
-  'Dentist': 'assets/data/Dental Report.pdf',
-  'X-ray': 'assets/data/Xray Report.pdf',
-  'Dexa Scan': 'assets/data/DEXA Scan Report.pdf',
-  'Echo Test': 'assets/data/Echo Test Report.pdf',
-  'Ultrasound': 'assets/data/Ultrasound Test Report.pdf',
-  'Diet Report': 'assets/data/Diet Plan.pdf',
-};
-
-final List<String> wifiPrinters = ['Printer 1', 'Printer 2', 'Printer 3'];
 
 class Printer extends StatefulWidget {
   const Printer({super.key});
@@ -37,6 +16,7 @@ class Printer extends StatefulWidget {
 }
 
 class _PrinterState extends State<Printer> {
+  final PrintController  _controller = PrintController();
   final FlutterTts flutterTts = FlutterTts();
   bool isMuted = false;
   String selectedLanguage = 'en-US';
@@ -76,11 +56,13 @@ class _PrinterState extends State<Printer> {
 
   // Function to show printer list and handle printer selection
   Future<void> selectPrinter() async {
+    final localizations = AppLocalizations.of(context)!;
+    final wifiPrinters = PrintController.getWifiPrinters(localizations);
     showModalBottomSheet(
       context: context,
       builder: (context) {
         return ListView.builder(
-          itemCount: wifiPrinters.length,
+          itemCount: PrintController.getWifiPrinters.length,
           itemBuilder: (context, index) {
             return ListTile(
               title: Text(wifiPrinters[index]),
@@ -195,6 +177,10 @@ class _PrinterState extends State<Printer> {
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context)!;
+    final reportCategories = PrintController.getReportCategories(localizations);
+    final reportData = PrintController.getReportData(localizations);
+    final wifiPrinters = PrintController.getWifiPrinters(localizations);
+
     return Scaffold(
       appBar: AppBar(
         title: Text(localizations.printer),
@@ -268,6 +254,10 @@ class _PrinterState extends State<Printer> {
       ),
     );
   }
+}
+
+extension on List<String> Function(AppLocalizations l10n) {
+  get length => 3;
 }
 
 // New screen to display the PDF

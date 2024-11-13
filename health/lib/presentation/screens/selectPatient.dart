@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:health/presentation/controller/language.controller.dart';
 import '../widgets/language.widgets.dart';
 import 'package:health/presentation/screens/start.dart';
 import 'package:health/presentation/controller/selectPatient.controller.dart';
@@ -15,6 +16,7 @@ class SelectPatient extends StatefulWidget {
 
 class _SelectPatientState extends State<SelectPatient> {
   final SelectpatientController _controller = SelectpatientController();
+  final LanguageController _languageController = LanguageController();
 
   String _getLocalizedTest(String testKey, AppLocalizations localizations) {
     switch (testKey) {
@@ -79,8 +81,11 @@ class _SelectPatientState extends State<SelectPatient> {
     }
   }
 
-  void _selectPatient(Map<String, dynamic> patient) {
+  void _selectPatient(Map<String, dynamic> patient) async{
+    final localizations = AppLocalizations.of(context)!;
     widget.onSelect(patient['patientName'] ?? '');
+    await _languageController.speakText("${localizations.selected_patient("${patient['patientName']?? 'unknown'}")}");
+    await Future.delayed(Duration(milliseconds: 3000));
     Navigator.pop(context);
   }
 

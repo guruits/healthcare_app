@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:health/presentation/controller/home.controller.dart';
 import 'package:health/presentation/screens/login.dart';
 import 'package:health/presentation/screens/register.dart';
+import '../controller/language.controller.dart';
 import '../widgets/language.widgets.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
@@ -15,7 +16,7 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   late final HomeController _controller;
-
+  final LanguageController _languageController = LanguageController();
 
   @override
   void initState() {
@@ -67,7 +68,7 @@ class _HomeState extends State<Home> {
                   SizedBox(height: 20),
                   ElevatedButton(
                     onPressed: () {
-                      _controller.speakText(localizations.signUp);
+                      _languageController.speakText(localizations.signUp);
                       Navigator.of(context).pushReplacement(
                         MaterialPageRoute(builder: (_) => Register()),
                       );
@@ -110,8 +111,9 @@ class _HomeState extends State<Home> {
                   ),
                   SizedBox(height: 20),
                   ElevatedButton(
-                    onPressed: () {
-                      _controller.speakText(localizations.login);
+                    onPressed: () async {
+                      await _languageController.speakText(localizations.login);
+                      await Future.delayed(Duration(milliseconds: 1200));
                       Navigator.of(context).pushReplacement(
                         MaterialPageRoute(builder: (_) => Login()),
                       );

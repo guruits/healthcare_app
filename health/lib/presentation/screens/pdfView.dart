@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
-
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../widgets/language.widgets.dart';
 
 class PdfViewScreen extends StatelessWidget {
@@ -10,9 +10,10 @@ class PdfViewScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: Text('Report'),
+        title: Text(localizations.reports),
         actions: [
           LanguageToggle()
         ],

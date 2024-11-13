@@ -169,6 +169,8 @@ class _LoginState extends State<Login> {
                   if (_controller.showLoginButton)
                     ElevatedButton(
                       onPressed: () async {
+                        _languageController.speakText(localizations.login);
+                        await Future.delayed(Duration(milliseconds: 1200));
                         await _controller.saveUserDetails(
                           _controller.selectedUser,
                           _controller.userData[_controller.selectedUser]?['Role'] ?? '',
@@ -184,7 +186,9 @@ class _LoginState extends State<Login> {
                   SizedBox(height: 20),
                   Center(
                     child: TextButton(
-                      onPressed: () {
+                      onPressed: () async {
+                        _languageController.speakText(localizations.create_account);
+                        await Future.delayed(Duration(milliseconds: 1200));
                         Navigator.of(context).push(
                           MaterialPageRoute(builder: (context) => Register()),
                         );
