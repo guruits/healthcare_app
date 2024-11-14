@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:health/presentation/controller/arc.controller.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:health/presentation/controller/language.controller.dart';
 
 class Dateandtimepicker extends StatefulWidget {
   const Dateandtimepicker({super.key});
@@ -11,17 +12,20 @@ class Dateandtimepicker extends StatefulWidget {
 }
 class _DateandtimepickerState extends State<Dateandtimepicker> {
   final ArcController controller = ArcController();
+  final LanguageController _languageController =LanguageController();
 
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context)!;
-    return Row(
+    return SingleChildScrollView(scrollDirection: Axis.horizontal,
+    child: Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(localizations.appointment_date_time,
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         ElevatedButton(
           onPressed: () async {
+            await _languageController.speakText(localizations.appointment_date_time);
             DateTime? pickedDate = await showDatePicker(
               context: context,
               initialDate: controller.appointmentDateTime ?? DateTime.now(),
@@ -52,6 +56,7 @@ class _DateandtimepickerState extends State<Dateandtimepicker> {
               : '${localizations.date_time_label}: ${controller.appointmentDateTime!.toLocal()}'),
         ),
       ],
+    ),
     );
   }
 }

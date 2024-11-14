@@ -1,6 +1,7 @@
 import 'dart:math'; // Import this to generate random numbers
 import 'package:flutter/material.dart';
 import 'package:health/presentation/controller/echo.controller.dart';
+import 'package:health/presentation/controller/language.controller.dart';
 import 'package:health/presentation/screens/selectPatient.dart';
 import 'package:health/presentation/screens/start.dart';
 import 'package:health/presentation/widgets/dateandtimepicker.widgets.dart';
@@ -17,6 +18,7 @@ class Echo extends StatefulWidget {
 
 class _EchoState extends State<Echo> {
   final EchoController _controller = EchoController();
+  final LanguageController _languageController = LanguageController();
 
   void _submit() {
     // Add your submission logic here
@@ -71,15 +73,20 @@ class _EchoState extends State<Echo> {
 
   Widget _buildSelectPatientButton() {
     final localizations = AppLocalizations.of(context)!;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
     return Center(
       child: Column(
         children: [
           Center(
-            child: Image.asset('assets/images/echo.png', height: 250, width: 250), // Replace with your Echo image asset
+            child: Image.asset('assets/images/echo.png',
+              height: screenHeight * 0.5,
+              width: screenWidth * 0.8,), // Replace with your Echo image asset
           ),
-          SizedBox(height: 20),
+          SizedBox(height: screenHeight * 0.02),
           ElevatedButton(
             onPressed: () async {
+              _languageController.speakText(localizations.select_patient);
               await Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -99,7 +106,9 @@ class _EchoState extends State<Echo> {
               );
             },
             style: ElevatedButton.styleFrom(
-              padding: EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+              padding: EdgeInsets.symmetric(
+                horizontal: screenWidth * 0.1,
+                vertical: screenHeight * 0.02,),
               backgroundColor: Colors.blueAccent,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(30),
@@ -111,11 +120,11 @@ class _EchoState extends State<Echo> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(Icons.person_add, color: Colors.white),
-                SizedBox(width: 10),
+                SizedBox(width: screenWidth * 0.02),
                 Text(
                   localizations.select_patient,
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: screenWidth * 0.028,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                     letterSpacing: 1.2,
@@ -147,7 +156,10 @@ class _EchoState extends State<Echo> {
             _buildEchoAppointmentNumberAndLabel(),
             SizedBox(height: 20),
             ElevatedButton(
-              onPressed: _submit,
+              onPressed: (){
+                _languageController.speakText(localizations.submit);
+                _submit();
+              },
               child: Text(localizations.submit),
             ),
           ],
@@ -213,7 +225,10 @@ class _EchoState extends State<Echo> {
         ),
         SizedBox(width: 10),
         ElevatedButton(
-          onPressed: _controller.isPrinting ? null : _controller.printLabel,
+          onPressed: (){
+            _languageController.speakText(localizations.print_label);
+            _controller.isPrinting ? null : _controller.printLabel;
+    },
           child: Text(localizations.print_label),
         ),
       ],

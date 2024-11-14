@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:health/presentation/controller/start.controller.dart';
 import 'package:health/presentation/widgets/language.widgets.dart';
+import '../controller/language.controller.dart';
 import 'home.dart';
 
 class Start extends StatefulWidget {
@@ -11,6 +12,7 @@ class Start extends StatefulWidget {
 
 class _StartState extends State<Start> {
   final StartController _controller = StartController();
+  final LanguageController _languageController = LanguageController();
 
   @override
   void initState() {
@@ -31,15 +33,21 @@ class _StartState extends State<Start> {
     );
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final screenWidth = MediaQuery.of(context).size.width;
+
+
+    int crossAxisCount = screenWidth > 600 ? 4 : 2;
+    double fontSize = screenWidth > 600 ? 16.0 : 12.0;
+    double imageSize = screenWidth > 600 ? 150.0 : 100.0;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('${_controller.userName} - ${_controller.getLocalizedTitle(context, _controller.userRole)}'),
+        title: Text(
+          '${_controller.userName} - ${_controller.getLocalizedTitle(context, _controller.userRole)}',
+        ),
         leading: IconButton(
           icon: Icon(Icons.logout),
           tooltip: l10n.logout,
@@ -53,40 +61,54 @@ class _StartState extends State<Start> {
         ],
       ),
       body: Padding(
-        padding: const EdgeInsets.all(10.0),
-        child: GridView.count(
-          crossAxisCount: 4,
-          children: _controller.getOptionsForRole().map((option) {
+        padding: EdgeInsets.all(10.0),
+        child: GridView.builder(
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+            childAspectRatio: 0.8,
+          ),
+          itemCount: _controller.getOptionsForRole().length,
+          itemBuilder: (context, index) {
+            final option = _controller.getOptionsForRole()[index];
             final localizedTitle = _controller.getLocalizedTitle(context, option['title']);
-            return _buildGridItem(localizedTitle, option['screen'], option['title']);
-          }).toList(),
+            return _buildGridItem(localizedTitle, option['screen'], option['title'], fontSize, imageSize);
+          },
         ),
       ),
     );
   }
 
-  Widget _buildGridItem(String localizedTitle, Widget screen, String imageTitle) {
+  Widget _buildGridItem(String localizedTitle, Widget screen, String imageTitle, double fontSize, double imageSize) {
     return GestureDetector(
-      onTap: () {
-        _controller.speakText(localizedTitle);
+      onTap: () async {
+        await _languageController.speakText(localizedTitle);
+        await Future.delayed(Duration(milliseconds: 1400));
         navigateToScreen(screen);
       },
       child: Card(
         elevation: 5,
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset(
-              'assets/images/${imageTitle.toLowerCase().replaceAll(' ', '')}.png',
-              height: 200,
-              width: 200,
-              fit: BoxFit.contain,
+            Flexible(
+              child: Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Image.asset(
+                  'assets/images/${imageTitle.toLowerCase().replaceAll(' ', '')}.png',
+                  height: imageSize,
+                  width: imageSize,
+                  fit: BoxFit.contain,
+                ),
+              ),
             ),
-            SizedBox(height: 0.2),
-            Text(
-              localizedTitle,
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
+            Padding(
+              padding: EdgeInsets.all(8.0),
+              child: Text(
+                localizedTitle,
+                style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
             ),
           ],
         ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:health/presentation/controller/language.controller.dart';
 import 'package:health/presentation/widgets/language.widgets.dart';
 import 'package:health/presentation/screens/start.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -13,6 +14,7 @@ class Awareness extends StatefulWidget {
 
 class _AwarenessState extends State<Awareness> {
   final AwarenessController _controller = AwarenessController();
+  final LanguageController _languageController = LanguageController();
 
   @override
   void initState() {
@@ -107,6 +109,7 @@ class _AwarenessState extends State<Awareness> {
             SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
+                _languageController.speakText(localizations.generateDietPlan);
                 _controller.generateDietPlan(
                   _onDietPlanGenerated,
                   localizations,
@@ -129,9 +132,12 @@ class _AwarenessState extends State<Awareness> {
             SizedBox(height: 20),
             ElevatedButton(
               onPressed: _controller.dietPlan.isNotEmpty
-                  ? () => _controller.generatePDF(context)
-                  : null,
-              child: Text(localizations.downloadPDF),
+                  ? () {
+                _languageController.speakText(localizations.downloadPDF);
+                _controller.generatePDF(context);}
+                : null,
+                child
+              : Text(localizations.downloadPDF),
             ),
           ],
         ),

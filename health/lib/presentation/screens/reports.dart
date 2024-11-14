@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:health/presentation/controller/language.controller.dart';
 import 'package:health/presentation/controller/reports.controller.dart';
 import 'package:health/presentation/screens/pdfView.dart';
 import 'package:health/presentation/screens/selectPatient.dart';
@@ -16,6 +17,7 @@ class Reports extends StatefulWidget {
 
 class _ReportsState extends State<Reports> {
   final ReportsController _controller = ReportsController();
+  final LanguageController _languageController = LanguageController();
 
   void _navigateToSelectPatient(String test) async {
     final patientName = await Navigator.of(context).push(
@@ -109,6 +111,7 @@ class _ReportsState extends State<Reports> {
 
           return GestureDetector(
             onTap: () {
+              _languageController.speakText(localizedTestName);
               _navigateToSelectPatient(testName);
             },
             child: Card(

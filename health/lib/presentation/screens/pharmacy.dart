@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:health/presentation/controller/language.controller.dart';
 import 'package:health/presentation/controller/pharmacy.controller.dart';
 import 'package:health/presentation/screens/start.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -13,6 +14,8 @@ class Pharmacy extends StatefulWidget {
 
 class _PharmacyState extends State<Pharmacy> {
   final PharmacyController _controller = PharmacyController();
+  final LanguageController _languageController =  LanguageController();
+
 
 
   @override
@@ -54,7 +57,10 @@ class _PharmacyState extends State<Pharmacy> {
             _buildCashReceivedInput(),
             SizedBox(height: 20),
             ElevatedButton(
-              onPressed: _controller.printBill,
+              onPressed: (){
+                _languageController.speakText(localizations.generate_bill);
+                _controller.printBill();
+              },
               child: Text(localizations.generate_bill),
             ),
           ],
@@ -132,7 +138,10 @@ class _PharmacyState extends State<Pharmacy> {
         padding: EdgeInsets.symmetric(vertical: 15),
         textStyle: TextStyle(fontSize: 18),
       ),
-      onPressed: _controller.addToBillingList,
+      onPressed:(){
+        _languageController.speakText(localizations.add_to_bill);
+        _controller.addToBillingList();
+      },
       child: Text('${localizations.add_to_bill}: ₹${_controller.totalPrice.toStringAsFixed(2)}'),
     );
   }

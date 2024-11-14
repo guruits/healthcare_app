@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
+import 'package:health/presentation/controller/language.controller.dart';
 import 'package:health/presentation/controller/print.controller.dart';
 import 'package:health/presentation/screens/start.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -18,6 +19,7 @@ class Printer extends StatefulWidget {
 class _PrinterState extends State<Printer> {
   final PrintController  _controller = PrintController();
   final FlutterTts flutterTts = FlutterTts();
+  final LanguageController _languageController = LanguageController();
   bool isMuted = false;
   String selectedLanguage = 'en-US';
   String? selectedCategory;
@@ -67,6 +69,7 @@ class _PrinterState extends State<Printer> {
             return ListTile(
               title: Text(wifiPrinters[index]),
               onTap: () {
+                _languageController.speakText(wifiPrinters as String);
                 setState(() {
                   selectedPrinter = wifiPrinters[index];
                 });
@@ -225,6 +228,7 @@ class _PrinterState extends State<Printer> {
                         children: [
                           ElevatedButton(
                             onPressed: () {
+                              _languageController.speakText(localizations.preview);
                               if (reportPath != null) {
                                 previewReport(reportPath);
                               } else {
@@ -239,6 +243,7 @@ class _PrinterState extends State<Printer> {
                           SizedBox(width: 8),
                           ElevatedButton(
                             onPressed: () {
+                              _languageController.speakText(localizations.print);
                               printReport(reportName); // Call print function
                             },
                             child: Text(localizations.print),

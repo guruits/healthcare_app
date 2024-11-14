@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:health/presentation/controller/language.controller.dart';
 import 'package:health/presentation/screens/selectPatient.dart';
 import 'package:health/presentation/screens/start.dart';
 import 'package:health/presentation/widgets/dateandtimepicker.widgets.dart';
@@ -14,7 +15,8 @@ class Dentist extends StatefulWidget {
 }
 
 class _DentistState extends State<Dentist> {
-  final DentistController _controller = DentistController(); // Instantiate the controller
+  final DentistController _controller = DentistController();
+  final LanguageController _languageController = LanguageController();
 
   @override
   Widget build(BuildContext context) {
@@ -49,15 +51,20 @@ class _DentistState extends State<Dentist> {
 
   Widget _buildSelectPatientButton() {
     final localizations = AppLocalizations.of(context)!;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
     return Center(
       child: Column(
         children: [
           Center(
-            child: Image.asset('assets/images/dentist.png', height: 250, width: 250),
+            child: Image.asset('assets/images/dentist.png',
+        height: screenHeight * 0.5,
+        width: screenWidth * 0.8,),
           ),
-          SizedBox(height: 20),
+          SizedBox(height: screenHeight * 0.02),
           ElevatedButton(
             onPressed: () async {
+              _languageController.speakText(localizations.select_patient);
               await Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -70,14 +77,16 @@ class _DentistState extends State<Dentist> {
                         '10:00 AM - 10:30 AM',
                         '123, Example Street, City, Country',
                       );
-                      setState(() {}); // Refresh UI after selection
+                      setState(() {});
                     },
                   ),
                 ),
               );
             },
             style: ElevatedButton.styleFrom(
-              padding: EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+              padding: EdgeInsets.symmetric(
+                horizontal: screenWidth * 0.1,
+                vertical: screenHeight * 0.02,),
               backgroundColor: Colors.purpleAccent,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(30),
@@ -89,11 +98,11 @@ class _DentistState extends State<Dentist> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(Icons.person_add, color: Colors.white),
-                SizedBox(width: 10),
+                SizedBox(width: screenWidth * 0.02),
                 Text(
                   localizations.select_patient,
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: screenWidth * 0.028,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                     letterSpacing: 1.2,
@@ -126,6 +135,7 @@ class _DentistState extends State<Dentist> {
             SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
+                _languageController.speakText(localizations.submit);
                 _controller.submit(context, _controller.selectedPatient, _controller.appointmentDateTime);
               },
               child: Text(localizations.submit),
@@ -194,9 +204,14 @@ class _DentistState extends State<Dentist> {
         ),
         SizedBox(width: 10),
         ElevatedButton(
-          onPressed: _controller.isPrinting ? null : _controller.printLabel,
-          child: Text(localizations.print_label),
-        ),
+          onPressed:(){
+            _languageController.speakText(localizations.print_label);
+            _controller.printLabel();
+          },
+          child: _controller.isPrinting
+              ? CircularProgressIndicator()
+              : Text(localizations.print_label),
+        )
       ],
     );
   }

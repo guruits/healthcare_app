@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:health/presentation/controller/language.controller.dart';
 import 'package:health/presentation/controller/vitals.controller.dart';
 import 'package:health/presentation/screens/start.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -15,6 +16,7 @@ class Vitals extends StatefulWidget {
 
 class _VitalsState extends State<Vitals> {
   final VitalController _controller = VitalController();
+  final LanguageController _languageController = LanguageController();
 
 
   void navigateToScreen(Widget screen) {
@@ -48,6 +50,7 @@ class _VitalsState extends State<Vitals> {
               ElevatedButton(
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[500]),
                 onPressed: () {
+                  _languageController.speakText(localizations.connectedDevices);
                   _controller.requestBluetoothPermissions(_controller.connectToDevices);
                 },
                 child: Text(localizations.connectedDevices),
@@ -55,6 +58,7 @@ class _VitalsState extends State<Vitals> {
               ElevatedButton(
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[500]),
                 onPressed: () {
+                  _languageController.speakText(localizations.discoverDevices);
                   _controller.requestBluetoothPermissions(_controller.discoverBlue);
                 },
                 child:  Text(localizations.discoverDevices),
@@ -62,6 +66,7 @@ class _VitalsState extends State<Vitals> {
               ElevatedButton(
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[500]),
                 onPressed: () {
+                  _languageController.speakText(localizations.allPairedDevices);
                   _controller.requestBluetoothPermissions(_controller.getAllPaired);
                 },
                 child:  Text(localizations.allPairedDevices),

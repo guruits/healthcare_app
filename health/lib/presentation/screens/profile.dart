@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:health/presentation/controller/language.controller.dart';
 import 'package:health/presentation/controller/profile.controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:table_calendar/table_calendar.dart';
@@ -17,6 +18,7 @@ class Profile extends StatefulWidget {
 
 class _ProfileState extends State<Profile> {
   ProfileController _controller = ProfileController();
+  final LanguageController _languageController = LanguageController();
   // Variables to hold user data
 
 
@@ -88,6 +90,7 @@ class _ProfileState extends State<Profile> {
               SizedBox(height: 30),
               ElevatedButton(
                 onPressed: () {
+                  _languageController.speakText(localizations.changePassword);
                   // Logic to change password can be added here
                 },
                 style: ElevatedButton.styleFrom(
@@ -99,7 +102,9 @@ class _ProfileState extends State<Profile> {
               ),
               SizedBox(height: 20),
               ElevatedButton(
-                onPressed: _updateProfile,
+                onPressed: (){
+                  _languageController.speakText(localizations.updateProfile);
+                  _updateProfile();},
                 style: ElevatedButton.styleFrom(
                   padding: EdgeInsets.symmetric(vertical: 16),
                   textStyle: TextStyle(fontSize: 18),

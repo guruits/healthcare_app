@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:health/presentation/controller/language.controller.dart';
 import 'package:health/presentation/widgets/dateandtimepicker.widgets.dart';
 import 'package:health/presentation/widgets/language.widgets.dart';
 import 'package:health/presentation/screens/selectPatient.dart';
@@ -15,6 +16,7 @@ class Arc extends StatefulWidget {
 
 class _ArcState extends State<Arc> {
   final ArcController controller = ArcController();
+  final LanguageController _languageController = LanguageController();
 
   // Function to handle navigation
   void navigateToScreen(Widget screen) {
@@ -50,15 +52,21 @@ class _ArcState extends State<Arc> {
 
   Widget _buildSelectPatientButton() {
     final localizations = AppLocalizations.of(context)!;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
     return Center(
-      child: Column(
+      child: SingleChildScrollView(child:
+        Column(
         children: [
           Center(
-            child: Image.asset('assets/images/arc.png', height: 250, width: 250),
+            child: Image.asset('assets/images/arc.png',
+              height: screenHeight * 0.5,
+              width: screenWidth * 0.8,),
           ),
           SizedBox(height: 20),
           ElevatedButton(
             onPressed: () async {
+              _languageController.speakText(localizations.select_patient);
               await Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -79,7 +87,9 @@ class _ArcState extends State<Arc> {
               );
             },
             style: ElevatedButton.styleFrom(
-              padding: EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+              padding: EdgeInsets.symmetric(
+                horizontal: screenWidth * 0.1,
+                vertical: screenHeight * 0.02,),
               backgroundColor: Colors.purpleAccent,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(30),
@@ -91,11 +101,11 @@ class _ArcState extends State<Arc> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(Icons.person_add, color: Colors.white),
-                SizedBox(width: 10),
+                SizedBox(width: screenWidth * 0.02),
                 Text(
                   localizations.select_patient,
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: screenWidth * 0.028,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                     letterSpacing: 1.2,
@@ -105,6 +115,7 @@ class _ArcState extends State<Arc> {
             ),
           ),
         ],
+      ),
       ),
     );
   }
@@ -127,10 +138,13 @@ class _ArcState extends State<Arc> {
             _buildArcTestNumberAndLabel(),
             SizedBox(height: 20),
             ElevatedButton(
-              onPressed: controller.submit,
+              onPressed: () {
+                _languageController.speakText(localizations.submit);
+                controller.submit();
+              },
               child: Text(localizations.submit),
             ),
-          ],
+          ]
         ),
       ),
     );
@@ -192,6 +206,7 @@ class _ArcState extends State<Arc> {
         SizedBox(width: 10),
         ElevatedButton(
           onPressed: () async {
+            _languageController.speakText(localizations.print_label);
             await controller.printLabel();
             setState(() {}); // Update status message
           },
@@ -201,3 +216,7 @@ class _ArcState extends State<Arc> {
     );
   }
 }
+
+// _languageController.speakText(localizations.print_label);
+// _languageController.speakText(localizations.select_patient);
+

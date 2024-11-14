@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:health/presentation/controller/helpdesk.controller.dart';
+import 'package:health/presentation/controller/language.controller.dart';
 import 'package:health/presentation/screens/appointments.dart';
 import 'package:health/presentation/screens/start.dart';
 import 'package:image_picker/image_picker.dart';
@@ -16,6 +17,7 @@ class Helpdesk extends StatefulWidget {
 
 class _HelpdeskState extends State<Helpdesk> {
   final HelpdeskController _controller = HelpdeskController();
+  final LanguageController _languageController = LanguageController();
 
 
   // Function to handle navigation
@@ -63,6 +65,7 @@ class _HelpdeskState extends State<Helpdesk> {
                     ),
                     onPressed: () {
                       setState(() {
+                        _languageController.speakText(localizations.existing_patient);
                         _controller.isExistingPatient = true;
                         _controller.isNewPatient = false;
                       });
@@ -87,6 +90,7 @@ class _HelpdeskState extends State<Helpdesk> {
                     ),
                     onPressed: () {
                       setState(() {
+                        _languageController.speakText(localizations.new_patient);
                         _controller.isNewPatient = true;
                         _controller.isExistingPatient = false;
                       });
@@ -161,7 +165,11 @@ class _HelpdeskState extends State<Helpdesk> {
                         Text("${localizations.address}: ${_controller.address}"),
                         SizedBox(height: 20),
                         ElevatedButton(
-                          onPressed: bookAppointment,
+                          onPressed:  () async {
+                            await _languageController.speakText(localizations.book_appointment);
+                            await Future.delayed(Duration(milliseconds: 1500));
+                              bookAppointment();
+                             } ,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.green, // Button color
                             shape: RoundedRectangleBorder(
@@ -194,14 +202,19 @@ class _HelpdeskState extends State<Helpdesk> {
                           Column(
                             children: [
                               ElevatedButton(
-                                onPressed: () => _controller.pickImage(ImageSource.gallery, true),
+                                onPressed: () {
+                                  _languageController.speakText(localizations.upload_aadhar_front_side);
+                                  _controller.pickImage(ImageSource.gallery, true);},
                                 child: Text(localizations.upload_aadhar_front_side),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.blue, // Button color
                                 ),
                               ),
                               ElevatedButton(
-                                onPressed: () => _controller.pickImage(ImageSource.camera, true),
+                                onPressed: (){
+                                      _languageController.speakText(localizations.capture_aadhar_front_side);
+                                  _controller.pickImage(ImageSource.camera, true);
+                                   },
                                 child: Text(localizations.capture_aadhar_front_side),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.blue, // Button color
@@ -219,14 +232,18 @@ class _HelpdeskState extends State<Helpdesk> {
                           Column(
                             children: [
                               ElevatedButton(
-                                onPressed: () => _controller.pickImage(ImageSource.gallery, false),
+                                onPressed: () {
+                                  _languageController.speakText(localizations.upload_aadhar_back_side);
+                                  _controller.pickImage(ImageSource.gallery, false);},
                                 child: Text(localizations.upload_aadhar_back_side),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.blue, // Button color
                                 ),
                               ),
                               ElevatedButton(
-                                onPressed: () => _controller.pickImage(ImageSource.camera, false),
+                                onPressed: () {
+                                  _languageController.speakText(localizations.capture_aadhar_back_side);
+                                  _controller.pickImage(ImageSource.camera, false);},
                                 child: Text(localizations.capture_aadhar_back_side),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.blue, // Button color
@@ -301,7 +318,10 @@ class _HelpdeskState extends State<Helpdesk> {
                       ),
                       SizedBox(height: 20),
                       ElevatedButton(
-                        onPressed: _controller.addUser,
+                        onPressed:(){
+                          _controller.addUser();
+                          _languageController.speakText(localizations.user_added);
+                        },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.green, // Button color
                           shape: RoundedRectangleBorder(
@@ -312,7 +332,7 @@ class _HelpdeskState extends State<Helpdesk> {
                       ),
                       if (_controller.isUserAdded) ...[
                         SizedBox(height: 10),
-                        Text(localizations.user_added,),
+                        Text(localizations.user_added),
                         SizedBox(height: 20),
                         ElevatedButton(
                           onPressed: bookAppointment,

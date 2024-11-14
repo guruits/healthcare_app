@@ -54,7 +54,7 @@ class ConsultationController {
     }
   }
 
-  void clearSignature() {
+  void  clearSignature() {
     points.clear();
   }
 

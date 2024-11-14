@@ -1,5 +1,6 @@
-import 'dart:math'; // Import this to generate random numbers
+
 import 'package:flutter/material.dart';
+import 'package:health/presentation/controller/language.controller.dart';
 import 'package:health/presentation/controller/urinecollection.contoller.dart';
 import 'package:health/presentation/screens/selectPatient.dart';
 import 'package:health/presentation/screens/start.dart';
@@ -17,6 +18,7 @@ class Urinecollection extends StatefulWidget {
 
 class _UrineCollectionState extends State<Urinecollection> {
   final UrinecollectionController _controller = UrinecollectionController();
+  final LanguageController _languageController = LanguageController();
 
 
   void _submit() {
@@ -40,15 +42,15 @@ class _UrineCollectionState extends State<Urinecollection> {
 
   void _printLabel() {
     setState(() {
-      _controller.isPrinting = true;  // Show that the label is printing
+      _controller.isPrinting = true;
       _controller.statusMessage = 'Label is printing...';
     });
 
     // Simulate label printing delay
     Future.delayed(Duration(seconds: 2), () {
       setState(() {
-        _controller.isPrinting = false;  // Hide the "printing" state
-        _controller.statusMessage = 'Label printing done';  // Show done message
+        _controller.isPrinting = false;
+        _controller.statusMessage = 'Label printing done';
       });
     });
   }
@@ -85,15 +87,21 @@ class _UrineCollectionState extends State<Urinecollection> {
 
   Widget _buildSelectPatientButton() {
     final localizations = AppLocalizations.of(context)!;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
     return Center(
-      child: Column(
+      child: SingleChildScrollView(child: Column(
         children: [
           Center(
-            child: Image.asset('assets/images/urinecollection.png', height: 250, width: 250),
+            child: Image.asset('assets/images/urinecollection.png',
+              height: screenHeight * 0.5,
+              width: screenWidth * 0.8,),
           ),
           SizedBox(height: 20),
           ElevatedButton(
             onPressed: () async {
+              _languageController.speakText(localizations.select_patient);
               await Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -125,11 +133,11 @@ class _UrineCollectionState extends State<Urinecollection> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(Icons.person_add, color: Colors.white), // Add an icon
-                SizedBox(width: 10),
+                SizedBox(width: screenWidth * 0.02),
                 Text(
                   localizations.select_patient,
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: screenWidth * 0.028,
                     fontWeight: FontWeight.bold,
                     color: Colors.white, // White text for better contrast
                     letterSpacing: 1.2, // Slight letter spacing
@@ -140,14 +148,16 @@ class _UrineCollectionState extends State<Urinecollection> {
           ),
         ],
       ),
+      ),
     );
   }
 
   Widget _buildUrineCollectionForm() {
     final localizations = AppLocalizations.of(context)!;
     return Center(
-      child: SingleChildScrollView(
-        child: Column(
+
+        child: SingleChildScrollView(
+          child:Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Center(
@@ -161,7 +171,10 @@ class _UrineCollectionState extends State<Urinecollection> {
             _buildUrineCollectionNumberAndLabel(),
             SizedBox(height: 20),
             ElevatedButton(
-              onPressed: _submit,
+              onPressed: (){
+                _languageController.speakText(localizations.submit);
+                _submit();
+              },
               child: Text(localizations.submit),
             ),
           ],
@@ -226,8 +239,11 @@ class _UrineCollectionState extends State<Urinecollection> {
         ),
         SizedBox(width: 10),
         ElevatedButton(
-          onPressed: _controller.isPrinting ? null : _printLabel,
-          child: Text('Print Label'),
+          onPressed: (){
+            _languageController.speakText(localizations.submit);
+            _controller.isPrinting ? null : _printLabel();
+          },
+          child: Text(localizations.print_label),
         ),
       ],
     );

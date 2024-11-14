@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:health/presentation/controller/language.controller.dart';
 import 'package:health/presentation/screens/start.dart';
 import 'package:health/presentation/widgets/calendar.widgets.dart';
 import 'package:health/presentation/widgets/language.widgets.dart';
@@ -15,6 +16,7 @@ class Appointments extends StatefulWidget {
 
 class _AppointmentsState extends State<Appointments> {
   final AppointmentsController controller = AppointmentsController();
+  final LanguageController _languageController = LanguageController();
 
   // Function to show confirmation dialog
   void _confirmAppointment() {
@@ -101,6 +103,7 @@ class _AppointmentsState extends State<Appointments> {
                       children: [
                         ElevatedButton(
                           onPressed: () {
+                            _languageController.speakText(localizations.previous_month);
                             setState(() {
                               controller.previousMonth();
                             });
@@ -109,6 +112,7 @@ class _AppointmentsState extends State<Appointments> {
                         ),
                         ElevatedButton(
                           onPressed: () {
+                            _languageController.speakText(localizations.next_month);
                             setState(() {
                               controller.nextMonth();
                             });
@@ -124,6 +128,7 @@ class _AppointmentsState extends State<Appointments> {
                       children: controller.slotAvailability.keys.map((slot) {
                         return GestureDetector(
                           onTap: () {
+                            _languageController.speakText(slot);
                             setState(() {
                               controller.setSelectedSlot(slot);
                             });
@@ -161,7 +166,10 @@ class _AppointmentsState extends State<Appointments> {
                       ),
                     ],
                     ElevatedButton(
-                      onPressed: controller.canConfirmAppointment() ? _confirmAppointment : null,
+                      onPressed: (){
+                      _languageController.speakText(localizations.confirm_appointment);
+                      controller.canConfirmAppointment() ? _confirmAppointment : null;
+                        },
                       child: Text(localizations.confirm_appointment),
                     ),
                   ],

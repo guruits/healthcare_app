@@ -25,7 +25,6 @@ class _BloodcollectionState extends State<Bloodcollection> {
   }
 
   void _submit() {
-    _controller.submit();
 
     Navigator.pushReplacement(
       context,
@@ -76,61 +75,71 @@ class _BloodcollectionState extends State<Bloodcollection> {
 
   Widget _buildSelectPatientButton() {
     final localizations = AppLocalizations.of(context)!;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
     return Center(
-        child: Column(
-          children: [
-            Center(
-              child: Image.asset('assets/images/bloodcollection.png', height: 250, width: 250),
+      child: Column(
+        children: [
+          Center(
+            child: Image.asset(
+              'assets/images/bloodcollection.png',
+              height: screenHeight * 0.5,
+              width: screenWidth * 0.8,
             ),
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () async {
-                _languageController.speakText(localizations.select_patient);
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => SelectPatient(
-                      onSelect: (patientName) {
-                        _selectPatient(
-                          patientName,
-                          '9876543210',
-                          '1234-5678-9123',
-                          '10:00 AM - 10:30 AM',
-                          '123, Example Street, City, Country',
-                        );
-                      },
-                    ),
+          ),
+          SizedBox(height: screenHeight * 0.02),
+          ElevatedButton(
+            onPressed: () async {
+              _languageController.speakText(localizations.select_patient);
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => SelectPatient(
+                    onSelect: (patientName) {
+                      _selectPatient(
+                        patientName,
+                        '9876543210',
+                        '1234-5678-9123',
+                        '10:00 AM - 10:30 AM',
+                        '123, Example Street, City, Country',
+                      );
+                    },
                   ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                padding: EdgeInsets.symmetric(horizontal: 40, vertical: 15),
-                backgroundColor: Colors.purpleAccent,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
                 ),
-                elevation: 10,
-                shadowColor: Colors.purple.withOpacity(0.5),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              padding: EdgeInsets.symmetric(
+                horizontal: screenWidth * 0.1,
+                vertical: screenHeight * 0.02,
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.person_add, color: Colors.white),
-                  SizedBox(width: 10),
-                  Text(
-                    localizations.select_patient,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                ],
+              backgroundColor: Colors.purpleAccent,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30),
               ),
+              elevation: 10,
+              shadowColor: Colors.purple.withOpacity(0.5),
             ),
-          ],
-        )
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.person_add, color: Colors.white),
+                SizedBox(width: screenWidth * 0.02),
+                Text(
+                  localizations.select_patient,
+                  style: TextStyle(
+                    fontSize: screenWidth * 0.028,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -152,7 +161,10 @@ class _BloodcollectionState extends State<Bloodcollection> {
             _buildBloodCollectionNumberAndLabel(),
             SizedBox(height: 20),
             ElevatedButton(
-              onPressed: _submit,
+              onPressed: (){
+                _languageController.speakText(localizations.submit);
+                _submit();
+              },
               child: Text(localizations.submit),
             ),
           ],
@@ -208,7 +220,10 @@ class _BloodcollectionState extends State<Bloodcollection> {
         Text( localizations.collection_number.replaceFirst('{number}', _controller.collectionNumber.toString()), style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         SizedBox(height: 10),
         ElevatedButton(
-          onPressed: _printLabel,
+          onPressed:(){
+            _languageController.speakText(localizations.print_label);
+            _printLabel();
+          },
           child: _controller.isPrinting
               ? CircularProgressIndicator()
               : Text(localizations.print_label),

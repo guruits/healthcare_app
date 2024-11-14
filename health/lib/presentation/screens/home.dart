@@ -24,11 +24,6 @@ class _HomeState extends State<Home> {
     _controller = HomeController();
   }
 
- /* @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }*/
 
   @override
   Widget build(BuildContext context) {
@@ -50,7 +45,8 @@ class _HomeState extends State<Home> {
           LanguageToggle(),
         ],
       ),
-      body: Padding(
+      body: SingleChildScrollView(
+      child:Padding(
         padding: const EdgeInsets.all(16.0),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -140,6 +136,7 @@ class _HomeState extends State<Home> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

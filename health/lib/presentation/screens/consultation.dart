@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:health/presentation/controller/language.controller.dart';
 import 'package:health/presentation/screens/start.dart';
 import 'package:flutter_signature_pad/flutter_signature_pad.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -14,6 +15,7 @@ class Consultation extends StatefulWidget {
 
 class _ConsultationState extends State<Consultation> {
   final ConsultationController _controller = ConsultationController();
+  final LanguageController _languageController = LanguageController();
 
   // Function to handle navigation
   void navigateToScreen(Widget screen) {
@@ -114,12 +116,18 @@ class _ConsultationState extends State<Consultation> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     ElevatedButton(
-                      onPressed: _controller.clearSignature,
+                      onPressed:(){
+                        _languageController.speakText(localizations.clear_signature);
+                        _controller.clearSignature();
+                      },
                       child: Text(localizations.clear_signature),
                     ),
                     ElevatedButton(
-                      onPressed: _controller.generatePrescription,
-                      child: Text(localizations.generate_prescription),
+                      onPressed: (){
+                        _languageController.speakText(localizations.generate_prescription);
+                        _controller.generatePrescription();},
+                        child: Text(localizations.
+                      generate_prescription),
                     ),
                   ],
                 ),

@@ -10,6 +10,7 @@ class UltrasoundController{
   String ultrasoundAppointmentNumber = '';
   bool isPatientSelected = false;
   bool isPrinting = false;
+  String statusMessage = '';
 
   void selectPatient(String patientName, String mobileNumber, String aadharNumber, String appointmentSlot, String address) {
     {
@@ -30,16 +31,14 @@ class UltrasoundController{
     String randomPart = Random().nextInt(9000 + 1).toString().padLeft(4, '0');
     return '$datePart$randomPart'; // Combine date and random number
   }
-  void printLabel() {
-    {
-      isPrinting = true; // Show that the label is printing
-    };
+  // Start label printing and update the status message
+  Future<void> printLabel() async {
+    isPrinting = true;
+    statusMessage = 'Label is printing...';
 
     // Simulate label printing delay
-    Future.delayed(Duration(seconds: 2), () {
-      {
-        isPrinting = false; // Hide the "printing" state
-      };
-    });
+    await Future.delayed(Duration(seconds: 2));
+    isPrinting = false;
+    statusMessage = 'Label printing done';
   }
 }

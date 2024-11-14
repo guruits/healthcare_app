@@ -98,6 +98,8 @@ class _SelectPatientState extends State<SelectPatient> {
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context)!;
+    final screenWidth = MediaQuery.of(context).size.width;
+
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -122,52 +124,56 @@ class _SelectPatientState extends State<SelectPatient> {
   Widget _buildFilterSection(AppLocalizations localizations) {
     return Padding(
       padding: const EdgeInsets.all(8.0),
-      child: Row(
-        children: [
-          DropdownButton<String>(
-            value: _controller.selectedTest,
-            hint: Text(localizations.select_test),
-            items: _controller.testKeys.map((testKey) {
-              return DropdownMenuItem(
-                value: testKey,
-                child: Text(_getLocalizedTest(testKey, localizations)),
-              );
-            }).toList(),
-            onChanged: (value) {
-              setState(() {
-                _controller.selectedTest = value;
-              });
-            },
-          ),
-          const SizedBox(width: 10),
-          DropdownButton<String>(
-            value: _controller.selectedStatus,
-            hint: Text(localizations.select_status),
-            items: _controller.statusKeys.map((statusKey) {
-              return DropdownMenuItem(
-                value: statusKey,
-                child: Text(_getLocalizedStatus(statusKey, localizations)),
-              );
-            }).toList(),
-            onChanged: (value) {
-              setState(() {
-                _controller.selectedStatus = value;
-              });
-            },
-          ),
-          const SizedBox(width: 10),
-          ElevatedButton(
-            onPressed: () {
-              setState(() {
-                _controller.clearFilter();
-              });
-            },
-            child: Text(localizations.clear_filter),
-          ),
-        ],
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal, // Enable horizontal scrolling
+        child: Row(
+          children: [
+            DropdownButton<String>(
+              value: _controller.selectedTest,
+              hint: Text(localizations.select_test),
+              items: _controller.testKeys.map((testKey) {
+                return DropdownMenuItem(
+                  value: testKey,
+                  child: Text(_getLocalizedTest(testKey, localizations)),
+                );
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  _controller.selectedTest = value;
+                });
+              },
+            ),
+            const SizedBox(width: 10),
+            DropdownButton<String>(
+              value: _controller.selectedStatus,
+              hint: Text(localizations.select_status),
+              items: _controller.statusKeys.map((statusKey) {
+                return DropdownMenuItem(
+                  value: statusKey,
+                  child: Text(_getLocalizedStatus(statusKey, localizations)),
+                );
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  _controller.selectedStatus = value;
+                });
+              },
+            ),
+            const SizedBox(width: 10),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  _controller.clearFilter();
+                });
+              },
+              child: Text(localizations.clear_filter),
+            ),
+          ],
+        ),
       ),
     );
   }
+
 
   Widget _buildDataTable(AppLocalizations localizations) {
     final filteredPatients = _controller.getFilteredPatients();
@@ -211,19 +217,32 @@ class _SelectPatientState extends State<SelectPatient> {
 
   Widget _buildStatusRow(String testType, String currentStatus, int index, AppLocalizations localizations) {
     String statusKey = _getStatusKey(testType);
+    final screenWidth = MediaQuery.of(context).size.width;
+
+
+    double textSize = screenWidth < 600 ? 14.0 : 16.0;
+    double dropdownTextSize = screenWidth < 600 ? 12.0 : 16.0;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          _getLocalizedTest('${testType}_label', localizations),
-          style: const TextStyle(fontSize: 16),
+
+        Expanded(
+          child: Text(
+            _getLocalizedTest('${testType}_label', localizations),
+            style: TextStyle(fontSize: textSize),
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
         DropdownButton<String>(
           value: currentStatus,
           items: _controller.statusKeys.map((status) {
             return DropdownMenuItem<String>(
               value: status,
-              child: Text(_getLocalizedStatus(status, localizations)),
+              child: Text(
+                _getLocalizedStatus(status, localizations),
+                style: TextStyle(fontSize: dropdownTextSize),
+              ),
             );
           }).toList(),
           onChanged: (String? newValue) {
@@ -237,6 +256,8 @@ class _SelectPatientState extends State<SelectPatient> {
       ],
     );
   }
+
+
 
   Widget _buildPaginationControls(AppLocalizations localizations) {
     return Padding(
