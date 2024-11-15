@@ -112,9 +112,12 @@ class _ConsultationState extends State<Consultation> {
                     strokeWidth: 2.0,
                   ),
                 ),
+                SingleChildScrollView( scrollDirection: Axis.horizontal, child:
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
+                Padding(padding: EdgeInsets.symmetric(horizontal: MediaQuery.of(context).size.width * 0.01),
+                child:
                     ElevatedButton(
                       onPressed:(){
                         _languageController.speakText(localizations.clear_signature);
@@ -122,14 +125,18 @@ class _ConsultationState extends State<Consultation> {
                       },
                       child: Text(localizations.clear_signature),
                     ),
+                ),
+                    Padding(padding: EdgeInsets.symmetric(horizontal: MediaQuery.of(context).size.width * 0.01),
+                    child:
                     ElevatedButton(
                       onPressed: (){
                         _languageController.speakText(localizations.generate_prescription);
                         _controller.generatePrescription();},
                         child: Text(localizations.
                       generate_prescription),
-                    ),
+                    ),),
                   ],
+                ),
                 ),
               ],
             ),

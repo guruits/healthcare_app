@@ -94,6 +94,8 @@ class _RegisterState extends State<Register> {
         ),
         SizedBox(height: 20),
         if (_controller.isPhoneEntered)
+          SingleChildScrollView( scrollDirection: Axis.horizontal,
+          child:
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
@@ -119,6 +121,7 @@ class _RegisterState extends State<Register> {
               ),
             ],
           ),
+          ),
         SizedBox(height: 20),
         if (_controller.showQrScanner)
           Center(
@@ -138,6 +141,7 @@ class _RegisterState extends State<Register> {
             ),
           ),
         if (_controller.showCameraOptions)
+          SingleChildScrollView(scrollDirection: Axis.horizontal,child:
           Column(
             children: [
               Text(localizations.scan_aadhar_front_back),
@@ -156,6 +160,7 @@ class _RegisterState extends State<Register> {
                 ],
               ),
             ],
+          ),
           ),
         if (_controller.showPreview)
           Column(

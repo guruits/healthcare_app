@@ -44,6 +44,9 @@ class _VitalsState extends State<Vitals> {
       ),
       body: Column(
         children: [
+          SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+          child:
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: <Widget>[
@@ -72,6 +75,7 @@ class _VitalsState extends State<Vitals> {
                 child:  Text(localizations.allPairedDevices),
               ),
             ],
+          ),
           ),
           const SizedBox(height: 20),
           Expanded(

@@ -84,6 +84,13 @@ class _ReportsState extends State<Reports> {
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context)!;
+    final screenWidth = MediaQuery.of(context).size.width;
+
+
+    int crossAxisCount = screenWidth > 600 ? 4 : 2;
+    double fontSize = screenWidth > 600 ? 16.0 : 12.0;
+    double imageSize = screenWidth > 600 ? 150.0 : 100.0;
+
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -98,8 +105,8 @@ class _ReportsState extends State<Reports> {
         ],
       ),
       body: GridView.builder(
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 5,
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount:crossAxisCount,
           crossAxisSpacing: 10,
           mainAxisSpacing: 10,
           childAspectRatio: 0.8,

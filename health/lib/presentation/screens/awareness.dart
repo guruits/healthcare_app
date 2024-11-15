@@ -66,7 +66,7 @@ class _AwarenessState extends State<Awareness> {
           LanguageToggle(),
         ],
       ),
-      body: Padding(
+      body: SingleChildScrollView( child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -141,6 +141,7 @@ class _AwarenessState extends State<Awareness> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

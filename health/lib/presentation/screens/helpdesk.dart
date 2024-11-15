@@ -36,6 +36,8 @@ class _HelpdeskState extends State<Helpdesk> {
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context)!;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final textScaleFactor = screenWidth / 375;
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -75,6 +77,7 @@ class _HelpdeskState extends State<Helpdesk> {
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
+                        fontSize: 14 * textScaleFactor,
                       ),
                     ),
                   ),
@@ -100,6 +103,7 @@ class _HelpdeskState extends State<Helpdesk> {
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
+                        fontSize: 14 * textScaleFactor,
                       ),
                     ),
                   ),
@@ -119,6 +123,7 @@ class _HelpdeskState extends State<Helpdesk> {
                       TextField(
                         decoration: InputDecoration(
                           labelText: localizations.enter_phone_number,
+                          labelStyle: TextStyle(fontSize: 14 * textScaleFactor),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                             borderSide: BorderSide(),
@@ -142,7 +147,8 @@ class _HelpdeskState extends State<Helpdesk> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                        hint: Text(localizations.select_patient),
+                        hint: Text(localizations.select_patient,
+                        style: TextStyle(fontSize: 14 * textScaleFactor),),
                         items: _controller.patientList.map((String patient) {
                           return DropdownMenuItem<String>(
                             value: patient,
@@ -193,159 +199,88 @@ class _HelpdeskState extends State<Helpdesk> {
                 elevation: 4,
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    children: [
-                      Text(localizations.upload_aadhar_card, style: TextStyle(fontSize: 18)),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          Column(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        Text(
+                          localizations.upload_aadhar_card,
+                          style: TextStyle(fontSize: 18),
+                        ),
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
-                              ElevatedButton(
-                                onPressed: () {
-                                  _languageController.speakText(localizations.upload_aadhar_front_side);
-                                  _controller.pickImage(ImageSource.gallery, true);},
-                                child: Text(localizations.upload_aadhar_front_side),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.blue, // Button color
-                                ),
+                              buildAadharSideColumn(
+                                context,
+                                true,
+                                _controller,
+                                _languageController,
+                                localizations,
                               ),
-                              ElevatedButton(
-                                onPressed: (){
-                                      _languageController.speakText(localizations.capture_aadhar_front_side);
-                                  _controller.pickImage(ImageSource.camera, true);
-                                   },
-                                child: Text(localizations.capture_aadhar_front_side),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.blue, // Button color
-                                ),
+                              SizedBox(width: 20),
+                              buildAadharSideColumn(
+                                context,
+                                false,
+                                _controller,
+                                _languageController,
+                                localizations,
                               ),
-                              if (_controller.aadharFrontImage != null)
-                                Image.file(
-                                  _controller.aadharFrontImage!,
-                                  width: 100,
-                                  height: 100,
-                                ),
                             ],
                           ),
-                          SizedBox(width: 20),
-                          Column(
-                            children: [
-                              ElevatedButton(
-                                onPressed: () {
-                                  _languageController.speakText(localizations.upload_aadhar_back_side);
-                                  _controller.pickImage(ImageSource.gallery, false);},
-                                child: Text(localizations.upload_aadhar_back_side),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.blue, // Button color
-                                ),
-                              ),
-                              ElevatedButton(
-                                onPressed: () {
-                                  _languageController.speakText(localizations.capture_aadhar_back_side);
-                                  _controller.pickImage(ImageSource.camera, false);},
-                                child: Text(localizations.capture_aadhar_back_side),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.blue, // Button color
-                                ),
-                              ),
-                              if (_controller.aadharBackImage != null)
-                                Image.file(
-                                  _controller.aadharBackImage!,
-                                  width: 100,
-                                  height: 100,
-                                ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 10),
-                      TextField(
-                        decoration: InputDecoration(
-                          labelText: localizations.enter_phone_number,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(color: Colors.blueAccent),
-                          ),
                         ),
-                        onChanged: (value) {
-                          setState(() {
-                            _controller.phoneNumber = value;
-                          });
-                        },
-                      ),
-                      SizedBox(height: 10),
-                      TextField(
-                        decoration: InputDecoration(
-                          labelText: localizations.dob,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(color: Colors.blueAccent),
-                          ),
-                        ),
-                        onChanged: (value) {
-                          setState(() {
-                            _controller.dob = value;
-                          });
-                        },
-                      ),
-                      SizedBox(height: 10),
-                      TextField(
-                        decoration: InputDecoration(
-                          labelText: localizations.address,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(color: Colors.blueAccent),
-                          ),
-                        ),
-                        onChanged: (value) {
-                          setState(() {
-                            _controller.address = value;
-                          });
-                        },
-                      ),
-                      SizedBox(height: 20),
-                      ElevatedButton(
-                        onPressed:(){
-                          _controller.addUser();
-                          _languageController.speakText(localizations.user_added);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green, // Button color
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        child: Text(localizations.add_user),
-                      ),
-                      if (_controller.isUserAdded) ...[
                         SizedBox(height: 10),
-                        Text(localizations.user_added),
+                        buildTextField(
+                          localizations.enter_phone_number,
+                              (value) => setState(() => _controller.phoneNumber = value),
+                        ),
+                        SizedBox(height: 10),
+                        buildTextField(
+                          localizations.dob,
+                              (value) => setState(() => _controller.dob = value),
+                        ),
+                        SizedBox(height: 10),
+                        buildTextField(
+                          localizations.address,
+                              (value) => setState(() => _controller.address = value),
+                        ),
                         SizedBox(height: 20),
-                        ElevatedButton(
-                          onPressed: bookAppointment,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green, // Button color
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              _controller.addUser();
+                              _languageController.speakText(localizations.user_added);
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            child: Text(localizations.add_user),
+                          ),
+                        ),
+                        if (_controller.isUserAdded) ...[
+                          SizedBox(height: 10),
+                          Text(localizations.user_added),
+                          SizedBox(height: 20),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: bookAppointment,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                              child: Text(localizations.book_appointment),
                             ),
                           ),
-                          child: Text(localizations.book_appointment),
-                        ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -353,6 +288,97 @@ class _HelpdeskState extends State<Helpdesk> {
           ],
         ),
       ),
+    );
+  }
+  Widget buildAadharSideColumn(
+      BuildContext context,
+      bool isFrontSide,
+      dynamic controller,
+      dynamic languageController,
+      dynamic localizations,
+      ) {
+    double screenWidth = MediaQuery.of(context).size.width;
+    double buttonWidth = screenWidth < 600 ? screenWidth * 0.4 : 200.0;
+
+    return Column(
+      children: [
+        SizedBox(
+          width: buttonWidth,
+          child: ElevatedButton(
+            onPressed: () {
+              languageController.speakText(
+                isFrontSide
+                    ? localizations.upload_aadhar_front_side
+                    : localizations.upload_aadhar_back_side,
+              );
+              controller.pickImage(ImageSource.gallery, isFrontSide);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              padding: EdgeInsets.symmetric(vertical: 12),
+            ),
+            child: Text(
+              isFrontSide
+                  ? localizations.upload_aadhar_front_side
+                  : localizations.upload_aadhar_back_side,
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+        SizedBox(height: 10),
+        SizedBox(
+          width: buttonWidth,
+          child: ElevatedButton(
+            onPressed: () {
+              languageController.speakText(
+                isFrontSide
+                    ? localizations.capture_aadhar_front_side
+                    : localizations.capture_aadhar_back_side,
+              );
+              controller.pickImage(ImageSource.camera, isFrontSide);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              padding: EdgeInsets.symmetric(vertical: 12),
+            ),
+            child: Text(
+              isFrontSide
+                  ? localizations.capture_aadhar_front_side
+                  : localizations.capture_aadhar_back_side,
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+        SizedBox(height: 10),
+        if ((isFrontSide && controller.aadharFrontImage != null) ||
+            (!isFrontSide && controller.aadharBackImage != null))
+          Image.file(
+            isFrontSide
+                ? controller.aadharFrontImage!
+                : controller.aadharBackImage!,
+            width: 100,
+            height: 100,
+            fit: BoxFit.cover,
+          ),
+      ],
+    );
+  }
+
+
+  Widget buildTextField(String label, Function(String) onChanged) {
+    return TextField(
+      decoration: InputDecoration(
+        labelText: label,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: Colors.blueAccent),
+        ),
+      ),
+      onChanged: onChanged,
     );
   }
 }

@@ -123,7 +123,9 @@ class _AppointmentsState extends State<Appointments> {
                     ),
                     const SizedBox(height: 20),
                     Text('${localizations.available_slots_for} ${controller.getFormattedDate()}'),
-                    Row(
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                    child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: controller.slotAvailability.keys.map((slot) {
                         return GestureDetector(
@@ -148,8 +150,12 @@ class _AppointmentsState extends State<Appointments> {
                         );
                       }).toList(),
                     ),
+                    ),
                     if (controller.selectedSlot != null && controller.selectedPatientNames.isNotEmpty) ...[
                       Text(localizations.patients_for_slot(controller.selectedSlot as Object)),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child:
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: controller.selectedPatientNames.map((name) {
@@ -163,6 +169,7 @@ class _AppointmentsState extends State<Appointments> {
                             child: Text(name),
                           );
                         }).toList(),
+                      ),
                       ),
                     ],
                     ElevatedButton(
