@@ -10,7 +10,13 @@ class LoginController{
   bool showContinueButton = true;
   bool showUserDropdown = false;
   bool showLoginButton = false;
+  bool isPhoneEntered = false;
   String selectedUser = '';
+  String selectedCountry = "India";
+
+  bool _isPasswordValid = false;
+  bool _isPasswordVisible = false;
+  String? _passwordError;
 
 // Sample data for users
   Map<String, Map<String, String>> userData = {
@@ -67,6 +73,26 @@ class LoginController{
 
   TextEditingController phoneController = TextEditingController();
 
+  // Password validation method
+  void validatePassword(String value) {
+    {
+      if (value.isEmpty) {
+        _passwordError = 'Password is required';
+        _isPasswordValid = false;
+      } else if (value.length < 6) {
+        _passwordError = 'Password must be at least 6 characters';
+        _isPasswordValid = false;
+      } else {
+        _passwordError = null;
+        _isPasswordValid = true;
+      }
+      // Update login button visibility based on password validity
+      showLoginButton = _isPasswordValid;
+    };
+  }
+
+
+
 
 
   // Function to change language
@@ -91,4 +117,6 @@ class LoginController{
     await prefs.setString('userName', userName);
     await prefs.setString('userRole', userRole);
   }
+
+
 }

@@ -10,6 +10,8 @@ class RegisterController{
   bool showCameraOptions = false;
   bool showFrontBackScan = false;
   bool showPreview = false;
+  bool showContinueButton = true;
+  bool showUserDropdown = false;
   bool showSignupButton = false;
   String? frontImagePath;
   String? backImagePath;
@@ -22,6 +24,8 @@ class RegisterController{
   // Language and TTS variables
   bool isMuted = false;
   String selectedLanguage = 'en-US';
+
+
 
   Future<void> pickImage(String side) async {
     final ImagePicker picker = ImagePicker();
@@ -73,4 +77,6 @@ class RegisterController{
       isMuted = !isMuted;
     };
   }
+
+
 }

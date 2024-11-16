@@ -3,7 +3,10 @@ import 'package:health/presentation/controller/register.controller.dart';
 import 'package:health/presentation/screens/login.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'dart:io';
+import '../controller/camerapreview.controller.dart';
 import '../widgets/language.widgets.dart';
+import '../widgets/phonenumber.widgets.dart';
+import 'home.dart';
 
 class Register extends StatefulWidget {
   const Register({super.key});
@@ -15,12 +18,15 @@ class Register extends StatefulWidget {
 class _RegisterState extends State<Register> {
   final RegisterController _controller = RegisterController();
 
+
   // Function to handle navigation
   void navigateToScreen(Widget screen) {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => screen),
     );
   }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +39,7 @@ class _RegisterState extends State<Register> {
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
           onPressed: () {
-            Navigator.pop(context);
+            navigateToScreen(Home());
           },
         ),
         actions: [
@@ -79,60 +85,56 @@ class _RegisterState extends State<Register> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        TextField(
-          controller: _controller.phoneController,
-          keyboardType: TextInputType.phone,
-          decoration: InputDecoration(
-            labelText:localizations.phone_number ,
-            border: OutlineInputBorder(),
-          ),
-          onChanged: (value) {
+          PhoneInputWidget(
+          onPhoneValidated: (bool isValid, String phoneNumber) {
             setState(() {
-              _controller.isPhoneEntered = value.isNotEmpty;
+              _controller.isPhoneEntered = isValid;
+              if (isValid) {
+                _controller.phoneController.text = phoneNumber;
+                _controller.showContinueButton = true;
+              } else {
+                _controller.showContinueButton = false;
+              }
             });
           },
         ),
+
         SizedBox(height: 20),
         if (_controller.isPhoneEntered)
           SingleChildScrollView( scrollDirection: Axis.horizontal,
-          child:
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              ElevatedButton(
-                onPressed: () {
-                  setState(() {
-                    _controller.showQrScanner = true;
-                    _controller.showCameraOptions = false;
-                  });
-                  _controller.speakText("Aadhar QR Code scan activated");
-                },
-                child: Text(localizations.scan_aadhar_qr),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  setState(() {
-                    _controller.showCameraOptions = true;
-                    _controller.showQrScanner = false;
-                  });
-                  _controller.speakText("Aadhar card front and back scan activated");
-                },
-                child: Text(localizations.scan_aadhar_front_back),
-              ),
-            ],
-          ),
+            child:
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _controller.showQrScanner = true;
+                      _controller.showCameraOptions = false;
+                    });
+                    _controller.speakText("Aadhar QR Code scan activated");
+                  },
+                  child: Text(localizations.scan_aadhar_qr),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _controller.showCameraOptions = true;
+                      _controller.showQrScanner = false;
+                    });
+                    _controller.speakText("Aadhar card front and back scan activated");
+                  },
+                  child: Text(localizations.scan_aadhar_front_back),
+                ),
+              ],
+            ),
           ),
         SizedBox(height: 20),
         if (_controller.showQrScanner)
           Center(
             child: Column(
               children: [
-                Container(
-                  width: 200,
-                  height: 200,
-                  color: Colors.grey[300],
-                  child: Center(child: Text("Camera to scan QR")),
-                ),
+                CameraPreviewContainer(),
                 ElevatedButton(
                   onPressed: _controller.scanQrCode,
                   child: Text(localizations.scan_aadhar_qr),

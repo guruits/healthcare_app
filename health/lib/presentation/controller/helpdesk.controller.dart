@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -19,6 +20,8 @@ class HelpdeskController{
 
   // State tracking for the form
   bool isExistingPatient = false;
+  TextEditingController phoneController = TextEditingController();
+  bool isPhoneEntered = false;
   bool isNewPatient = false;
   String phoneNumber = '';
   String patientName = '';

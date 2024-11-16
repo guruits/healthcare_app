@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../widgets/language.widgets.dart';
+import '../widgets/phonenumber.widgets.dart';
 
 class Helpdesk extends StatefulWidget {
   const Helpdesk({super.key});
@@ -120,22 +121,14 @@ class _HelpdeskState extends State<Helpdesk> {
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
                     children: [
-                      TextField(
-                        decoration: InputDecoration(
-                          labelText: localizations.enter_phone_number,
-                          labelStyle: TextStyle(fontSize: 14 * textScaleFactor),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(color: Colors.blueAccent),
-                          ),
-                        ),
-                        onChanged: (value) {
+                      PhoneInputWidget(
+                        onPhoneValidated: (bool isValid, String phoneNumber) {
                           setState(() {
-                            _controller.phoneNumber = value;
+                            _controller.isPhoneEntered = isValid;
+                            if (isValid) {
+                              _controller.phoneController.text = phoneNumber;
+
+                            }
                           });
                         },
                       ),

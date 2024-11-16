@@ -7,7 +7,6 @@ import '../widgets/language.widgets.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class Home extends StatefulWidget {
-  //const Home({super.key});
 
 
   @override
@@ -63,8 +62,9 @@ class _HomeState extends State<Home> {
                   ),
                   SizedBox(height: 20),
                   ElevatedButton(
-                    onPressed: () {
+                    onPressed: () async {
                       _languageController.speakText(localizations.signUp);
+                      await Future.delayed(Duration(milliseconds: 1300));
                       Navigator.of(context).pushReplacement(
                         MaterialPageRoute(builder: (_) => Register()),
                       );
