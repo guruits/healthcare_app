@@ -10,6 +10,9 @@
   "languageChanged": "Langue changée en {language}",
   "login": "Connexion",
   "signUp": "S'inscrire",
+  "retake": "Reprendre",
+  "capture_face": "Capturer le visage",
+  "register_success": "Inscription réussie",
 
   "phone_number": "Numéro de téléphone",
   "continueButton": "Continuer",

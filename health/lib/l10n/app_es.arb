@@ -21,6 +21,10 @@
   "address": "Dirección",
   "role": "Rol",
   "create_account": "¿Quieres crear una cuenta?",
+  "retake": "Volver a tomar",
+  "capture_face": "Capturar Rostro",
+
+  "register_success": "Registro exitoso",
 
   "helpdesk": "Ayuda",
   "appointments": "Citas",
