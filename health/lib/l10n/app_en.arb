@@ -149,6 +149,7 @@
   "collection_number": "Collection Number",
   "print_label": "Print Label",
   "selected_patient_info": "Selected Patient Information",
+  "blood_appointment_success": "Blood collection appointment number generated successfully.",
   "back_button": "Back",
 
   "screen":"consultation",

@@ -218,7 +218,7 @@
   "screen": "dentist",
   "dentist_appointment": "Rendez-vous chez le Dentiste",
   "generated_dentist_appointment_number": "Numéro de Rendez-vous du Dentiste Généré",
-
+  "blood_appointment_success": "Numéro de rendez-vous pour la collecte de sang généré avec succès.",
   "screen": "dexascan",
   "dexa_scan_appointment": "Rendez-vous pour un Dexa Scan",
   "generated_dexa_scan_appointment_number": "Numéro de Rendez-vous pour Dexa Scan Généré",

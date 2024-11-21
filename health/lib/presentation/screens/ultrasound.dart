@@ -19,6 +19,7 @@ class UltraSound extends StatefulWidget {
 class _UltraSoundState extends State<UltraSound> {
   final UltrasoundController _controller = UltrasoundController();
   final LanguageController _languageController = LanguageController();
+  String _ultrasoundtStatus = 'STATUS_YET_TO_START';
 
   void _submit() {
     // Add your submission logic here
@@ -137,6 +138,39 @@ class _UltraSoundState extends State<UltraSound> {
       ),
     );
   }
+  Widget _buildUltrasoundStatusDropdown(AppLocalizations localizations) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+            localizations.blood_test_label,
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)
+        ),
+        DropdownButton<String>(
+          value: _ultrasoundtStatus,
+          items: [
+            DropdownMenuItem(
+                value: 'STATUS_YET_TO_START',
+                child: Text(localizations.status_yet_to_start)
+            ),
+            DropdownMenuItem(
+                value: 'STATUS_IN_PROGRESS',
+                child: Text(localizations.status_in_progress)
+            ),
+            DropdownMenuItem(
+                value: 'STATUS_COMPLETED',
+                child: Text(localizations.status_completed)
+            ),
+          ],
+          onChanged: (String? newValue) {
+            setState(() {
+              _ultrasoundtStatus = newValue!;
+            });
+          },
+        ),
+      ],
+    );
+  }
 
   Widget _buildUltraSoundAppointmentForm() {
     final localizations = AppLocalizations.of(context)!;
@@ -152,6 +186,8 @@ class _UltraSoundState extends State<UltraSound> {
             _buildPatientInfoBox(),
             SizedBox(height: 20),
             Dateandtimepicker(),
+            SizedBox(height: 20),
+            _buildUltrasoundStatusDropdown(localizations),
             SizedBox(height: 20),
             _buildUltraSoundAppointmentNumberAndLabel(),
             SizedBox(height: 20),

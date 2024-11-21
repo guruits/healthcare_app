@@ -17,6 +17,7 @@ class DexaScan extends StatefulWidget {
 class _DexaScanState extends State<DexaScan> {
   final DexaScanController _controller = DexaScanController();
   final LanguageController _languageController = LanguageController();
+  String _dexascanTestStatus = 'STATUS_YET_TO_START';
 
   void _submit() {
     print('Submitting Dexa Scan Appointment for ${_controller.selectedPatient}');
@@ -147,6 +148,8 @@ class _DexaScanState extends State<DexaScan> {
             SizedBox(height: 20),
             Dateandtimepicker(),
             SizedBox(height: 20),
+            _buildDexascanStatusDropdown(localizations),
+            SizedBox(height: 20),
             _buildDexaScanAppointmentNumberAndLabel(),
             SizedBox(height: 20),
             ElevatedButton(
@@ -159,6 +162,39 @@ class _DexaScanState extends State<DexaScan> {
           ],
         ),
       ),
+    );
+  }
+  Widget _buildDexascanStatusDropdown(AppLocalizations localizations) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+            localizations.blood_test_label,
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)
+        ),
+        DropdownButton<String>(
+          value: _dexascanTestStatus,
+          items: [
+            DropdownMenuItem(
+                value: 'STATUS_YET_TO_START',
+                child: Text(localizations.status_yet_to_start)
+            ),
+            DropdownMenuItem(
+                value: 'STATUS_IN_PROGRESS',
+                child: Text(localizations.status_in_progress)
+            ),
+            DropdownMenuItem(
+                value: 'STATUS_COMPLETED',
+                child: Text(localizations.status_completed)
+            ),
+          ],
+          onChanged: (String? newValue) {
+            setState(() {
+              _dexascanTestStatus = newValue!;
+            });
+          },
+        ),
+      ],
     );
   }
 

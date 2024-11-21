@@ -11,6 +11,7 @@ class BloodCollectionController {
   bool _isPatientSelected = false;
   bool _isPrinting = false;
   String _statusMessage = '';
+  String bllodcollectionAppointmentNumber = '';
 
   String get selectedPatient => _selectedPatient;
   String get patientMobileNumber => _patientMobileNumber;
@@ -18,7 +19,6 @@ class BloodCollectionController {
   String get appointmentSlot => _appointmentSlot;
   String get patientAddress => _patientAddress;
   DateTime? get collectionDateTime => _collectionDateTime;
-  String get collectionNumber => _collectionNumber;
   bool get isPatientSelected => _isPatientSelected;
   bool get isPrinting => _isPrinting;
   String get statusMessage => _statusMessage;
@@ -29,7 +29,7 @@ class BloodCollectionController {
     _patientAadharNumber = aadharNumber;
     _appointmentSlot = appointmentSlot;
     _patientAddress = address;
-    _collectionNumber = _generateBloodCollectionNumber();
+    bllodcollectionAppointmentNumber = generateBloodcollectionAppointmentNumber();
     _isPatientSelected = true;
   }
 
@@ -43,6 +43,12 @@ class BloodCollectionController {
     print('Submitting Blood Collection for $_selectedPatient');
     print('Collection DateTime: $_collectionDateTime');
     print('Collection Number: $_collectionNumber');
+  }
+
+  String generateBloodcollectionAppointmentNumber() {
+    String datePart = DateTime.now().toString().split(' ')[0].replaceAll('-', '');
+    String randomPart = Random().nextInt(9000 + 1).toString().padLeft(4, '0');
+    return '$datePart$randomPart';
   }
 
   void printLabel() {

@@ -19,6 +19,7 @@ class Echo extends StatefulWidget {
 class _EchoState extends State<Echo> {
   final EchoController _controller = EchoController();
   final LanguageController _languageController = LanguageController();
+  String _dexaStatus = 'STATUS_YET_TO_START';
 
   void _submit() {
     // Add your submission logic here
@@ -137,6 +138,39 @@ class _EchoState extends State<Echo> {
       ),
     );
   }
+  Widget _buildechoStatusDropdown(AppLocalizations localizations) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+            localizations.blood_test_label,
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)
+        ),
+        DropdownButton<String>(
+          value: _dexaStatus,
+          items: [
+            DropdownMenuItem(
+                value: 'STATUS_YET_TO_START',
+                child: Text(localizations.status_yet_to_start)
+            ),
+            DropdownMenuItem(
+                value: 'STATUS_IN_PROGRESS',
+                child: Text(localizations.status_in_progress)
+            ),
+            DropdownMenuItem(
+                value: 'STATUS_COMPLETED',
+                child: Text(localizations.status_completed)
+            ),
+          ],
+          onChanged: (String? newValue) {
+            setState(() {
+              _dexaStatus = newValue!;
+            });
+          },
+        ),
+      ],
+    );
+  }
 
   Widget _buildEchoAppointmentForm() {
     final localizations = AppLocalizations.of(context)!;
@@ -152,6 +186,8 @@ class _EchoState extends State<Echo> {
             _buildPatientInfoBox(),
             SizedBox(height: 20),
             Dateandtimepicker(),
+            SizedBox(height: 20),
+            _buildechoStatusDropdown(localizations),
             SizedBox(height: 20),
             _buildEchoAppointmentNumberAndLabel(),
             SizedBox(height: 20),

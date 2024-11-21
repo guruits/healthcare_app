@@ -150,6 +150,7 @@
   "collection_number": "சேகரிப்பு எண்",
   "print_label": "லேபிளை அச்சிடவும்",
   "selected_patient_info": "தேர்ந்தெடுக்கப்பட்ட நோயாளியின் தகவல்",
+  "blood_appointment_success": "இரத்த சேகரிப்பு நேரடி எண் வெற்றிகரமாக உருவாக்கப்பட்டது.",
   "back_button": "முந்தைய பக்கம்",
 
   "screen":"consultation",

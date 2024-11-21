@@ -19,6 +19,7 @@ class XRay extends StatefulWidget {
 class _XRayState extends State<XRay> {
   final XrayController _controller = XrayController();
   final LanguageController _languageController = LanguageController();
+  String _xrayTestStatus = 'STATUS_YET_TO_START';
 
   void _submit() {
     // Add your submission logic here
@@ -148,6 +149,39 @@ class _XRayState extends State<XRay> {
       ),
     );
   }
+  Widget _buildXrayStatusDropdown(AppLocalizations localizations) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+            localizations.blood_test_label,
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)
+        ),
+        DropdownButton<String>(
+          value: _xrayTestStatus,
+          items: [
+            DropdownMenuItem(
+                value: 'STATUS_YET_TO_START',
+                child: Text(localizations.status_yet_to_start)
+            ),
+            DropdownMenuItem(
+                value: 'STATUS_IN_PROGRESS',
+                child: Text(localizations.status_in_progress)
+            ),
+            DropdownMenuItem(
+                value: 'STATUS_COMPLETED',
+                child: Text(localizations.status_completed)
+            ),
+          ],
+          onChanged: (String? newValue) {
+            setState(() {
+              _xrayTestStatus = newValue!;
+            });
+          },
+        ),
+      ],
+    );
+  }
 
   Widget _buildXRayAppointmentForm() {
     final localizations = AppLocalizations.of(context)!;
@@ -163,6 +197,8 @@ class _XRayState extends State<XRay> {
             _buildPatientInfoBox(),
             SizedBox(height: 20),
             Dateandtimepicker(),
+            SizedBox(height: 20),
+            _buildXrayStatusDropdown(localizations),
             SizedBox(height: 20),
             _buildXRayAppointmentNumberAndLabel(),
             SizedBox(height: 20),

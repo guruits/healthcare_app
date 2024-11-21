@@ -17,6 +17,7 @@ class Arc extends StatefulWidget {
 class _ArcState extends State<Arc> {
   final ArcController controller = ArcController();
   final LanguageController _languageController = LanguageController();
+  String _arcTestStatus = 'STATUS_YET_TO_START'; // Default stat
 
   // Function to handle navigation
   void navigateToScreen(Widget screen) {
@@ -119,6 +120,39 @@ class _ArcState extends State<Arc> {
       ),
     );
   }
+  Widget _buildArcStatusDropdown(AppLocalizations localizations) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+            localizations.blood_test_label,
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)
+        ),
+        DropdownButton<String>(
+          value: _arcTestStatus,
+          items: [
+            DropdownMenuItem(
+                value: 'STATUS_YET_TO_START',
+                child: Text(localizations.status_yet_to_start)
+            ),
+            DropdownMenuItem(
+                value: 'STATUS_IN_PROGRESS',
+                child: Text(localizations.status_in_progress)
+            ),
+            DropdownMenuItem(
+                value: 'STATUS_COMPLETED',
+                child: Text(localizations.status_completed)
+            ),
+          ],
+          onChanged: (String? newValue) {
+            setState(() {
+              _arcTestStatus = newValue!;
+            });
+          },
+        ),
+      ],
+    );
+  }
 
   Widget _buildArcTestForm() {
     final localizations = AppLocalizations.of(context)!;
@@ -134,6 +168,8 @@ class _ArcState extends State<Arc> {
             _buildPatientInfoBox(),
             SizedBox(height: 20),
             Dateandtimepicker(),
+            SizedBox(height: 20),
+            _buildArcStatusDropdown(localizations),
             SizedBox(height: 20),
             _buildArcTestNumberAndLabel(),
             SizedBox(height: 20),

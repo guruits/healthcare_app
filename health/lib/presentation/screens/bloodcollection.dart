@@ -7,6 +7,7 @@ import '../controller/language.controller.dart';
 import '../widgets/language.widgets.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+
 class Bloodcollection extends StatefulWidget {
   const Bloodcollection({super.key});
 
@@ -17,7 +18,7 @@ class Bloodcollection extends StatefulWidget {
 class _BloodcollectionState extends State<Bloodcollection> {
   final BloodCollectionController _controller = BloodCollectionController();
   final LanguageController _languageController = LanguageController();
-  String _bloodTestStatus = 'STATUS_YET_TO_START'; // Default status
+  String _bloodTestStatus = 'STATUS_YET_TO_START';
 
   void _selectPatient(String patientName, String mobileNumber, String aadharNumber, String appointmentSlot, String address) {
     setState(() {
@@ -252,10 +253,20 @@ class _BloodcollectionState extends State<Bloodcollection> {
 
   Widget _buildBloodCollectionNumberAndLabel() {
     final localizations = AppLocalizations.of(context)!;
-    return Column(
+    return Row(
       children: [
-        Text( localizations.collection_number.replaceFirst('{number}', _controller.collectionNumber.toString()), style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        SizedBox(height: 10),
+        Expanded(
+          child: TextField(
+            readOnly: true,
+            decoration: InputDecoration(
+              labelText: localizations.blood_appointment_success,
+              border: OutlineInputBorder(),
+              hintText: 'Automatically generated',
+            ),
+            controller: TextEditingController(text: _controller.bllodcollectionAppointmentNumber),
+          ),
+        ),
+        SizedBox(width: 10),
         ElevatedButton(
           onPressed:(){
             _languageController.speakText(localizations.print_label);

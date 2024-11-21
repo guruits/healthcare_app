@@ -17,6 +17,7 @@ class Dentist extends StatefulWidget {
 class _DentistState extends State<Dentist> {
   final DentistController _controller = DentistController();
   final LanguageController _languageController = LanguageController();
+  String _dentistTestStatus = 'STATUS_YET_TO_START';
 
   @override
   Widget build(BuildContext context) {
@@ -115,6 +116,39 @@ class _DentistState extends State<Dentist> {
       ),
     );
   }
+  Widget _buildDentistStatusDropdown(AppLocalizations localizations) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+            localizations.blood_test_label,
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)
+        ),
+        DropdownButton<String>(
+          value: _dentistTestStatus,
+          items: [
+            DropdownMenuItem(
+                value: 'STATUS_YET_TO_START',
+                child: Text(localizations.status_yet_to_start)
+            ),
+            DropdownMenuItem(
+                value: 'STATUS_IN_PROGRESS',
+                child: Text(localizations.status_in_progress)
+            ),
+            DropdownMenuItem(
+                value: 'STATUS_COMPLETED',
+                child: Text(localizations.status_completed)
+            ),
+          ],
+          onChanged: (String? newValue) {
+            setState(() {
+              _dentistTestStatus = newValue!;
+            });
+          },
+        ),
+      ],
+    );
+  }
 
   Widget _buildDentistAppointmentForm() {
     final localizations = AppLocalizations.of(context)!;
@@ -130,6 +164,8 @@ class _DentistState extends State<Dentist> {
             _buildPatientInfoBox(),
             SizedBox(height: 20),
             Dateandtimepicker(),
+            SizedBox(height: 20),
+            _buildDentistStatusDropdown(localizations),
             SizedBox(height: 20),
             _buildDentistAppointmentNumberAndLabel(),
             SizedBox(height: 20),
