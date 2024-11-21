@@ -17,6 +17,7 @@ class Bloodcollection extends StatefulWidget {
 class _BloodcollectionState extends State<Bloodcollection> {
   final BloodCollectionController _controller = BloodCollectionController();
   final LanguageController _languageController = LanguageController();
+  String _bloodTestStatus = 'STATUS_YET_TO_START'; // Default status
 
   void _selectPatient(String patientName, String mobileNumber, String aadharNumber, String appointmentSlot, String address) {
     setState(() {
@@ -143,6 +144,40 @@ class _BloodcollectionState extends State<Bloodcollection> {
     );
   }
 
+  Widget _buildBloodTestStatusDropdown(AppLocalizations localizations) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+            localizations.blood_test_label,
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)
+        ),
+        DropdownButton<String>(
+          value: _bloodTestStatus,
+          items: [
+            DropdownMenuItem(
+                value: 'STATUS_YET_TO_START',
+                child: Text(localizations.status_yet_to_start)
+            ),
+            DropdownMenuItem(
+                value: 'STATUS_IN_PROGRESS',
+                child: Text(localizations.status_in_progress)
+            ),
+            DropdownMenuItem(
+                value: 'STATUS_COMPLETED',
+                child: Text(localizations.status_completed)
+            ),
+          ],
+          onChanged: (String? newValue) {
+            setState(() {
+              _bloodTestStatus = newValue!;
+            });
+          },
+        ),
+      ],
+    );
+  }
+
   Widget _buildBloodCollectionForm() {
     final localizations = AppLocalizations.of(context)!;
     return Center(
@@ -157,6 +192,8 @@ class _BloodcollectionState extends State<Bloodcollection> {
             _buildPatientInfoBox(),
             SizedBox(height: 20),
             Dateandtimepicker(),
+            SizedBox(height: 20),
+            _buildBloodTestStatusDropdown(localizations),
             SizedBox(height: 20),
             _buildBloodCollectionNumberAndLabel(),
             SizedBox(height: 20),

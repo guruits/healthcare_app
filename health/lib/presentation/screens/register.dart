@@ -9,8 +9,16 @@ import '../widgets/language.widgets.dart';
 import '../widgets/phonenumber.widgets.dart';
 import 'home.dart';
 
+enum UserRole {
+  admin,
+  doctor,
+  user,
+}
+
 class Register extends StatefulWidget {
+
   const Register({super.key});
+
 
   @override
   State<Register> createState() => _RegisterState();
@@ -22,6 +30,7 @@ class _RegisterState extends State<Register> {
   final UserService _userService = UserService();
   Future<void>? _initializeControllerFuture;
   bool _isLoading = false;
+
 
   @override
   void initState() {
@@ -267,12 +276,14 @@ class _RegisterState extends State<Register> {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 ElevatedButton.icon(
-                  onPressed: () => _handleImageCapture('front', localizations),
+                  onPressed: () =>
+                      _handleImageCapture('front', localizations),
                   icon: Icon(Icons.camera_front),
                   label: Text(localizations.scan_aadhar_front),
                 ),
                 ElevatedButton.icon(
-                  onPressed: () => _handleImageCapture('back', localizations),
+                  onPressed: () =>
+                      _handleImageCapture('back', localizations),
                   icon: Icon(Icons.camera_rear),
                   label: Text(localizations.scan_aadhar_back),
                 ),
@@ -470,101 +481,108 @@ class _RegisterState extends State<Register> {
   }
   Future<void> _handleRegistration(AppLocalizations localizations) async {
     try {
-      // First validate the form
       if (!_controller.formKey.currentState!.validate()) {
-        Navigator.of(context).pop(); // Close password dialog
+        if (mounted) Navigator.of(context).pop();
         return;
       }
 
-      // Validate passwords match
       if (_controller.newpassword.text != _controller.confirmpassword.text) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(localizations.changePassword)),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Passwords do not match'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
         return;
       }
 
-      // Validate profile picture
       if (_controller.imageFile == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(localizations.preview)),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Please capture profile picture'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
         return;
       }
 
-      // Pre-validate all required fields
-      final requiredFields = {
-        'Phone': _controller.phone.text.trim(),
-        'Aadhaar': _controller.aadharnumber.text.trim(),
-        'Name': _controller.name.text.trim(),
-        'Date of Birth': _controller.dateofbirth.text.trim(),
-        'Address': _controller.addresss.text.trim(),
-        'New Password': _controller.newpassword.text,
-        'Confirm Password': _controller.confirmpassword.text,
-      };
+      if (mounted) setState(() => _isLoading = true);
 
-      // Check for empty fields
-      final emptyFields = requiredFields.entries
-          .where((entry) => entry.value.isEmpty)
-          .map((entry) => entry.key)
-          .toList();
-
-      if (emptyFields.isNotEmpty) {
-        throw Exception('Required fields are empty: ${emptyFields.join(", ")}');
-      }
-
-      setState(() => _isLoading = true);
-
-      // Prepare request data
       final response = await _userService.addUser(
         imageFile: _controller.imageFile!,
-        phoneNumber: requiredFields['Phone']!,
-        aadhaarNumber: requiredFields['Aadhaar']!,
-        name: requiredFields['Name']!,
-        dob: requiredFields['Date of Birth']!,
-        address: requiredFields['Address']!,
-        newPassword: requiredFields['New Password']!,
-        confirmPassword: requiredFields['Confirm Password']!,
+        phoneNumber: _controller.phone.text.trim(),
+        aadhaarNumber: _controller.aadharnumber.text.trim(),
+        name: _controller.name.text.trim(),
+        dob: _controller.dateofbirth.text.trim(),
+        address: _controller.addresss.text.trim(),
+        newPassword: _controller.newpassword.text,
+        confirmPassword: _controller.confirmpassword.text,
       );
 
-      // Handle API response
-      if (response['status'] == 'success' || response['status'] == 201) {
-        _controller.speakText(localizations.errorOccurred);
+      print('Registration response: $response'); // Debug print
 
+      if (mounted) setState(() => _isLoading = false);
+
+      if (response['status'] == 'success') {
+        if (mounted) {
+          // Close password dialog first
+          Navigator.of(context).pop();
+
+          // Show success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(localizations.register_success),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+
+          // Wait briefly for the snackbar to be visible
+          await Future.delayed(Duration(milliseconds: 500));
+
+          // Navigate to login screen
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => Login()),
+                (route) => false,
+          );
+        }
+      } else {
+        if (mounted) {
+          // Close password dialog
+          Navigator.of(context).pop();
+
+          // Show error message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response['message'] ?? 'Registration failed'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('Registration error: $e'); // Debug print
+
+      if (mounted) {
+        setState(() => _isLoading = false);
+
+        // Close password dialog
+        Navigator.of(context).pop();
+
+        // Show error message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Registration successful'),
-            backgroundColor: Colors.green,
+            content: Text('Error: ${e.toString().replaceAll('Exception: ', '')}'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
           ),
         );
-
-        // Navigate to login screen on success
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => Login()),
-        );
-      } else {
-        // Extract error message from response
-        final errorMessage = response['message'] ??
-            response['error'] ??
-            (localizations.register_success);
-        throw Exception(errorMessage);
       }
-      Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => Login()));
-    } catch (e) {
-      print('Registration Error: $e');
-
-      // Show error in UI
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString().replaceAll('Exception: ', '')),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 5),
-        ),
-      );
-    } finally {
-      setState(() => _isLoading = false);
-      if (mounted) Navigator.of(context).pop();
     }
   }
   Widget _buildLoadingOverlay({required Widget child}) {

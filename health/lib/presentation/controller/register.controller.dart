@@ -3,9 +3,11 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../data/datasources/api_service.dart';
+import 'aadhaar.controller.dart';
 
 class RegisterController {
   FlutterTts flutterTts = FlutterTts();
+  final   AadhaarController aadhaarController = AadhaarController();
   bool isPhoneEntered = false;
   bool showQrScanner = false;
   bool showCameraOptions = false;
@@ -14,8 +16,8 @@ class RegisterController {
   bool showContinueButton = true;
   bool showUserDropdown = false;
   bool showSignupButton = false;
-  String? frontImagePath;
-  String? backImagePath;
+  XFile? frontImage;
+  XFile? backImage;
 
   // Language and TTS variables
   bool isMuted = false;
@@ -35,7 +37,60 @@ class RegisterController {
   final newpassword = TextEditingController();
   final confirmpassword = TextEditingController();
 
-  // Form validation methods
+  RegisterController() {
+    // Set up listeners for Aadhaar details
+    aadhaarController.frontDetailsStream.listen((details) {
+      name.text = details['name'] ?? '';
+      aadharnumber.text = details['aadhaar']?.replaceAll(' ', '') ?? '';
+      dateofbirth.text = details['dob']?.replaceAll('/', '-') ?? '';
+    });
+
+    aadhaarController.backDetailsStream.listen((details) {
+      addresss.text = details['address'] ?? '';
+    });
+
+    // Set up listeners for images
+    aadhaarController.frontImageStream.listen((image) {
+      if (image != null) {
+        frontImage = image;
+        updatePreviewState();
+      }
+    });
+
+    aadhaarController.backImageStream.listen((image) {
+      if (image != null) {
+        backImage = image;
+        updatePreviewState();
+      }
+    });
+  }
+
+  get frontImagePath => null;
+
+  get backImagePath => null;
+
+
+  void updatePreviewState() {
+    showPreview = frontImage != null && backImage != null;
+    showSignupButton = showPreview;
+  }
+
+
+  // Modified image picking methods
+  Future<void> pickImage(String side) async {
+    try {
+      if (side == 'front') {
+        await aadhaarController.captureFront();
+      } else {
+        await aadhaarController.captureBack();
+      }
+    } catch (e) {
+      print('Error picking image: $e');
+      throw Exception('Failed to pick image');
+    }
+  }
+
+  // Form validation methods remain the same
   String? validatePhone(String? value) {
     if (value == null || value.isEmpty) {
       return 'Phone number is required';
@@ -96,46 +151,6 @@ class RegisterController {
     }
     return null;
   }
-
-  // Image picking methods
-  Future<void> pickImage(String side) async {
-    try {
-      final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(source: ImageSource.camera);
-
-      if (image != null) {
-        if (side == 'front') {
-          frontImagePath = image.path;
-        } else {
-          backImagePath = image.path;
-        }
-
-        if (frontImagePath != null && backImagePath != null) {
-          showPreview = true;
-          showSignupButton = true;
-        }
-      }
-    } catch (e) {
-      print('Error picking image: $e');
-      throw Exception('Failed to pick image');
-    }
-  }
-
-  // QR code scanning method
-  Future<void> scanQrCode() async {
-    try {
-      // Simulated QR code scan result
-      name.text = "John Doe";
-      aadharnumber.text = "123456789101";
-      dateofbirth.text = "01-01-1990";
-      addresss.text = "123 Main Street, City";
-      showSignupButton = true;
-    } catch (e) {
-      print('Error scanning QR code: $e');
-      throw Exception('Failed to scan QR code');
-    }
-  }
-
   // Language and TTS methods
   Future<void> changeLanguage(String langCode) async {
     try {
@@ -167,23 +182,22 @@ class RegisterController {
       return false;
     }
 
-    if (imageFile == null) {
-      throw Exception('Profile picture is required');
+    if (frontImage == null || backImage == null) {
+      throw Exception('Both front and back Aadhaar images are required');
     }
 
     try {
       final response = await userService.addUser(
-          imageFile: imageFile!,
-          phoneNumber: phone.text,
-          aadhaarNumber: aadharnumber.text,
-          name: name.text,
-          dob: dateofbirth.text,
-          address: addresss.text,
-          newPassword: newpassword.text,
-          confirmPassword: confirmpassword.text
+        imageFile: imageFile!,
+        phoneNumber: phone.text,
+        aadhaarNumber: aadharnumber.text,
+        name: name.text,
+        dob: dateofbirth.text,
+        address: addresss.text,
+        newPassword: newpassword.text,
+        confirmPassword: confirmpassword.text,
       );
 
-      // Clear form after successful submission
       clearForm();
       return true;
     } catch (e) {
@@ -202,13 +216,13 @@ class RegisterController {
     newpassword.clear();
     confirmpassword.clear();
     imageFile = null;
-    frontImagePath = null;
-    backImagePath = null;
+    frontImage = null;
+    backImage = null;
     showPreview = false;
     showSignupButton = false;
   }
 
-  // Dispose method to clean up controllers
+  // Dispose method
   void dispose() {
     phone.dispose();
     name.dispose();
@@ -218,5 +232,20 @@ class RegisterController {
     newpassword.dispose();
     confirmpassword.dispose();
     flutterTts.stop();
+    aadhaarController.dispose();
+  }
+
+  Future<void> scanQrCode() async {
+    try {
+      // Simulated QR code scan result
+      name.text = "John Doe";
+      aadharnumber.text = "123456789101";
+      dateofbirth.text = "01-01-1990";
+      addresss.text = "123 Main Street, City";
+      showSignupButton = true;
+    } catch (e) {
+      print('Error scanning QR code: $e');
+      throw Exception('Failed to scan QR code');
+    }
   }
 }

@@ -8,9 +8,9 @@ import 'package:mime/mime.dart';
 class UserService {
   static String get baseUrl {
     if (Platform.isAndroid) {
-      return 'http://192.168.29.36:3000';
+      return 'http://localhost:3000';
     } else if (Platform.isIOS) {
-      return 'http://127.0.0.1:3000'; // For iOS simulator
+      return 'http://localhost:3000';
     } else {
       return 'http://localhost:3000';
     }
@@ -27,11 +27,9 @@ class UserService {
     required String confirmPassword,
   }) async {
     try {
-      // Add debug prints
       print('Starting user registration...');
       print('Server URL: $baseUrl');
 
-      // Validate file
       if (!await imageFile.exists()) {
         throw Exception('Image file does not exist');
       }
@@ -41,19 +39,16 @@ class UserService {
         throw Exception('File size exceeds 5MB limit');
       }
 
-      // Get MIME type with fallback
       final mimeType = lookupMimeType(imageFile.path) ?? 'image/jpeg';
       if (!['image/jpeg', 'image/jpg', 'image/png'].contains(mimeType)) {
         throw Exception('Invalid file type. Only JPG, JPEG, and PNG files are allowed.');
       }
 
-      // Create request with timeout
       final uri = Uri.parse('$baseUrl/add_user');
       print('Attempting to connect to: $uri');
 
       var request = http.MultipartRequest('POST', uri);
 
-      // Add headers if needed
       request.headers.addAll({
         'Accept': 'application/json',
         'Connection': 'keep-alive',
@@ -70,25 +65,23 @@ class UserService {
       });
 
       try {
-        // Add file with explicit content type
         request.files.add(await http.MultipartFile.fromPath(
           'face_image',
           imageFile.path,
           filename: 'user_image${extension(imageFile.path)}',
           contentType: MediaType.parse(mimeType),
         ));
-      }catch(e){
+      } catch(e) {
         throw Exception('Error preparing image file: $e');
       }
 
-      // Send request with better error handling
       print('Sending request with ${request.fields.length} fields and ${request.files.length} files...');
 
       final streamedResponse = await request.send().timeout(
         const Duration(seconds: 120),
         onTimeout: () {
-          print('Request timed out after 30 seconds');
-          throw TimeoutException('Request timed out after 30 seconds');
+          print('Request timed out after 120 seconds');
+          throw TimeoutException('Request timed out after 120 seconds');
         },
       );
 
@@ -97,19 +90,39 @@ class UserService {
       final response = await http.Response.fromStream(streamedResponse);
       print('Response body: ${response.body}');
 
+      // Return standardized response format
       if (response.statusCode == 201) {
-        return json.decode(response.body);
+        return {
+          'status': 'success',
+          'statusCode': response.statusCode,
+          'message': 'Registration successful',
+          'data': json.decode(response.body)
+        };
       } else {
-        throw Exception('Server error: ${response.statusCode} - ${response.body}');
+        return {
+          'status': 'error',
+          'statusCode': response.statusCode,
+          'message': 'Registration failed: ${response.body}',
+          'data': json.decode(response.body)
+        };
       }
     } on SocketException catch (e) {
       print('SocketException: ${e.toString()}');
-      throw Exception('Network error: Unable to connect to server. Please check your connection and server status.');
+      return {
+        'status': 'error',
+        'message': 'Network error: Unable to connect to server. Please check your connection.'
+      };
     } on TimeoutException {
-      throw Exception('Request timed out. Please check your server status and try again.');
+      return {
+        'status': 'error',
+        'message': 'Request timed out. Please try again.'
+      };
     } catch (e) {
       print('Error during upload: $e');
-      throw Exception('Registration failed: ${e.toString()}');
+      return {
+        'status': 'error',
+        'message': 'Registration failed: ${e.toString()}'
+      };
     }
   }
 
