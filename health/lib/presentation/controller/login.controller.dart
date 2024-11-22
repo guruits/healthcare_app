@@ -1,13 +1,16 @@
+import 'dart:convert';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 
 class LoginController{
   FlutterTts flutterTts = FlutterTts();
   bool isMuted = false;
   String selectedLanguage = 'en-US';
   bool phoneReadOnly = false;
-  bool showContinueButton = true;
+  bool showContinueButton = false;
   bool showUserDropdown = false;
   bool showLoginButton = false;
   bool isPhoneEntered = false;
@@ -19,57 +22,9 @@ class LoginController{
   String? _passwordError;
 
 // Sample data for users
-  Map<String, Map<String, String>> userData = {
-    'Arun Kumar': {
-      'Aadhar': '1234-5678-9101',
-      'FullName': 'Arun Kumar',
-      'DOB': '01-01-1985',
-      'Address': '10, South Street, Chennai',
-      'Role': 'IT Admin'
-    },
-    'Lakshmi Narayanan': {
-      'Aadhar': '2345-6789-1012',
-      'FullName': 'Lakshmi Narayanan',
-      'DOB': '15-07-1988',
-      'Address': '45, Park Avenue, Madurai',
-      'Role': 'Doctor'
-    },
-    'Rajesh Kumar': {
-      'Aadhar': '3456-7890-1234',
-      'FullName': 'Rajesh Kumar',
-      'DOB': '20-10-1987',
-      'Address': '88, Main Road, Coimbatore',
-      'Role': 'Patient'
-    },
-    'Sita Devi': {
-      'Aadhar': '4567-8901-2345',
-      'FullName': 'Sita Devi',
-      'DOB': '25-12-1990',
-      'Address': '77, Green Street, Trichy',
-      'Role': 'Technician'
-    },
-    'Vijay Kumar': {
-      'Aadhar': '5678-9012-3456',
-      'FullName': 'Vijay Kumar',
-      'DOB': '12-04-1995',
-      'Address': '101, Blue Lane, Chennai',
-      'Role': 'Pharmacy'
-    },
-    'Kavita Sharma': {
-      'Aadhar': '6789-0123-4567',
-      'FullName': 'Kavita Sharma',
-      'DOB': '30-08-1989',
-      'Address': '123, Red Road, Madurai',
-      'Role': 'Admin'
-    },
-    'Anil Verma': {
-      'Aadhar': '7890-1234-5678',
-      'FullName': 'Anil Verma',
-      'DOB': '19-05-1980',
-      'Address': '89, Yellow Lane, Coimbatore',
-      'Role': 'Finance'
-    },
-  };
+  Map<String, Map<String, String>> userData = {};
+
+
 
   TextEditingController phoneController = TextEditingController();
 
@@ -90,11 +45,6 @@ class LoginController{
       showLoginButton = _isPasswordValid;
     };
   }
-
-
-
-
-
   // Function to change language
   void changeLanguage(String langCode) async {
     {
@@ -117,6 +67,42 @@ class LoginController{
     await prefs.setString('userName', userName);
     await prefs.setString('userRole', userRole);
   }
+  Future<Map<String, Map<String, String>>> fetchUserDetails(String phoneNumber) async {
+    try {
+      final response = await http.get(Uri.parse('http://192.168.29.36:3000/users/phone/$phoneNumber'));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final Map<String, Map<String, String>> userDetails = {};
+
+        data.forEach((user) {
+          print("user details $userDetails");
+          userDetails[user['name'] ?? 'Unknown'] = {
+            'Aadhar': user['aadhaarNumber'] ?? 'Not available',
+            'FullName': user['name'] ?? 'Not available',
+            'DOB': user['dob'] ?? 'Not available',
+            'Address': user['address'] ?? 'Not available',
+            'Role': user['Role'] ?? 'Admin',
+            'Password' : user['confirmPassword'] ?? 'adminhcapp'
+          };
+        });
+
+
+        return userDetails;
+      } else if (response.statusCode == 404) {
+        throw Exception('No users found with the provided phone number');
+      } else {
+        throw Exception('Failed to fetch user details: ${response.reasonPhrase}');
+      }
+    } catch (e) {
+      print("error:$e");
+      throw Exception('Error fetching user details: $e');
+    }
+  }
+
+
+
+
 
 
 }

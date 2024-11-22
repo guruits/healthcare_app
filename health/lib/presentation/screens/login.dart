@@ -93,18 +93,36 @@ class _LoginState extends State<Login> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       PhoneInputWidget(
-                        onPhoneValidated: (bool isValid, String phoneNumber) {
+                        onPhoneValidated: (bool isValid, String phoneNumber) async {
                           setState(() {
                             _controller.isPhoneEntered = isValid;
-                            if (isValid) {
-                              _controller.phoneController.text = phoneNumber;
-                              _controller.showContinueButton = true;
-                            } else {
-                              _controller.showContinueButton = false;
-                            }
                           });
+
+                          if (isValid) {
+                            _controller.phoneController.text = phoneNumber;
+                            try {
+                              final userData = await _controller.fetchUserDetails(phoneNumber);
+                              setState(() {
+                                _controller.userData = userData;
+                                _controller.showContinueButton = true;
+                              });
+                            } catch (e) {
+                              print("Error:$e");
+                              setState(() {
+                                _controller.showContinueButton = false;
+                              });
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Error fetching user details: $e')),
+                              );
+                            }
+                          } else {
+                            setState(() {
+                              _controller.showContinueButton = false;
+                            });
+                          }
                         },
                       ),
+
 
                       SizedBox(height: 20),
 

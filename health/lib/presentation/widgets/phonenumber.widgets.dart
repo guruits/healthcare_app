@@ -15,7 +15,7 @@ class PhoneInputWidget extends StatefulWidget {
 
 class _PhoneInputWidgetState extends State<PhoneInputWidget> {
   final Map<String, String> countryPrefixes = {
-    "India": "+91 ",
+    "India": "+91",
     "USA": "+1 ",
     "UK": "+44 ",
     "Australia": "+61 ",

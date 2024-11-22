@@ -8,13 +8,89 @@ import 'package:mime/mime.dart';
 class UserService {
   static String get baseUrl {
     if (Platform.isAndroid) {
-      return 'http://localhost:3000';
+      return 'http://192.168.29.36:3000';
     } else if (Platform.isIOS) {
       return 'http://localhost:3000';
     } else {
       return 'http://localhost:3000';
     }
   }
+  //get user by phone number
+  Future<Map<String, dynamic>> getUserByPhoneNumber(String phoneNumber) async {
+    try {
+      print('Fetching user details for phone number: $phoneNumber...');
+      final uri = Uri.parse('$baseUrl/users/phone/$phoneNumber');
+
+      // Sending GET request
+      final response = await http.get(uri).timeout(
+        const Duration(seconds: 60),
+        onTimeout: () {
+          print('Request timed out after 60 seconds');
+          throw TimeoutException('Request timed out after 60 seconds');
+        },
+      );
+
+      print('Response status code: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+
+        // Check if the response data is not null
+        if (responseData != null) {
+          // Ensure the fields are not null before accessing
+          String name = responseData['name'] ?? ''; // Default to empty string if null
+          String phoneNumber = responseData['phone_number'] ?? ''; // Default to empty string if null
+
+          // Standardized success response
+          return {
+            'status': 'success',
+            'statusCode': response.statusCode,
+            'message': 'User fetched successfully',
+            'data': responseData
+          };
+        } else {
+          return {
+            'status': 'error',
+            'message': 'No user data found'
+          };
+        }
+      } else if (response.statusCode == 404) {
+        return {
+          'status': 'error',
+          'statusCode': response.statusCode,
+          'message': 'No user found for the given phone number',
+          'data': null
+        };
+      } else {
+        return {
+          'status': 'error',
+          'statusCode': response.statusCode,
+          'message': 'Failed to fetch user details: ${response.body}',
+          'data': null
+        };
+      }
+    } on SocketException catch (e) {
+      print('SocketException: ${e.toString()}');
+      return {
+        'status': 'error',
+        'message': 'Network error: Unable to connect to server. Please check your connection.'
+      };
+    } on TimeoutException {
+      return {
+        'status': 'error',
+        'message': 'Request timed out. Please try again.'
+      };
+    } catch (e) {
+      print('Error during fetch: $e');
+      return {
+        'status': 'error',
+        'message': 'Failed to fetch user details: ${e.toString()}'
+      };
+    }
+  }
+
+  //add user
 
   Future<Map<String, dynamic>> addUser({
     required File imageFile,
