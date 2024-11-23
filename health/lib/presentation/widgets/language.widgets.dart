@@ -22,7 +22,7 @@ class _LanguageToggleState extends State<LanguageToggle> {
 
   Future<void> _initializeTts() async {
     var languages = await flutterTts.getLanguages;
-    print('Available TTS languages: $languages');
+    //print('Available TTS languages: $languages');
   }
 
   Future<void> _setTtsLanguage(Locale locale) async {
@@ -32,7 +32,7 @@ class _LanguageToggleState extends State<LanguageToggle> {
     if (languages.contains(ttsLanguage)) {
       await flutterTts.setLanguage(ttsLanguage);
     } else {
-      print('Language $ttsLanguage not available for TTS, defaulting to en-US');
+      //print('Language $ttsLanguage not available for TTS, defaulting to en-US');
       await flutterTts.setLanguage('en-US');
     }
   }

@@ -22,8 +22,8 @@ class _LoginState extends State<Login> {
   final TextEditingController _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isPasswordVisible = false;
-  bool _isPasswordValid = false;
-  String? _passwordError;
+  bool _showPasswordField = false;
+  String? _selectedAuthMethod;
 
   @override
   void dispose() {
@@ -37,54 +37,94 @@ class _LoginState extends State<Login> {
     );
   }
 
-  void validatePassword(String value) {
-    setState(() {
-      if (value.isEmpty) {
-        _passwordError = 'Password is required';
-        _isPasswordValid = false;
-      } else if (value.length < 6) {
-        _passwordError = 'Password must be at least 6 characters';
-        _isPasswordValid = false;
+  Future<void> checkPassword() async {
+    if (_controller.selectedUser.isNotEmpty) {
+      final storedPassword = _controller.userData[_controller.selectedUser]?['Password'];
+      if (storedPassword != null && storedPassword == _passwordController.text) {
+        proceedToStart();
       } else {
-        _passwordError = null;
-        _isPasswordValid = true;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Password does not match')),
+        );
       }
-      _controller.showLoginButton = _isPasswordValid;
-    });
+    }
+  }
+
+  Future<void> handleFaceID() async {
+    await Future.delayed(Duration(seconds: 1));
+    proceedToStart();
+  }
+
+  void proceedToStart() {
+    _controller.saveUserDetails(
+      _controller.selectedUser,
+      _controller.userData[_controller.selectedUser]?['Role'] ?? '',
+    ).then((_) => navigateToScreen(Start()));
+  }
+
+  Future<void> showAuthMethodDialog() async {
+    return showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Choose Authentication Method'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Icon(Icons.password),
+                title: Text('Password'),
+                onTap: () {
+                  setState(() {
+                    _showPasswordField = true;
+                    _selectedAuthMethod = 'password';
+                  });
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.face),
+                title: Text('Face ID'),
+                onTap: () {
+                  setState(() {
+                    _showPasswordField = false;
+                    _selectedAuthMethod = 'faceID';
+                  });
+                  Navigator.pop(context);
+                  handleFaceID();
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context);
-    if (localizations == null) {
-      print('Localizations is null!');
-      return Container();
-    }
+    if (localizations == null) return Container();
+
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
-          onPressed: () {
-            navigateToScreen(Home());
-          },
+          onPressed: () => navigateToScreen(Home()),
         ),
-        actions: [
-          LanguageToggle(),
-        ],
+        actions: [LanguageToggle()],
       ),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Row(
             children: [
-              // Left side image
               Expanded(
                 child: Image.asset(
                   'assets/images/login.png',
                   height: 300,
                 ),
               ),
-              // Right side form
               Expanded(
                 child: Form(
                   key: _formKey,
@@ -96,6 +136,7 @@ class _LoginState extends State<Login> {
                         onPhoneValidated: (bool isValid, String phoneNumber) async {
                           setState(() {
                             _controller.isPhoneEntered = isValid;
+                            _controller.showContinueButton = isValid;
                           });
 
                           if (isValid) {
@@ -104,33 +145,20 @@ class _LoginState extends State<Login> {
                               final userData = await _controller.fetchUserDetails(phoneNumber);
                               setState(() {
                                 _controller.userData = userData;
-                                _controller.showContinueButton = true;
                               });
                             } catch (e) {
-                              print("Error:$e");
-                              setState(() {
-                                _controller.showContinueButton = false;
-                              });
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(content: Text('Error fetching user details: $e')),
                               );
                             }
-                          } else {
-                            setState(() {
-                              _controller.showContinueButton = false;
-                            });
                           }
                         },
                       ),
-
-
                       SizedBox(height: 20),
 
-                      // Continue button
                       if (_controller.showContinueButton)
                         ElevatedButton(
                           onPressed: () {
-                            _languageController.speakText(localizations.continueButton);
                             setState(() {
                               _controller.phoneReadOnly = true;
                               _controller.showContinueButton = false;
@@ -139,9 +167,8 @@ class _LoginState extends State<Login> {
                           },
                           child: Text(localizations.continueButton),
                         ),
-
-
-                      if (_controller.showUserDropdown)
+                      SizedBox(height: 20),
+                      if (_controller.showUserDropdown) ...[
                         Container(
                           width: double.infinity,
                           padding: EdgeInsets.symmetric(horizontal: 12),
@@ -161,16 +188,19 @@ class _LoginState extends State<Login> {
                                 );
                               }).toList(),
                               onChanged: (String? newUser) {
-                                setState(() {
+                                setState(()  {
                                   _controller.selectedUser = newUser ?? '';
-                                  _controller.showLoginButton = false;
+                                  if (newUser != null) {
+                                    showAuthMethodDialog();
+                                  }
                                 });
                               },
                             ),
                           ),
                         ),
+                        SizedBox(height: 20),
+                      ],
 
-                      // User details card
                       if (_controller.selectedUser.isNotEmpty)
                         Card(
                           elevation: 3,
@@ -184,75 +214,38 @@ class _LoginState extends State<Login> {
                                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                                 ),
                                 SizedBox(height: 10),
-                                Text(
-                                  '${localizations.aadhar}: ${_controller.userData[_controller.selectedUser]?['Aadhar'] ?? ''}',
-                                  style: TextStyle(fontSize: 16),
-                                ),
-                                Text(
-                                  '${localizations.full_name}: ${_controller.userData[_controller.selectedUser]?['FullName'] ?? ''}',
-                                  style: TextStyle(fontSize: 16),
-                                ),
-                                Text(
-                                  '${localizations.dob}: ${_controller.userData[_controller.selectedUser]?['DOB'] ?? ''}',
-                                  style: TextStyle(fontSize: 16),
-                                ),
-                                Text(
-                                  '${localizations.address}: ${_controller.userData[_controller.selectedUser]?['Address'] ?? ''}',
-                                  style: TextStyle(fontSize: 16),
-                                ),
-                                Text(
-                                  '${localizations.role}: ${_controller.userData[_controller.selectedUser]?['Role'] ?? ''}',
-                                  style: TextStyle(fontSize: 16),
-                                ),
+                                Text('${localizations.aadhar}: ${_controller.userData[_controller.selectedUser]?['Aadhar'] ?? ''}'),
+                                Text('${localizations.full_name}: ${_controller.userData[_controller.selectedUser]?['FullName'] ?? ''}'),
+                                Text('${localizations.dob}: ${_controller.userData[_controller.selectedUser]?['DOB'] ?? ''}'),
+                                Text('${localizations.address}: ${_controller.userData[_controller.selectedUser]?['Address'] ?? ''}'),
+                                Text('${localizations.role}: ${_controller.userData[_controller.selectedUser]?['Role'] ?? ''}'),
                               ],
                             ),
                           ),
                         ),
 
-                      // Password field
-                      if (_controller.selectedUser.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 20.0),
-                          child: TextFormField(
-                            controller: _passwordController,
-                            obscureText: !_isPasswordVisible,
-                            decoration: InputDecoration(
-                              labelText: localizations.password ?? 'Password',
-                              border: OutlineInputBorder(),
-                              errorText: _passwordError,
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    _isPasswordVisible = !_isPasswordVisible;
-                                  });
-                                },
-                              ),
+                      if (_showPasswordField) ...[
+                        SizedBox(height: 20),
+                        TextFormField(
+                          controller: _passwordController,
+                          obscureText: !_isPasswordVisible,
+                          decoration: InputDecoration(
+                            //labelText: localizations.password ?? 'Password',
+                            border: OutlineInputBorder(),
+                            suffixIcon: IconButton(
+                              icon: Icon(_isPasswordVisible ? Icons.visibility : Icons.visibility_off),
+                              onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
                             ),
-                            onChanged: validatePassword,
                           ),
+                          onFieldSubmitted: (_) => checkPassword(),
                         ),
-
-                      // Login button
-                      if (_controller.showLoginButton && _isPasswordValid)
+                        SizedBox(height: 20),
                         ElevatedButton(
-                          onPressed: () async {
-                            if (_formKey.currentState!.validate()) {
-                              _languageController.speakText(localizations.login);
-                              await Future.delayed(Duration(milliseconds: 1200));
-                              await _controller.saveUserDetails(
-                                _controller.selectedUser,
-                                _controller.userData[_controller.selectedUser]?['Role'] ?? '',
-                              );
-                              navigateToScreen(Start());
-                            }
-                          },
-                          child: Text(localizations.login),
+                          onPressed: checkPassword,
+                          child: Text(localizations.login ?? 'Login'),
                         ),
+                      ],
 
-                      // Create account button
                       SizedBox(height: 20),
                       Center(
                         child: TextButton(
@@ -279,8 +272,4 @@ class _LoginState extends State<Login> {
       ),
     );
   }
-}
-
-extension on AppLocalizations {
-  get password => null;
 }

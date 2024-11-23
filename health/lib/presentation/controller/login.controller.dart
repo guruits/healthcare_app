@@ -5,7 +5,7 @@ import 'package:flutter_tts/flutter_tts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 
-class LoginController{
+class LoginController {
   FlutterTts flutterTts = FlutterTts();
   bool isMuted = false;
   String selectedLanguage = 'en-US';
@@ -23,28 +23,13 @@ class LoginController{
 
 // Sample data for users
   Map<String, Map<String, String>> userData = {};
-
+  String? storedPassword;
 
 
   TextEditingController phoneController = TextEditingController();
 
-  // Password validation method
-  void validatePassword(String value) {
-    {
-      if (value.isEmpty) {
-        _passwordError = 'Password is required';
-        _isPasswordValid = false;
-      } else if (value.length < 6) {
-        _passwordError = 'Password must be at least 6 characters';
-        _isPasswordValid = false;
-      } else {
-        _passwordError = null;
-        _isPasswordValid = true;
-      }
-      // Update login button visibility based on password validity
-      showLoginButton = _isPasswordValid;
-    };
-  }
+
+
   // Function to change language
   void changeLanguage(String langCode) async {
     {
@@ -67,9 +52,12 @@ class LoginController{
     await prefs.setString('userName', userName);
     await prefs.setString('userRole', userRole);
   }
-  Future<Map<String, Map<String, String>>> fetchUserDetails(String phoneNumber) async {
+
+  Future<Map<String, Map<String, String>>> fetchUserDetails(
+      String phoneNumber) async {
     try {
-      final response = await http.get(Uri.parse('http://192.168.29.36:3000/users/phone/$phoneNumber'));
+      final response = await http.get(
+          Uri.parse('http://192.168.29.36:3000/users/phone/$phoneNumber'));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -82,8 +70,8 @@ class LoginController{
             'FullName': user['name'] ?? 'Not available',
             'DOB': user['dob'] ?? 'Not available',
             'Address': user['address'] ?? 'Not available',
-            'Role': user['Role'] ?? 'Admin',
-            'Password' : user['confirmPassword'] ?? 'adminhcapp'
+            'Role': user['Role'] ?? 'Patient',
+            'Password': user['confirmPassword'] ?? 'adminhcapp'
           };
         });
 
@@ -92,7 +80,8 @@ class LoginController{
       } else if (response.statusCode == 404) {
         throw Exception('No users found with the provided phone number');
       } else {
-        throw Exception('Failed to fetch user details: ${response.reasonPhrase}');
+        throw Exception(
+            'Failed to fetch user details: ${response.reasonPhrase}');
       }
     } catch (e) {
       print("error:$e");
@@ -101,8 +90,10 @@ class LoginController{
   }
 
 
-
-
-
-
+  void onUserSelected(String user) {
+    storedPassword = userData[user]?['confirmPassword'];
+    bool validatePassword(String enteredPassword) {
+      return enteredPassword == storedPassword;
+    }
+  }
 }

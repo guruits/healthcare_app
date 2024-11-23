@@ -523,7 +523,7 @@ class _RegisterState extends State<Register> {
         confirmPassword: _controller.confirmpassword.text,
       );
 
-      print('Registration response: $response'); // Debug print
+      print('Registration response: $response');
 
       if (mounted) setState(() => _isLoading = false);
 
