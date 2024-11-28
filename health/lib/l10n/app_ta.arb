@@ -41,7 +41,7 @@
   "logout": "வெளியேறு",
   "navigating": "செல்கிறது",
 
-  "appointments": "பரிந்துரைகள்",
+  "appointments": "முன்பதிவு",
   "available_slots_for": "கிடைக்கும் நேர இடைகள்",
   "appointment_confirmed": "பரிந்துரை உறுதிப்படுத்தப்பட்டது",
   "appointment_details": "{date} அன்று {slot} -இல் உங்கள் பரிந்துரை {patient}க்கானது உறுதிப்படுத்தப்பட்டுள்ளது!",

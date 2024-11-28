@@ -45,7 +45,7 @@ class _ConsultationState extends State<Consultation> {
             padding: const EdgeInsets.all(16.0),
             child: Column(
               children: [
-                DropdownButtonFormField<String>(
+                /*DropdownButtonFormField<String>(
                   value: _controller.selectedDoctor,
                   hint: Text(localizations.select_doctor),
                   items: _controller.doctors.map((doctor) {
@@ -59,7 +59,7 @@ class _ConsultationState extends State<Consultation> {
                       _controller.selectedDoctor = value;
                     });
                   },
-                ),
+                ),*/
                 SizedBox(height: 10),
                 _buildPatientReportSummary(),
                 SizedBox(height: 10),

@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:health/presentation/controller/appointments.controller.dart';
 import 'package:health/presentation/controller/language.controller.dart';
 import 'package:health/presentation/screens/start.dart';
 import 'package:health/presentation/widgets/calendar.widgets.dart';
 import 'package:health/presentation/widgets/language.widgets.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-
-import '../controller/appointments.controller.dart';
 
 class Appointments extends StatefulWidget {
-  const Appointments({super.key});
+  const Appointments({Key? key}) : super(key: key);
 
   @override
   State<Appointments> createState() => _AppointmentsState();
@@ -45,6 +44,40 @@ class _AppointmentsState extends State<Appointments> {
     );
   }
 
+  // Function to show booked appointments dialog
+  void _showBookedAppointments() {
+    final bookedAppointments = controller.getBookedAppointmentsForDate(controller.selectedDate);
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(AppLocalizations.of(context)!.appointment_booked),
+          content: bookedAppointments.isEmpty
+              ? Text(AppLocalizations.of(context)!.errorOccurred)
+              : SingleChildScrollView(
+            child: Column(
+              children: bookedAppointments.map((booking) {
+                return ListTile(
+                  title: Text(booking['patient']),
+                  subtitle: Text(booking['slot']),
+                );
+              }).toList(),
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text(AppLocalizations.of(context)!.errorOccurred),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void navigateToScreen(Widget screen) {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => screen),
@@ -55,160 +88,139 @@ class _AppointmentsState extends State<Appointments> {
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context);
     return Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () {
-              navigateToScreen(Start());
-            },
-          ),
-          title: Text(localizations!.appointments),
-          actions: [
-            const LanguageToggle(),
-            IconButton(
-              icon: Icon(controller.isNewAppointment ? Icons.event : Icons.history),
-              onPressed: () {
-                setState(() {
-                  controller.toggleAppointmentView();
-                });
-              },
-            ),
-          ],
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            navigateToScreen(Start());
+          },
         ),
-        body: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                children: [
-                  AppointmentCalender(),
-                  const SizedBox(height: 20),
-                  if (controller.isNewAppointment) ...[
-                    DropdownButton<String>(
-                      value: controller.patientName.isNotEmpty ? controller.patientName : null,
-                      onChanged: (String? newValue) {
-                        setState(() {
-                          controller.setPatientName(newValue!);
-                        });
-                      },
-                      items: controller.samplePatients.map<DropdownMenuItem<String>>((String patient) {
-                        return DropdownMenuItem<String>(
-                          value: patient,
-                          child: Text(patient),
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        ElevatedButton(
-                          onPressed: () {
-                            _languageController.speakText(localizations.previous_month);
-                            setState(() {
-                              controller.previousMonth();
-                            });
-                          },
-                          child: Text(localizations.previous_month),
+        title: Text(localizations!.appointments),
+        actions: [
+          const LanguageToggle(),
+        ],
+      ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            children: [
+              AppointmentCalendar(
+                onDateSelected: (DateTime date) {
+                  setState(() {
+                    controller.setSelectedDate(date);
+                  });
+                },
+              ),
+              const SizedBox(height: 20),
+              if (controller.isNewAppointment) ...[
+                DropdownButton<String>(
+                  value: controller.patientName.isNotEmpty ? controller.patientName : null,
+                  hint: Text(localizations.select_patient),
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      controller.setPatientName(newValue!);
+                    });
+                  },
+                  items: controller.samplePatients.map<DropdownMenuItem<String>>((String patient) {
+                    return DropdownMenuItem<String>(
+                      value: patient,
+                      child: Text(patient),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 20),
+                Text('${localizations.available_slots_for} ${controller.getFormattedDate()}'),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: controller.slotAvailability.keys.map((slot) {
+                      return GestureDetector(
+                        onTap: () {
+                          _languageController.speakText(slot);
+                          setState(() {
+                            controller.setSelectedSlot(slot);
+                          });
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 5),
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: controller.getSlotColor(slot),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Column(
+                            children: [
+                              Text(
+                                slot,
+                                style: const TextStyle(color: Colors.white, fontSize: 18),
+                              ),
+                              Text(
+                                'Available: ${controller.slotAvailability[slot]}',
+                                style: const TextStyle(color: Colors.white, fontSize: 12),
+                              ),
+                            ],
+                          ),
                         ),
-                        ElevatedButton(
-                          onPressed: () {
-                            _languageController.speakText(localizations.next_month);
-                            setState(() {
-                              controller.nextMonth();
-                            });
-                          },
-                          child: Text(localizations.next_month),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    Text('${localizations.available_slots_for} ${controller.getFormattedDate()}'),
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
+                      );
+                    }).toList(),
+                  ),
+                ),
+                if (controller.selectedSlot != null && controller.selectedPatientNames.isNotEmpty) ...[
+                  Text(localizations.patients_for_slot(controller.selectedSlot as Object)),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: controller.slotAvailability.keys.map((slot) {
-                        return GestureDetector(
-                          onTap: () {
-                            _languageController.speakText(slot);
-                            setState(() {
-                              controller.setSelectedSlot(slot);
-                            });
-                          },
-                          child: Container(
-                            margin: const EdgeInsets.symmetric(vertical: 5),
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: Colors.blue,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              slot,
-                              style: const TextStyle(color: Colors.white, fontSize: 18),
-                            ),
+                      children: controller.selectedPatientNames.map((name) {
+                        return Container(
+                          margin: const EdgeInsets.symmetric(vertical: 4),
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            borderRadius: BorderRadius.circular(8),
                           ),
+                          child: Text(name),
                         );
                       }).toList(),
                     ),
-                    ),
-                    if (controller.selectedSlot != null && controller.selectedPatientNames.isNotEmpty) ...[
-                      Text(localizations.patients_for_slot(controller.selectedSlot as Object)),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child:
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: controller.selectedPatientNames.map((name) {
-                          return Container(
-                            margin: const EdgeInsets.symmetric(vertical: 4),
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.grey[200],
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(name),
-                          );
-                        }).toList(),
-                      ),
-                      ),
-                    ],
-                    ElevatedButton(
-                      onPressed: (){
-                      _languageController.speakText(localizations.confirm_appointment);
-                      controller.canConfirmAppointment() ? _confirmAppointment : null;
-                        },
-                      child: Text(localizations.confirm_appointment),
-                    ),
-                  ],
-                  if (!controller.isNewAppointment) ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        ElevatedButton(
-                          onPressed: () {
-                            setState(() {
-                              controller.previousMonth();
-                            });
-                          },
-                          child: Text(localizations.previous_month),
-                        ),
-                        ElevatedButton(
-                          onPressed: () {
-                            setState(() {
-                              controller.nextMonth();
-                            });
-                          },
-                          child: Text(localizations.next_month),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    Text(localizations.view_previous_appointments),
-                  ],
+                  ),
                 ],
-              ),
-            ),
-            ),
-        );
-    }
+                ElevatedButton(
+                  onPressed: () {
+                    _languageController.speakText(localizations.confirm_appointment);
+                    setState(() {
+                      if (controller.confirmAppointment()) {
+                        _confirmAppointment();
+                      } else {
+                        // Show error that appointment cannot be confirmed
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(localizations.errorOccurred),
+                          ),
+                        );
+                      }
+                    });
+                  },
+                  child: Text(localizations.confirm_appointment),
+                ),
+              ],
+              if (!controller.isNewAppointment) ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: _showBookedAppointments,
+                  child: Text(localizations.book_appointment),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

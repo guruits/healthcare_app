@@ -120,13 +120,11 @@ class StartController {
         ];
       case 'Patient':
         return [
+          {'title': 'Appointments', 'screen': Appointments()},
           {'title': 'Helpdesk', 'screen': Helpdesk()},
           {'title': 'Profile', 'screen': Profile()},
           {'title': 'Awareness', 'screen': Awareness()},
-          {'title': 'Consultation', 'screen': Consultation()},
-          {'title': 'Appointments', 'screen': Appointments()},
           {'title': 'Reports', 'screen': Reports()},
-          {'title': 'Printer', 'screen': Printer()},
         ];
       default:
         return [];

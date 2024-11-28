@@ -154,7 +154,7 @@ class _XRayState extends State<XRay> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
-            localizations.blood_test_label,
+            localizations.xray_label,
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)
         ),
         DropdownButton<String>(

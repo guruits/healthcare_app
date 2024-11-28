@@ -141,16 +141,16 @@ class _LoginState extends State<Login> {
 
                           if (isValid) {
                             _controller.phoneController.text = phoneNumber;
-                            try {
+                             {
                               final userData = await _controller.fetchUserDetails(phoneNumber);
                               setState(() {
                                 _controller.userData = userData;
                               });
-                            } catch (e) {
+                            } /*catch (e) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(content: Text('Error fetching user details: $e')),
                               );
-                            }
+                            }*/
                           }
                         },
                       ),

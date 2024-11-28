@@ -1,69 +1,56 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import 'package:health/presentation/screens/start.dart';
-import 'package:health/presentation/controller/appointments.controller.dart';
+import 'package:table_calendar/table_calendar.dart';
 
-class AppointmentCalender extends StatefulWidget {
+class AppointmentCalendar extends StatefulWidget {
+  final Function(DateTime)? onDateSelected;
+
+  const AppointmentCalendar({
+    Key? key,
+    this.onDateSelected
+  }) : super(key: key);
+
   @override
-  _AppointmentCalenderState createState() => _AppointmentCalenderState();
+  _AppointmentCalendarState createState() => _AppointmentCalendarState();
 }
 
-class _AppointmentCalenderState extends State<AppointmentCalender> {
-  final AppointmentsController controller = AppointmentsController();
+class _AppointmentCalendarState extends State<AppointmentCalendar> {
+  CalendarFormat _calendarFormat = CalendarFormat.month;
+  DateTime _focusedDay = DateTime.now();
+  DateTime? _selectedDay;
 
   @override
   Widget build(BuildContext context) {
-    final DateFormat monthFormatter = DateFormat('MMMM yyyy');
-    DateTime firstDayOfMonth = DateTime(controller.selectedDate.year, controller.selectedDate.month, 1);
-    DateTime lastDayOfMonth = DateTime(controller.selectedDate.year, controller.selectedDate.month + 1, 0);
-    int totalDays = lastDayOfMonth.day;
-    int startingWeekday = firstDayOfMonth.weekday;
-    int numberOfRows = ((totalDays + startingWeekday - 1) / 7).ceil();
+    return TableCalendar(
+      firstDay: DateTime.now(), // Prevent selecting past dates
+      lastDay: DateTime.now().add(const Duration(days: 365)), // One year from now
+      focusedDay: _focusedDay,
+      calendarFormat: _calendarFormat,
+      selectedDayPredicate: (day) {
+        return isSameDay(_selectedDay, day);
+      },
+      onDaySelected: (selectedDay, focusedDay) {
+        if (!isSameDay(_selectedDay, selectedDay)) {
+          setState(() {
+            _selectedDay = selectedDay;
+            _focusedDay = focusedDay;
+          });
 
-    return Column(
-      children: [
-        Text(
-          monthFormatter.format(controller.selectedDate),
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-        Table(
-          children: List<TableRow>.generate(numberOfRows, (row) {
-            return TableRow(
-              children: List<Widget>.generate(7, (col) {
-                int day = row * 7 + col + 1 - startingWeekday;
-                if (day > 0 && day <= totalDays) {
-                  DateTime date = DateTime(controller.selectedDate.year, controller.selectedDate.month, day);
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        controller.setSelectedDate(date);
-                      });
-                    },
-                    child: Container(
-                      margin: const EdgeInsets.all(4.0),
-                      decoration: BoxDecoration(
-                        color: date == controller.selectedDate ? Colors.blue : Colors.grey[300],
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      padding: const EdgeInsets.all(8.0),
-                      alignment: Alignment.center,
-                      child: Text(
-                        day.toString(),
-                        style: TextStyle(
-                          color: date == controller.selectedDate ? Colors.white : Colors.black,
-                        ),
-                      ),
-                    ),
-                  );
-                } else {
-                  return Container();
-                }
-              }),
-            );
-          }),
-        ),
-      ],
+          // Call the onDateSelected callback if provided
+          if (widget.onDateSelected != null) {
+            widget.onDateSelected!(selectedDay);
+          }
+        }
+      },
+      onFormatChanged: (format) {
+        if (_calendarFormat != format) {
+          setState(() {
+            _calendarFormat = format;
+          });
+        }
+      },
+      onPageChanged: (focusedDay) {
+        _focusedDay = focusedDay;
+      },
     );
   }
 }

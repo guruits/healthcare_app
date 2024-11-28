@@ -316,7 +316,17 @@
   "errorOccurred": "An error occurred. Please try again.",
   "back": "Back",
   "imaging": "Imaging",
-  "dietReport": "Diet Report"
+  "dietReport": "Diet Report",
+
+
+  "appointments": "Appointments",
+  "select_patient": "Select Patient",
+  "previous_month": "Previous Month",
+  "next_month": "Next Month",
+  "available_slots_for": "Available Slots for",
+  "confirm_appointment": "Confirm Appointment",
+  "appointment_confirmed": "Appointment Confirmed",
+  "appointment_details": "Appointment on {date} at {slot} for {patient}"
 }
 
 

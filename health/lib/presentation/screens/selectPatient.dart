@@ -113,7 +113,7 @@ class _SelectPatientState extends State<SelectPatient> {
       ),
       body: Column(
         children: [
-          _buildFilterSection(localizations),
+         // _buildFilterSection(localizations),
           _buildDataTable(localizations),
           _buildPaginationControls(localizations),
         ],
@@ -193,10 +193,10 @@ class _SelectPatientState extends State<SelectPatient> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${localizations.patient_name}: ${patient['patientName'] ?? ''}',
+                      ' ${patient['patientName'] ?? ''}',
                       style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
-                    _buildStatusRow('blood_test', patient['bloodTestStatus'] ?? _controller.getDefaultStatus(), index, localizations),
+                    /*_buildStatusRow('blood_test', patient['bloodTestStatus'] ?? _controller.getDefaultStatus(), index, localizations),
                     _buildStatusRow('urine_test', patient['urineTestStatus'] ?? _controller.getDefaultStatus(), index, localizations),
                     _buildStatusRow('arc_test', patient['arcTestStatus'] ?? _controller.getDefaultStatus(), index, localizations),
                     _buildStatusRow('dentist_test', patient['dentistTestStatus'] ?? _controller.getDefaultStatus(), index, localizations),
@@ -204,7 +204,7 @@ class _SelectPatientState extends State<SelectPatient> {
                     _buildStatusRow('dexa_scan', patient['dexaScanStatus'] ?? _controller.getDefaultStatus(), index, localizations),
                     _buildStatusRow('echo_test', patient['echoTestStatus'] ?? _controller.getDefaultStatus(), index, localizations),
                     _buildStatusRow('ultrasound', patient['ultrasoundStatus'] ?? _controller.getDefaultStatus(), index, localizations),
-                    _buildStatusRow('consultation', patient['consultationStatus'] ?? _controller.getDefaultStatus(), index, localizations),
+                    _buildStatusRow('consultation', patient['consultationStatus'] ?? _controller.getDefaultStatus(), index, localizations),*/
                   ],
                 ),
               ),

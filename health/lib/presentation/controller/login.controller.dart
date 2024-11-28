@@ -70,7 +70,10 @@ class LoginController {
             'FullName': user['name'] ?? 'Not available',
             'DOB': user['dob'] ?? 'Not available',
             'Address': user['address'] ?? 'Not available',
-            'Role': user['Role'] ?? 'Patient',
+            //'Role': user['Role'] ?? 'Patient',
+            'Role': user['Role'] ?? 'Admin',
+            //'Role': user['Role'] ?? 'Doctor',
+
             'Password': user['confirmPassword'] ?? 'adminhcapp'
           };
         });

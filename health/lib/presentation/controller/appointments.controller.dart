@@ -1,21 +1,24 @@
-// appointments_controller.dart
+import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class AppointmentsController {
   // Variables to manage appointment state
-  bool isNewAppointment = true;// Track which button is selected
+  bool isNewAppointment = true;
   DateTime selectedDate = DateTime.now();
-  String? selectedSlot;// Track selected slot
-  String patientName = '';// Track patient name input
+  String? selectedSlot; // Keep as nullable
+  String patientName = '';
 
-  // Example data for slot availability and patient names
+  int maxSlotsPerTimeSlot = 20;
+
+  // Detailed slot availability tracking
   Map<String, int> slotAvailability = {
-    '08:00 AM': 25,
-    '10:00 AM': 15,
-    '12:00 PM': 5,
-    '02:00 PM': 0,
+    '08:00 AM': 20,
+    '10:00 AM': 20,
+    '12:00 PM': 20,
+    '02:00 PM': 20,
   };
 
+  // Comprehensive patient list
   List<String> samplePatients = [
     'Arjun Kumar',
     'Priya Nair',
@@ -27,54 +30,128 @@ class AppointmentsController {
     'Karthik',
   ];
 
-  List<String> selectedPatientNames = []; // Store selected patient names for slots
+  List<String> selectedPatientNames = [];
 
-  // Constructor to initialize patient name
   AppointmentsController() {
     if (samplePatients.isNotEmpty) {
       patientName = samplePatients[0];
     }
   }
 
-  // Method to handle previous month navigation
-  void previousMonth() {
-    selectedDate = DateTime(selectedDate.year, selectedDate.month - 1);
+  // Helper to get current time in a comparable format
+  TimeOfDay _currentTime() => TimeOfDay.now();
+
+  // Convert slot time to TimeOfDay for comparison
+  TimeOfDay _parseSlotTime(String slot) {
+    final format = DateFormat.jm();
+    DateTime dateTime = format.parse(slot);
+    return TimeOfDay(hour: dateTime.hour, minute: dateTime.minute);
   }
 
-  // Method to handle next month navigation
-  void nextMonth() {
-    selectedDate = DateTime(selectedDate.year, selectedDate.month + 1);
+  // Check if a slot is valid based on time
+  bool isSlotValid(String slot) {
+    if (!isSameDay(selectedDate, DateTime.now())) {
+      return true; // All slots valid for future dates
+    }
+    TimeOfDay currentTime = _currentTime();
+    TimeOfDay slotTime = _parseSlotTime(slot);
+    return slotTime.hour > currentTime.hour ||
+        (slotTime.hour == currentTime.hour && slotTime.minute > currentTime.minute);
   }
 
-  // Method to set selected date
-  void setSelectedDate(DateTime date) {
-    selectedDate = date;
-    selectedSlot = null;
+  // Helper to check if two dates are the same day
+  bool isSameDay(DateTime date1, DateTime date2) {
+    return date1.year == date2.year &&
+        date1.month == date2.month &&
+        date1.day == date2.day;
   }
 
-  // Method to set selected slot
+  // Adjusted method to filter slots
+  List<String> getAvailableSlots() {
+    return slotAvailability.keys
+        .where((slot) => isSlotValid(slot) && (slotAvailability[slot] ?? 0) > 0)
+        .toList();
+  }
+
   void setSelectedSlot(String slot) {
-    selectedSlot = slot;
-    selectedPatientNames = samplePatients;
+    if (isSlotValid(slot) && slotAvailability[slot] != null && slotAvailability[slot]! > 0) {
+      selectedSlot = slot;
+      selectedPatientNames = samplePatients;
+    }
   }
 
-  // Method to set patient name
+  // Validate date selection
+  bool isValidDate(DateTime date) {
+    return !date.isBefore(DateTime(
+        DateTime.now().year,
+        DateTime.now().month,
+        DateTime.now().day
+    ));
+  }
+
+  void setSelectedDate(DateTime date) {
+    if (isValidDate(date)) {
+      selectedDate = date;
+      selectedSlot = null;
+    }
+  }
+
+
+
   void setPatientName(String name) {
     patientName = name;
   }
 
-  // Method to format the selected date
   String getFormattedDate() {
     return DateFormat('MMM dd, yyyy').format(selectedDate);
   }
 
-  // Method to toggle appointment view
   void toggleAppointmentView() {
     isNewAppointment = !isNewAppointment;
   }
 
-  // Method to check if an appointment can be confirmed
-  bool canConfirmAppointment() {
-    return selectedSlot != null && patientName.isNotEmpty;
+  // Confirm appointment and reduce slot availability
+  bool confirmAppointment() {
+    // Use null-aware operators and null checks
+    if (selectedSlot != null &&
+        patientName.isNotEmpty &&
+        (slotAvailability[selectedSlot] ?? 0) > 0) {
+      return true;
+    }
+    return false;
   }
+
+  Color getSlotColor(String slot) {
+    if (!isSlotValid(slot)) {
+      return Colors.grey;
+    }
+
+    int? availability = slotAvailability[slot];
+    if (availability == null || availability <= 0) {
+      return Colors.red; // No slots available
+    } else if (availability <= 5) {
+      return Colors.yellow; // Few slots left
+    } else if (availability <= 15) {
+      return Colors.orange; // Moderate availability
+    } else {
+      return Colors.green; // Plenty of slots available
+    }
+  }
+
+
+  // Check if appointment can be confirmed
+  bool canConfirmAppointment() {
+    return selectedSlot != null
+        && patientName.isNotEmpty
+        && (slotAvailability[selectedSlot] ?? 0) > 0;
+  }
+
+  // Method to set maximum slots per time slot (for admin)
+  void setMaxSlotsPerTimeSlot(int maxSlots) {
+    maxSlotsPerTimeSlot = maxSlots;
+    // Reset all slot availabilities to new max
+    slotAvailability.updateAll((key, value) => maxSlots);
+  }
+
+  getBookedAppointmentsForDate(DateTime selectedDate) {}
 }
