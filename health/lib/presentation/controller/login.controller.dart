@@ -71,9 +71,7 @@ class LoginController {
             'DOB': user['dob'] ?? 'Not available',
             'Address': user['address'] ?? 'Not available',
             //'Role': user['Role'] ?? 'Patient',
-            'Role': user['Role'] ?? 'Admin',
-            //'Role': user['Role'] ?? 'Doctor',
-
+            'Role': user['role'] ?? 'Admin',
             'Password': user['confirmPassword'] ?? 'adminhcapp'
           };
         });

@@ -73,18 +73,9 @@ class StartController {
         ];
       case 'Doctor':
         return [
-          {'title': 'Blood Collection', 'screen': Bloodcollection()},
-          {'title': 'Urine Collection', 'screen': Urinecollection()},
-          {'title': 'Helpdesk', 'screen': Helpdesk()},
-          {'title': 'Vitals', 'screen': Vitals()},
-          {'title': 'Arc', 'screen': Arc()},
-          {'title': 'Dentist', 'screen': Dentist()},
-          {'title': 'X-ray', 'screen': XRay()},
-          {'title': 'Dexa Scan', 'screen': DexaScan()},
-          {'title': 'Echo', 'screen': Echo()},
-          {'title': 'Ultrasound', 'screen': UltraSound()},
-          {'title': 'Awareness', 'screen': Awareness()},
+          {'title': 'Appointments', 'screen': Appointments()},
           {'title': 'Consultation', 'screen': Consultation()},
+          {'title': 'Awareness', 'screen': Awareness()},
           {'title': 'Reports', 'screen': Reports()},
           {'title': 'Profile', 'screen': Profile()},
         ];
@@ -121,7 +112,6 @@ class StartController {
       case 'Patient':
         return [
           {'title': 'Appointments', 'screen': Appointments()},
-          {'title': 'Helpdesk', 'screen': Helpdesk()},
           {'title': 'Profile', 'screen': Profile()},
           {'title': 'Awareness', 'screen': Awareness()},
           {'title': 'Reports', 'screen': Reports()},

@@ -1,69 +1,84 @@
-// lib/controllers/consultation_controller.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_signature_pad/flutter_signature_pad.dart';
 
 class ConsultationController {
-  String? selectedDoctor;
-  DateTime? nextVisitDate;
-  final List<Map<String, String>> doctors = [
-    {
-      'name': 'Dr. John Doe',
-      'availability': 'Mon-Fri: 9 AM - 5 PM',
-      'nextLeaveDate': '2024-11-15',
-      'specialization': 'Endocrinologist',
-      'mobile': '9876543210',
-      'image': 'assets/images/doctor1.png',
-    },
-    {
-      'name': 'Dr. Jane Smith',
-      'availability': 'Mon-Fri: 10 AM - 4 PM',
-      'nextLeaveDate': '2024-10-30',
-      'specialization': 'Nutritionist',
-      'mobile': '8765432109',
-      'image': 'assets/images/doctor2.png',
-    },
-  ];
-
-  final TextEditingController prescriptionController = TextEditingController();
-  final TextEditingController tabletsController = TextEditingController();
-
+  // Patient Details
   final Map<String, dynamic> patientReport = {
     'name': 'John Doe',
     'age': 45,
-    'alcoholic': true,
-    'drinkingAge': 20,
-    'smoking': true,
-    'smokingAge': 18,
-    'familyHistory': {'relation': 'Father', 'condition': 'Diabetes'},
-    'medicalHistory': 'Hypertension, taking medication for high blood pressure',
+    'gender': 'Male',
+    'contactNumber': '+1 (555) 123-4567',
+    'height': '175 cm',
+    'weight': '70 kg',
   };
 
-  final GlobalKey<SignatureState> signatureKey = GlobalKey();
-  List<Offset?> points = [];
+  // Test Results
+  final List<Map<String, String>> testResults = [
+    {
+      'name': 'Blood Sugar',
+      'result': '120 mg/dL',
+      'referenceRange': '70-100 mg/dL',
+      'status': 'High'
+    },
+    {
+      'name': 'Cholesterol',
+      'result': '210 mg/dL',
+      'referenceRange': 'Below 200 mg/dL',
+      'status': 'Borderline'
+    },
+  ];
 
-  Future<void> selectNextVisitDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: nextVisitDate ?? DateTime.now(),
-      firstDate: DateTime.now(),
-      lastDate: DateTime(2025),
-    );
-    if (picked != null && picked != nextVisitDate) {
-      nextVisitDate = picked;
-    }
+  // Medication Details
+  final List<String> availableMedicines = [
+    'Metformin',
+    'Sulfonylurea',
+    'Linagliptin',
+    'Alogliptin',
+    'Glimepiride ',
+    'Alogliptin '
+  ];
+  final List<String> dosageOptions = ['1-0-1', '1-1-1', '0-1-1'];
+  final List<String> timingOptions = ['Before Food', 'After Food', 'Empty Stomach'];
+
+  String? selectedMedicine;
+  String? selectedDosage;
+  String? selectedTiming;
+  int? numberOfDays;
+
+  ConsultationController() {
+    numberOfDays = 7;
   }
 
-  void  clearSignature() {
-    points.clear();
+  // Consultation Controllers
+  final TextEditingController prescriptionController = TextEditingController();
+  final TextEditingController notesController = TextEditingController();
+  final GlobalKey<SignatureState> signatureKey = GlobalKey();
+
+  // Medical History
+  final List<String> medicalConditions = ['Diabetes', 'Hypertension', 'Asthma'];
+  String? selectedMedicalCondition;
+
+  // Methods
+  void clearSignature() {
+    final state = signatureKey.currentState;
+    state?.clear();
   }
 
   void generatePrescription() {
-    // Logic to generate prescription data (for example, print or save the details)
-    print('Doctor: $selectedDoctor');
-    print('Prescription: ${prescriptionController.text}');
-    print('Tablets/Injections: ${tabletsController.text}');
-    print('Next Visit Date: ${nextVisitDate != null ? nextVisitDate!.toLocal().toString().split(' ')[0] : 'Not selected'}');
-    print('Patient Report: $patientReport');
+    // Placeholder for prescription generation logic
+    final prescriptionData = {
+      'medicine': selectedMedicine,
+      'dosage': selectedDosage,
+      'timing': selectedTiming,
+      'notes': prescriptionController.text,
+      'doctorNotes': notesController.text,
+    };
+
+    debugPrint('Prescription Generated: $prescriptionData');
+  }
+
+  void dispose() {
+    prescriptionController.dispose();
+    notesController.dispose();
   }
 }

@@ -14,8 +14,8 @@ class AppointmentsController {
   Map<String, int> slotAvailability = {
     '08:00 AM': 20,
     '10:00 AM': 20,
-    '12:00 PM': 20,
-    '02:00 PM': 20,
+    '01:00 PM': 20,
+    '04:00 PM': 20,
   };
 
   // Comprehensive patient list

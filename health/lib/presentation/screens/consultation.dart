@@ -1,202 +1,307 @@
 import 'package:flutter/material.dart';
-import 'package:health/presentation/controller/language.controller.dart';
-import 'package:health/presentation/screens/start.dart';
 import 'package:flutter_signature_pad/flutter_signature_pad.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:health/presentation/screens/start.dart';
 import '../controller/consultation.controller.dart';
-import '../widgets/language.widgets.dart';
 
 class Consultation extends StatefulWidget {
-  const Consultation({super.key});
+  const Consultation({Key? key}) : super(key: key);
 
   @override
-  State<Consultation> createState() => _ConsultationState();
+  _ConsultationPageState createState() => _ConsultationPageState();
 }
 
-class _ConsultationState extends State<Consultation> {
+class _ConsultationPageState extends State<Consultation> {
   final ConsultationController _controller = ConsultationController();
-  final LanguageController _languageController = LanguageController();
-
-  // Function to handle navigation
-  void navigateToScreen(Widget screen) {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => screen),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
-    final localizations = AppLocalizations.of(context)!;
     return Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: Icon(Icons.arrow_back),
-            onPressed: () {
-              navigateToScreen(Start());
-            },
+      appBar: AppBar(
+        title: const Text('Medical Consultation'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => Start()),
           ),
-          title: Text(localizations.consultation),
-          actions: [
-            LanguageToggle(),
-          ],
         ),
-        body: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                /*DropdownButtonFormField<String>(
-                  value: _controller.selectedDoctor,
-                  hint: Text(localizations.select_doctor),
-                  items: _controller.doctors.map((doctor) {
-                    return DropdownMenuItem(
-                      value: doctor['name'],
-                      child: Text(doctor['name']!),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _controller.selectedDoctor = value;
-                    });
-                  },
-                ),*/
-                SizedBox(height: 10),
-                _buildPatientReportSummary(),
-                SizedBox(height: 10),
-                TextField(
-                  controller: _controller.prescriptionController,
-                  decoration: InputDecoration(
-                    labelText: localizations.enter_prescription,
-                    border: OutlineInputBorder(),
-                  ),
-                  maxLines: 3,
-                ),
-                SizedBox(height: 10),
-                TextField(
-                  controller: _controller.tabletsController,
-                  decoration: InputDecoration(
-                    labelText: localizations.tablets_injections,
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                SizedBox(height: 10),
-                GestureDetector(
-                  onTap: () => _controller.selectNextVisitDate(context),
-                  child: AbsorbPointer(
-                    child: TextField(
-                      decoration: InputDecoration(
-                        labelText: localizations.next_visit_date,
-                        border: OutlineInputBorder(),
-                        hintText: _controller.nextVisitDate == null
-                            ? 'Select a date'
-                            : '${_controller.nextVisitDate!.toLocal()}'.split(' ')[0],
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(height: 10),
-                Text(localizations.doctor_signature, style: TextStyle(fontSize: 16)),
-                Container(
-                  height: 100,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.black),
-                  ),
-                  child: Signature(
-                    key: _controller.signatureKey,
-                    onSign: () {
-                      setState(() {
-                        _controller.points = [];
-                      });
-                    },
-                    backgroundPainter: _SignaturePainter(_controller.points),
-                    strokeWidth: 2.0,
-                  ),
-                ),
-                SingleChildScrollView( scrollDirection: Axis.horizontal, child:
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                Padding(padding: EdgeInsets.symmetric(horizontal: MediaQuery.of(context).size.width * 0.01),
-                child:
-                    ElevatedButton(
-                      onPressed:(){
-                        _languageController.speakText(localizations.clear_signature);
-                        _controller.clearSignature();
-                      },
-                      child: Text(localizations.clear_signature),
-                    ),
-                ),
-                    Padding(padding: EdgeInsets.symmetric(horizontal: MediaQuery.of(context).size.width * 0.01),
-                    child:
-                    ElevatedButton(
-                      onPressed: (){
-                        _languageController.speakText(localizations.generate_prescription);
-                        _controller.generatePrescription();},
-                        child: Text(localizations.
-                      generate_prescription),
-                    ),),
-                  ],
-                ),
-                ),
-              ],
-            ),
+      ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildPatientDetailsCard(),
+              const SizedBox(height: 16),
+              _buildTestResultsCard(),
+              const SizedBox(height: 16),
+              _buildMedicalHistoryCard(),
+              const SizedBox(height: 16),
+              _buildMedicationDetailsCard(),
+              const SizedBox(height: 16),
+              _buildPrescriptionNotesCard(),
+              const SizedBox(height: 16),
+              _buildSignatureSection(),
+              const SizedBox(height: 16),
+              _buildActionButtons(),
+            ],
           ),
-        )
+        ),
+      ),
     );
   }
 
-  Widget _buildPatientReportSummary() {
-    final localizations = AppLocalizations.of(context)!;
+  Widget _buildPatientDetailsCard() {
+    return _buildCard(
+      'Patient Details',
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildDetailRow('Name', _controller.patientReport['name']),
+          _buildDetailRow('Age', _controller.patientReport['age'].toString()),
+          _buildDetailRow('Gender', _controller.patientReport['gender']),
+          _buildDetailRow('Contact', _controller.patientReport['contactNumber']),
+          _buildDetailRow('Height', _controller.patientReport['height']),
+          _buildDetailRow('Weight', _controller.patientReport['weight']),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTestResultsCard() {
+    return _buildCard(
+      'Test Results',
+      Column(
+        children: _controller.testResults.map((test) {
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(test['name']!, style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text(
+                test['result']!,
+                style: TextStyle(
+                  color: test['status'] == 'High'
+                      ? Colors.red
+                      : test['status'] == 'Borderline'
+                      ? Colors.orange
+                      : Colors.green,
+                ),
+              ),
+            ],
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildMedicalHistoryCard() {
+    return _buildCard(
+      'Medical History',
+      DropdownButtonFormField<String>(
+        decoration: const InputDecoration(
+          labelText: 'Select Medical Condition',
+          border: OutlineInputBorder(),
+        ),
+        items: _controller.medicalConditions
+            .map((condition) => DropdownMenuItem(
+          value: condition,
+          child: Text(condition),
+        ))
+            .toList(),
+        onChanged: (value) => setState(() {
+          _controller.selectedMedicalCondition = value;
+        }),
+        value: _controller.selectedMedicalCondition,
+      ),
+    );
+  }
+
+  Widget _buildMedicationDetailsCard() {
+    return _buildCard(
+      'Medication Details',
+      Column(
+        children: [
+          DropdownButtonFormField<String>(
+            decoration: const InputDecoration(
+              labelText: 'Select Medicine',
+              border: OutlineInputBorder(),
+            ),
+            items: _controller.availableMedicines
+                .map((medicine) => DropdownMenuItem(
+              value: medicine,
+              child: Text(medicine),
+            ))
+                .toList(),
+            onChanged: (value) => setState(() {
+              _controller.selectedMedicine = value;
+            }),
+            value: _controller.selectedMedicine,
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Flexible(
+                flex: 1,
+                child: DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(
+                    labelText: 'Dosage',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: _controller.dosageOptions
+                      .map((dosage) => DropdownMenuItem(
+                    value: dosage,
+                    child: Text(dosage),
+                  ))
+                      .toList(),
+                  onChanged: (value) => setState(() {
+                    _controller.selectedDosage = value;
+                  }),
+                  value: _controller.selectedDosage,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Flexible(
+                flex: 2,
+                child: DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(
+                    labelText: 'Timing',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: _controller.timingOptions
+                      .map((timing) => DropdownMenuItem(
+                    value: timing,
+                    child: Text(timing),
+                  ))
+                      .toList(),
+                  onChanged: (value) => setState(() {
+                    _controller.selectedTiming = value;
+                  }),
+                  value: _controller.selectedTiming,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          DropdownButtonFormField<int>(
+            decoration: const InputDecoration(
+              labelText: 'Number of Days',
+              border: OutlineInputBorder(),
+            ),
+            items: List.generate(30, (index) => index + 1)
+                .map((day) => DropdownMenuItem(
+              value: day,
+              child: Text('$day day${day > 1 ? 's' : ''}'),
+            ))
+                .toList(),
+            onChanged: (value) => setState(() {
+              _controller.numberOfDays = value!;
+            }),
+            value: _controller.numberOfDays,
+          ),
+        ],
+      ),
+    );
+  }
+
+
+
+
+  Widget _buildPrescriptionNotesCard() {
+    return _buildCard(
+      'Prescription Notes',
+      Column(
+        children: [
+          TextField(
+            controller: _controller.prescriptionController,
+            decoration: const InputDecoration(
+              labelText: 'Prescription Details',
+              border: OutlineInputBorder(),
+            ),
+            maxLines: 3,
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _controller.notesController,
+            decoration: const InputDecoration(
+              labelText: 'Additional Doctor Notes',
+              border: OutlineInputBorder(),
+            ),
+            maxLines: 3,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSignatureSection() {
+    return _buildCard(
+      'Doctor\'s Signature',
+      Container(
+        height: 200,
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.black),
+        ),
+        child: Signature(
+          key: _controller.signatureKey,
+          color: Colors.black,
+          strokeWidth: 2.0,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionButtons() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        ElevatedButton(
+          onPressed: _controller.clearSignature,
+          child: const Text('Clear Signature'),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            _controller.generatePrescription();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Prescription Generated Successfully')),
+            );
+          },
+          child: const Text('Generate Prescription'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCard(String title, Widget content) {
     return Card(
-      margin: EdgeInsets.symmetric(vertical: 10),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              localizations.patient_report_summary,
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 10),
-            Text('${localizations.name}: ${_controller.patientReport['name']}'),
-            Text('${localizations.age}: ${_controller.patientReport['age']}'),
-            Text('${localizations.alcoholic}: ${_controller.patientReport['alcoholic'] ? 'Yes' : 'No'}'),
-            if (_controller.patientReport['alcoholic'])
-              Text('${localizations.drinking_age}: ${_controller.patientReport['drinkingAge']}'),
-            Text('${localizations.smoking}: ${_controller.patientReport['smoking'] ? 'Yes' : 'No'}'),
-            if (_controller.patientReport['smoking'])
-              Text('${localizations.smoking_age}: ${_controller.patientReport['smokingAge']}'),
-            Text('${localizations.family_history}: ${_controller.patientReport['familyHistory']['relation']} has ${_controller.patientReport['familyHistory']['condition']}'),
-            Text('${localizations.medical_history}: ${_controller.patientReport['medicalHistory']}'),
+            Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+            content,
           ],
         ),
       ),
     );
   }
-}
 
-class _SignaturePainter extends CustomPainter {
-  final List<Offset?> points;
-
-  _SignaturePainter(this.points);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.black
-      ..strokeCap = StrokeCap.round
-      ..strokeWidth = 4.0;
-
-    for (int i = 0; i < points.length - 1; i++) {
-      if (points[i] != null && points[i + 1] != null) {
-        canvas.drawLine(points[i]!, points[i + 1]!, paint);
-      }
-    }
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        children: [
+          Text('$label: ', style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text(value),
+        ],
+      ),
+    );
   }
 
   @override
-  bool shouldRepaint(_SignaturePainter oldDelegate) {
-    return oldDelegate.points != points;
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 }

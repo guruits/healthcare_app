@@ -9,11 +9,6 @@ import '../widgets/language.widgets.dart';
 import '../widgets/phonenumber.widgets.dart';
 import 'home.dart';
 
-enum UserRole {
-  admin,
-  doctor,
-  user,
-}
 
 class Register extends StatefulWidget {
 

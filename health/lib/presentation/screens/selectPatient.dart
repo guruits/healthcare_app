@@ -183,17 +183,17 @@ class _SelectPatientState extends State<SelectPatient> {
         itemBuilder: (context, index) {
           final patient = filteredPatients[index];
           return Card(
-            elevation: 4,
-            margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            elevation: 5,
+            margin: const EdgeInsets.symmetric(vertical: 9, horizontal: 18),
             child: GestureDetector(
               onTap: () => _selectPatient(patient),
               child: Padding(
-                padding: const EdgeInsets.all(8.0),
+                padding: const EdgeInsets.all(10),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      ' ${patient['patientName'] ?? ''}',
+                      '                           ${patient['patientName']}',
                       style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     /*_buildStatusRow('blood_test', patient['bloodTestStatus'] ?? _controller.getDefaultStatus(), index, localizations),

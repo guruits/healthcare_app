@@ -5,6 +5,7 @@ import 'package:health/presentation/controller/language.controller.dart';
 import 'package:health/presentation/screens/start.dart';
 import 'package:health/presentation/widgets/calendar.widgets.dart';
 import 'package:health/presentation/widgets/language.widgets.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Appointments extends StatefulWidget {
   const Appointments({Key? key}) : super(key: key);
@@ -16,6 +17,22 @@ class Appointments extends StatefulWidget {
 class _AppointmentsState extends State<Appointments> {
   final AppointmentsController controller = AppointmentsController();
   final LanguageController _languageController = LanguageController();
+  String _userRole = '';
+  bool _canSelectPatient = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserRole();
+  }
+
+  Future<void> _loadUserRole() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _userRole = prefs.getString('userRole') ?? '';
+      _canSelectPatient = _userRole == 'Admin' || _userRole == 'Doctor';
+    });
+  }
 
   // Function to show confirmation dialog
   void _confirmAppointment() {
@@ -114,22 +131,25 @@ class _AppointmentsState extends State<Appointments> {
               ),
               const SizedBox(height: 20),
               if (controller.isNewAppointment) ...[
-                DropdownButton<String>(
-                  value: controller.patientName.isNotEmpty ? controller.patientName : null,
-                  hint: Text(localizations.select_patient),
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      controller.setPatientName(newValue!);
-                    });
-                  },
-                  items: controller.samplePatients.map<DropdownMenuItem<String>>((String patient) {
-                    return DropdownMenuItem<String>(
-                      value: patient,
-                      child: Text(patient),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 20),
+                // Patient selection only for Admin and Doctor
+                if (_canSelectPatient) ...[
+                  DropdownButton<String>(
+                    value: controller.patientName.isNotEmpty ? controller.patientName : null,
+                    hint: Text(localizations.select_patient),
+                    onChanged: (String? newValue) {
+                      setState(() {
+                        controller.setPatientName(newValue!);
+                      });
+                    },
+                    items: controller.samplePatients.map<DropdownMenuItem<String>>((String patient) {
+                      return DropdownMenuItem<String>(
+                        value: patient,
+                        child: Text(patient),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 20),
+                ],
                 Text('${localizations.available_slots_for} ${controller.getFormattedDate()}'),
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
@@ -167,7 +187,8 @@ class _AppointmentsState extends State<Appointments> {
                     }).toList(),
                   ),
                 ),
-                if (controller.selectedSlot != null && controller.selectedPatientNames.isNotEmpty) ...[
+                // Patient list only for Admin and Doctor
+                if (_canSelectPatient && controller.selectedSlot != null && controller.selectedPatientNames.isNotEmpty) ...[
                   Text(localizations.patients_for_slot(controller.selectedSlot as Object)),
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
@@ -209,7 +230,6 @@ class _AppointmentsState extends State<Appointments> {
               if (!controller.isNewAppointment) ...[
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-
                 ),
                 const SizedBox(height: 20),
                 ElevatedButton(
