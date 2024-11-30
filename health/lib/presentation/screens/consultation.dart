@@ -237,7 +237,7 @@ class _ConsultationPageState extends State<Consultation> {
     return _buildCard(
       'Doctor\'s Signature',
       Container(
-        height: 200,
+        height: 100,
         decoration: BoxDecoration(
           border: Border.all(color: Colors.black),
         ),

@@ -326,8 +326,39 @@
   "available_slots_for": "Available Slots for",
   "confirm_appointment": "Confirm Appointment",
   "appointment_confirmed": "Appointment Confirmed",
-  "appointment_details": "Appointment on {date} at {slot} for {patient}"
+  "appointment_details": "Appointment on {date} at {slot} for {patient}",
+
+
+  "appTitle": "Pharmacy Management",
+  "pharmacy": "pharmacy",
+  "searchMedicines": "Search Medicines...",
+  "allMedicines": "All Medicines",
+  "lowStock": "Low Stock",
+  "expired": "Expired",
+  "addMedicine": "Add New Medicine",
+  "billing": "Billing",
+  "medicineName": "Medicine Name",
+  "genericName": "Generic Name",
+  "manufacturer": "Manufacturer",
+  "mrpRate": "MRP Rate",
+  "buyRate": "Buy Rate",
+  "sellRate": "Sell Rate",
+  "currentStock": "Current Stock",
+  "batchNumber": "Batch Number",
+  "expiryDate": "Expiry Date",
+  "cancel": "Cancel",
+  "add": "Add",
+  "total": "Total",
+  "selectMedicine": "Select Medicine",
+  "quantity": "Quantity",
+  "addToBill": "Add to Bill",
+  "generateBill": "Generate Bill",
+  "lowStockAlert": "Low Stock Alert!",
+  "expiredAlert": "Expired!",
+  "updateStock": "Update Stock",
+  "close": "Close"
 }
+
 
 
 
