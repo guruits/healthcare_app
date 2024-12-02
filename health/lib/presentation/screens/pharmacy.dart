@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:health/presentation/screens/start.dart';
 import 'package:intl/intl.dart';
 import 'package:health/presentation/controller/pharmacy.controller.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -279,6 +280,12 @@ class _PharmacyManagementPageState extends State<Pharmacy> {
     return Scaffold(
       appBar: AppBar(
         title: Text(localizations.pharmacy),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => Start()),
+          ),
+        ),
         actions: [
           IconButton(
             icon: Icon(Icons.point_of_sale),

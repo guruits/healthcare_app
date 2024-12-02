@@ -69,7 +69,7 @@ class _AppointmentsState extends State<Appointments> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text(AppLocalizations.of(context)!.appointment_booked),
+          title: Text(AppLocalizations.of(context)!.appointment_confirmed),
           content: bookedAppointments.isEmpty
               ? Text(AppLocalizations.of(context)!.errorOccurred)
               : SingleChildScrollView(
