@@ -2,12 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_signature_pad/flutter_signature_pad.dart';
 
 class ConsultationController {
+  String _selectedPatient = '';
+  String _patientMobileNumber = '';
+  String _patientAadharNumber = '';
+  String _appointmentSlot = '';
+  String _patientAddress = '';
   // Patient Details
   final Map<String, dynamic> patientReport = {
-    'name': 'John Doe',
+    'name': 'Ram',
     'age': 45,
     'gender': 'Male',
-    'contactNumber': '+1 (555) 123-4567',
+    'contactNumber': '+91 6584759645',
     'height': '175 cm',
     'weight': '70 kg',
   };
@@ -44,9 +49,19 @@ class ConsultationController {
   String? selectedDosage;
   String? selectedTiming;
   int? numberOfDays;
+  bool _isPatientSelected = false;
+  bool get isPatientSelected => _isPatientSelected;
 
   ConsultationController() {
     numberOfDays = 7;
+  }
+  void selectPatient(String patientName, String mobileNumber, String aadharNumber, String appointmentSlot, String address) {
+    _selectedPatient = patientName;
+    _patientMobileNumber = mobileNumber;
+    _patientAadharNumber = aadharNumber;
+    _appointmentSlot = appointmentSlot;
+    _patientAddress = address;
+    _isPatientSelected = true;
   }
 
   // Consultation Controllers
@@ -57,6 +72,20 @@ class ConsultationController {
   // Medical History
   final List<String> medicalConditions = ['Diabetes', 'Hypertension', 'Asthma'];
   String? selectedMedicalCondition;
+  bool isExpanded = false;
+
+  List<String> selectedTests = [];
+  // Select Test
+  final List<String> selectTest = [
+    'Blood Test',
+    'Urine Test',
+    'EyeArc',
+    'Dentist',
+    'X-Ray',
+    'Dexa Scan',
+    'Echo',
+    'Ultrasound',
+    ];
 
   // Methods
   void clearSignature() {

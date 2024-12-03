@@ -24,11 +24,12 @@ class _HelpdeskState extends State<Helpdesk> with SingleTickerProviderStateMixin
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _messageController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
   }
 
   @override
@@ -93,7 +94,7 @@ class _HelpdeskState extends State<Helpdesk> with SingleTickerProviderStateMixin
           controller: _tabController,
           isScrollable: true,
           tabs: [
-            //Tab(text: localizations.appointments),
+            Tab(text: localizations.appointments),
             Tab(text: localizations.hospital_details),
             Tab(text: localizations.faqs),
             Tab(text: localizations.feedback),
@@ -105,7 +106,7 @@ class _HelpdeskState extends State<Helpdesk> with SingleTickerProviderStateMixin
         controller: _tabController,
         children: [
           // Patient Registration
-          //_buildPatientRegistration(localizations, textScaleFactor),
+          _buildPatientRegistration(localizations, textScaleFactor),
 
           // Hospital Details
           _buildHospitalDetails(localizations),
@@ -264,7 +265,7 @@ class _HelpdeskState extends State<Helpdesk> with SingleTickerProviderStateMixin
     );
   }
 // Patient Registration Widget
-/*Widget _buildPatientRegistration(AppLocalizations localizations, double textScaleFactor) {
+  Widget _buildPatientRegistration(AppLocalizations localizations, double textScaleFactor) {
     return ListView(
       padding: const EdgeInsets.all(16.0),
       children: [
@@ -325,78 +326,93 @@ class _HelpdeskState extends State<Helpdesk> with SingleTickerProviderStateMixin
           ],
         ),
         if (_controller.isExistingPatient) ...[
-          Card(
-            elevation: 4,
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                children: [
-                  TextField(
-                    decoration: InputDecoration(
-                      labelText: 'Enter Phone Number',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: Colors.blueAccent),
-                      ),
-                    ),
-                    onChanged: (value) {
+          Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                PhoneInputWidget(
+                  onPhoneValidated: (bool isValid, String phoneNumber) async {
+                    setState(() {
+                      _controller.isPhoneEntered = isValid;
+                      _controller.showContinueButton = isValid;
+                    });
+
+                    if (isValid) {
+                      _controller.phoneController.text = phoneNumber;
+                      final userData = await _controller.fetchUserDetails(phoneNumber);
                       setState(() {
-                        _controller.phoneNumber = value;
+                        _controller.userData = userData;
+                        _controller.showUserDropdown = userData.isNotEmpty;
                       });
-                    },
-                  ),
-                  SizedBox(height: 10),
-                  DropdownButtonFormField<String>(
-                    value: _controller.selectedPatient,
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
+                    }
+                  },
+                ),
+                SizedBox(height: 20),
+                if (_controller.showUserDropdown)
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey),
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        isExpanded: true,
+                        hint: Text(localizations.choose_user),
+                        value: _controller.selectedUser.isNotEmpty ? _controller.selectedUser : null,
+                        items: _controller.userData.keys.map((String user) {
+                          return DropdownMenuItem<String>(
+                            value: user,
+                            child: Text(user),
+                          );
+                        }).toList(),
+                        onChanged: (String? newUser) {
+                          setState(() {
+                            _controller.selectedUser = newUser ?? '';
+                            if (newUser != null) {
+                              Appointments();
+                            }
+                          });
+                        },
                       ),
                     ),
-                    hint: Text('Select Patient'),
-                    items: _controller.patientList.map((String patient) {
-                      return DropdownMenuItem<String>(
-                        value: patient,
-                        child: Text(patient),
+                  ),
+                SizedBox(height: 20),
+                if (_controller.selectedUser.isNotEmpty)
+                  Card(
+                    elevation: 3,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            localizations.user_information,
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                          SizedBox(height: 10),
+                          Text('${localizations.aadhar}: ${_controller.userData[_controller.selectedUser]?['Aadhar'] ?? ''}'),
+                          Text('${localizations.full_name}: ${_controller.userData[_controller.selectedUser]?['FullName'] ?? ''}'),
+                          Text('${localizations.dob}: ${_controller.userData[_controller.selectedUser]?['DOB'] ?? ''}'),
+                          Text('${localizations.address}: ${_controller.userData[_controller.selectedUser]?['Address'] ?? ''}'),
+                          Text('${localizations.role}: ${_controller.userData[_controller.selectedUser]?['Role'] ?? ''}'),
+                        ],
+                      ),
+                    ),
+                  ),
+                if (_controller.showContinueButton)
+                  ElevatedButton(
+                    onPressed: () async {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (context) => Appointments()),
                       );
-                    }).toList(),
-                    onChanged: (String? value) {
-                      setState(() {
-                        _controller.selectedPatient = value;
-                        _controller.aadharNumber = "1234-5678-9123"; // Sample data
-                        _controller.dob = "1990-01-01";
-                        _controller.address = "123 Main Street";
-                      });
                     },
+                    child: Text(localizations.continueButton),
                   ),
-                  if (_controller.selectedPatient != null) ...[
-                    SizedBox(height: 10),
-                    Text("Aadhar Number: $_controller.aadharNumber"),
-                    Text("Date of Birth: $_controller.dob"),
-                    Text("Address: $_controller.address"),
-                    SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: bookAppointment,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green, // Button color
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      child: Text("Book Appointment"),
-                    ),
-                  ],
-                  if (_controller.isAppointmentBooked)
-                    Text("Appointment booked successfully!"),
-                ],
-              ),
+              ],
             ),
           ),
-          // Your existing patient registration card
         ],
         if (_controller.isNewPatient) ...[
           Card(
@@ -549,6 +565,9 @@ class _HelpdeskState extends State<Helpdesk> with SingleTickerProviderStateMixin
           ),
         ],
       ],
+
+
     );
-  }*/
+  }
+
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class PhoneInputWidget extends StatefulWidget {
   final Function(bool isValid, String phoneNumber) onPhoneValidated;
@@ -77,6 +78,7 @@ class _PhoneInputWidgetState extends State<PhoneInputWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return Column(
       children: [
         DropdownButton<String>(
@@ -104,7 +106,7 @@ class _PhoneInputWidgetState extends State<PhoneInputWidget> {
             LengthLimitingTextInputFormatter(maxLength),
           ],
           decoration: InputDecoration(
-            labelText: "Phone Number",
+            labelText: localizations.phone_number,
             prefixText: "$phoneNumberPrefix ",
             border: OutlineInputBorder(),
             enabledBorder: OutlineInputBorder(
