@@ -385,7 +385,7 @@ class _RegisterState extends State<Register> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(localizations.address,
+            Text(localizations.capture_face,
                 style: Theme.of(context).textTheme.titleMedium),
             SizedBox(height: 16),
             Container(
