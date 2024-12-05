@@ -7,6 +7,8 @@ import 'package:health/presentation/widgets/calendar.widgets.dart';
 import 'package:health/presentation/widgets/language.widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../controller/notification_controller.dart';
+
 class Appointments extends StatefulWidget {
   const Appointments({Key? key}) : super(key: key);
 
@@ -17,6 +19,7 @@ class Appointments extends StatefulWidget {
 class _AppointmentsState extends State<Appointments> {
   final AppointmentsController controller = AppointmentsController();
   final LanguageController _languageController = LanguageController();
+  final NotificationController _notificationController = NotificationController();
   String _userRole = '';
   bool _canSelectPatient = false;
 
@@ -58,6 +61,11 @@ class _AppointmentsState extends State<Appointments> {
           ],
         );
       },
+    );
+    _notificationController.addNotification(
+      title: 'New Appointment Booked',
+      body: 'Patient ${controller.patientName} booked for ${controller.getFormattedDate()}',
+      type: NotificationType.appointment,
     );
   }
 

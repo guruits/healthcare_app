@@ -409,7 +409,11 @@
   "lowStockAlert": "Low Stock Alert!",
   "expiredAlert": "Expired!",
   "updateStock": "Update Stock",
-  "close": "Close"
+  "close": "Close",
+
+  "screen": "Notification",
+  "notification": "Notification",
+  "no_notification": "No Notification"
 }
 
 

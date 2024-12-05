@@ -405,6 +405,9 @@
   "enter_address": "முகவரியை உள்ளிடவும்",
   "add_user": "பயனரை சேர்க்கவும்",
   "user_added_success": "பயனர் வெற்றிகரமாக சேர்க்கப்பட்டது!",
-  "book_appointment": "அப்பாயின்மெண்ட் பதிவு"
+  "book_appointment": "அப்பாயின்மெண்ட் பதிவு",
 
+  "screen": "Notification",
+  "notification": "அறிவிப்பு",
+  "no_notification": "அறிவிப்புகள் இல்லை"
 }

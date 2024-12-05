@@ -394,6 +394,9 @@
   "confirmation": "¿Está seguro de que desea continuar?",
   "noData": "No hay datos disponibles",
   "errorOccurred": "Ocurrió un error. Intente nuevamente.",
-  "back": "Atrás"
+  "back": "Atrás",
 
+  "screen": "Notification",
+  "notification": "Notificación",
+  "no_notification": "Sin notificación"
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:health/presentation/screens/notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:health/presentation/screens/appointments.dart';
 import 'package:health/presentation/screens/doctors.dart';
@@ -52,6 +53,7 @@ class StartController {
       case 'Admin':
         return [
           {'title': 'Helpdesk', 'screen': Helpdesk()},
+          {'title': 'Notifications', 'screen': NotificationScreen()},
           {'title': 'Appointments', 'screen': Appointments()},
           {'title': 'Vitals', 'screen': Vitals()},
           {'title': 'Blood Collection', 'screen': Bloodcollection()},
@@ -74,6 +76,7 @@ class StartController {
       case 'Doctor':
         return [
           {'title': 'Appointments', 'screen': Appointments()},
+          {'title': 'Notifications', 'screen': NotificationScreen()},
           {'title': 'Consultation', 'screen': Consultation()},
           {'title': 'Awareness', 'screen': Awareness()},
           {'title': 'Reports', 'screen': Reports()},
@@ -81,6 +84,7 @@ class StartController {
         ];
       case 'Technician':
         return [
+          {'title': 'Notifications', 'screen': NotificationScreen()},
           {'title': 'Blood Collection', 'screen': Bloodcollection()},
           {'title': 'Urine Collection', 'screen': Urinecollection()},
           {'title': 'Helpdesk', 'screen': Helpdesk()},
@@ -132,6 +136,8 @@ class StartController {
         return l10n.vitals;
       case 'blood collection':
         return l10n.bloodCollection;
+      case 'notification':
+        return l10n.notification;
       case 'urine collection':
         return l10n.urineCollection;
       case 'arc':

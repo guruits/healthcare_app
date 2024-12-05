@@ -10,7 +10,6 @@ class AppointmentsController {
 
   int maxSlotsPerTimeSlot = 20;
 
-  // Detailed slot availability tracking
   Map<String, int> slotAvailability = {
     '08:00 AM': 20,
     '10:00 AM': 20,
@@ -41,14 +40,12 @@ class AppointmentsController {
   // Helper to get current time in a comparable format
   TimeOfDay _currentTime() => TimeOfDay.now();
 
-  // Convert slot time to TimeOfDay for comparison
   TimeOfDay _parseSlotTime(String slot) {
     final format = DateFormat.jm();
     DateTime dateTime = format.parse(slot);
     return TimeOfDay(hour: dateTime.hour, minute: dateTime.minute);
   }
 
-  // Check if a slot is valid based on time
   bool isSlotValid(String slot) {
     if (!isSameDay(selectedDate, DateTime.now())) {
       return true; // All slots valid for future dates

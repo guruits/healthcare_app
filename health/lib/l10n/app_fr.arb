@@ -393,5 +393,9 @@
   "confirmation": "Êtes-vous sûr de vouloir continuer?",
   "noData": "Pas de données disponibles",
   "errorOccurred": "Une erreur est survenue. Veuillez réessayer.",
-  "back": "Retour"
+  "back": "Retour",
+
+  "screen": "Notification",
+  "notification": "Notification",
+  "no_notification": "Aucune notification "
 }
