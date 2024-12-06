@@ -409,5 +409,10 @@
 
   "screen": "Notification",
   "notification": "அறிவிப்பு",
-  "no_notification": "அறிவிப்புகள் இல்லை"
+  "no_notification": "அறிவிப்புகள் இல்லை",
+  "appointment_confirmed": "நியமனம் உறுதிசெய்யப்பட்டது",
+  "your_appointment_with": "உங்கள் நியமனம் டாக்டர் {doctorName} உடன் {appointmentDate} க்காக திட்டமிடப்பட்டுள்ளது. விவரங்கள்: {appointmentDetails}",
+  "new_appointment": "புதிய நியமனம்",
+  "new_appointment_scheduled": "புதிய நியமனம் {patientName} உடன் {appointmentDate} க்காக திட்டமிடப்பட்டுள்ளது. விவரங்கள்: {appointmentDetails}",
+  "appointment_scheduled_between": "{patientName} மற்றும் டாக்டர் {doctorName} இடையே {appointmentDate} க்காக நியமனம் திட்டமிடப்பட்டுள்ளது. விவரங்கள்: {appointmentDetails}"
 }

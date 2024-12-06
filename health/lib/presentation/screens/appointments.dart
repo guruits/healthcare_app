@@ -22,6 +22,7 @@ class _AppointmentsState extends State<Appointments> {
   final NotificationController _notificationController = NotificationController();
   String _userRole = '';
   bool _canSelectPatient = false;
+  String doctorName = 'Dr. Tirupathi';
 
   @override
   void initState() {
@@ -62,10 +63,11 @@ class _AppointmentsState extends State<Appointments> {
         );
       },
     );
-    _notificationController.addNotification(
-      title: 'New Appointment Booked',
-      body: 'Patient ${controller.patientName} booked for ${controller.getFormattedDate()}',
-      type: NotificationType.appointment,
+    _notificationController.addAppointmentNotification(
+      patientName: controller.patientName,
+      doctorName: doctorName,
+      appointmentDate: controller.selectedDate,
+      appointmentDetails: 'Appointment booked for ${controller.getFormattedDate()} at ${controller.selectedSlot}',
     );
   }
 

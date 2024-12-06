@@ -397,5 +397,10 @@
 
   "screen": "Notification",
   "notification": "Notification",
-  "no_notification": "Aucune notification "
+  "no_notification": "Aucune notification ",
+  "appointment_confirmed": "Rendez-vous confirmé",
+  "your_appointment_with": "Votre rendez-vous avec le Dr {doctorName} est prévu pour le {appointmentDate}. Détails : {appointmentDetails}",
+  "new_appointment": "Nouveau rendez-vous",
+  "new_appointment_scheduled": "Nouveau rendez-vous prévu avec {patientName} pour le {appointmentDate}. Détails : {appointmentDetails}",
+  "appointment_scheduled_between": "Rendez-vous prévu entre {patientName} et le Dr {doctorName} le {appointmentDate}. Détails : {appointmentDetails}"
 }

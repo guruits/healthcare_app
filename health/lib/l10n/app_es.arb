@@ -398,5 +398,10 @@
 
   "screen": "Notification",
   "notification": "Notificación",
-  "no_notification": "Sin notificación"
+  "no_notification": "Sin notificación",
+  "appointment_confirmed": "Cita confirmada",
+  "your_appointment_with": "Su cita con el Dr. {doctorName} está programada para el {appointmentDate}. Detalles: {appointmentDetails}",
+  "new_appointment": "Nueva cita",
+  "new_appointment_scheduled": "Nueva cita programada con {patientName} para el {appointmentDate}. Detalles: {appointmentDetails}",
+  "appointment_scheduled_between": "Cita programada entre {patientName} y el Dr. {doctorName} el {appointmentDate}. Detalles: {appointmentDetails}"
 }

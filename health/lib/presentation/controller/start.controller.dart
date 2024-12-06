@@ -24,6 +24,8 @@ import 'package:health/presentation/screens/urinecollection.dart';
 import 'package:health/presentation/screens/xray.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import 'notification_controller.dart';
+
 class StartController {
 
   String userName = '';
@@ -53,7 +55,7 @@ class StartController {
       case 'Admin':
         return [
           {'title': 'Helpdesk', 'screen': Helpdesk()},
-          {'title': 'Notifications', 'screen': NotificationScreen()},
+          {'title': 'Notifications', 'screen': NotificationScreen(userRole: UserRole.admin)},
           {'title': 'Appointments', 'screen': Appointments()},
           {'title': 'Vitals', 'screen': Vitals()},
           {'title': 'Blood Collection', 'screen': Bloodcollection()},
@@ -76,7 +78,7 @@ class StartController {
       case 'Doctor':
         return [
           {'title': 'Appointments', 'screen': Appointments()},
-          {'title': 'Notifications', 'screen': NotificationScreen()},
+          {'title': 'Notifications', 'screen': NotificationScreen(userRole: UserRole.doctor)},
           {'title': 'Consultation', 'screen': Consultation()},
           {'title': 'Awareness', 'screen': Awareness()},
           {'title': 'Reports', 'screen': Reports()},
@@ -84,7 +86,7 @@ class StartController {
         ];
       case 'Technician':
         return [
-          {'title': 'Notifications', 'screen': NotificationScreen()},
+          {'title': 'Notifications', 'screen': NotificationScreen(userRole: UserRole.admin)},
           {'title': 'Blood Collection', 'screen': Bloodcollection()},
           {'title': 'Urine Collection', 'screen': Urinecollection()},
           {'title': 'Helpdesk', 'screen': Helpdesk()},
@@ -116,6 +118,7 @@ class StartController {
       case 'Patient':
         return [
           {'title': 'Appointments', 'screen': Appointments()},
+          {'title': 'Notifications', 'screen': NotificationScreen(userRole: UserRole.patient)},
           {'title': 'Profile', 'screen': Profile()},
           {'title': 'Awareness', 'screen': Awareness()},
           {'title': 'Reports', 'screen': Reports()},

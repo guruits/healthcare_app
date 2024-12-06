@@ -8,7 +8,7 @@ import 'package:health/presentation/screens/appointments.dart';
 import 'package:health/presentation/screens/start.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:url_launcher/url_launcher.dart';
+//import 'package:url_launcher/url_launcher.dart';
 
 import '../../data/datasources/api_service.dart';
 import '../widgets/language.widgets.dart';
@@ -283,7 +283,7 @@ class _HelpdeskState extends State<Helpdesk> with SingleTickerProviderStateMixin
                 scheme: 'tel',
                 path: '+911234567890',
               );
-              await launchUrl(launchUri);
+              //await launchUrl(launchUri);
             },
           ),
         ),

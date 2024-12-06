@@ -413,7 +413,12 @@
 
   "screen": "Notification",
   "notification": "Notification",
-  "no_notification": "No Notification"
+  "no_notification": "No Notification",
+  "appointment_confirmed": "Appointment Confirmed",
+  "your_appointment_with": "Your appointment with {doctorName} is scheduled for {appointmentDate}. Details: {appointmentDetails}",
+  "new_appointment": "New Appointment",
+  "new_appointment_scheduled": "New appointment scheduled with {patientName} for {appointmentDate}. Details: {appointmentDetails}",
+  "appointment_scheduled_between": "Appointment scheduled between {patientName} and Dr. {doctorName} on {appointmentDate}. Details: {appointmentDetails}"
 }
 
 
