@@ -257,6 +257,10 @@
   "status_completed": "Completado",
   "status_yet_to_start": "Por Empezar",
 
+
+  "screen": "phonewidget",
+  "select_country": "Seleccione su país",
+
   "screen": "arc",
   "eye_arc_test": "Prueba de Arco Ocular",
   "select_patient": "Seleccionar Paciente",

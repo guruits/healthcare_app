@@ -4,6 +4,7 @@ import 'package:health/presentation/screens/selectPatient.dart';
 import 'package:health/presentation/screens/start.dart';
 import 'package:health/presentation/widgets/dateandtimepicker.widgets.dart';
 import '../controller/dentist.controller.dart';
+import '../widgets/bluetooth.widgets.dart';
 import '../widgets/language.widgets.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
@@ -33,6 +34,7 @@ class _DentistState extends State<Dentist> {
         title: Text(localizations.dentist_appointment),
         actions: [
           LanguageToggle(),
+
         ],
       ),
       body: Padding(
@@ -157,6 +159,14 @@ class _DentistState extends State<Dentist> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            Align(
+              alignment: Alignment.topRight,
+              child: BluetoothConnectionWidget(
+                onDeviceConnected: (deviceName) {
+                  print('Connected to device: $deviceName');
+                },
+              ),
+            ),
             Center(
               child: Image.asset('assets/images/dentist.png', height: 200, width: 200),
             ),

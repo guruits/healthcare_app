@@ -6,6 +6,7 @@ import 'package:health/presentation/screens/selectPatient.dart';
 import 'package:health/presentation/screens/start.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../controller/arc.controller.dart';
+import '../widgets/bluetooth.widgets.dart';
 
 class Arc extends StatefulWidget {
   const Arc({super.key});
@@ -161,6 +162,14 @@ class _ArcState extends State<Arc> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            Align(
+              alignment: Alignment.topRight,
+              child: BluetoothConnectionWidget(
+                onDeviceConnected: (deviceName) {
+                  print('Connected to device: $deviceName');
+                },
+              ),
+            ),
             Center(
               child: Image.asset('assets/images/arc.png', height: 200, width: 200),
             ),

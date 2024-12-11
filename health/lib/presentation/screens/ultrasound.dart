@@ -7,6 +7,7 @@ import 'package:health/presentation/screens/start.dart';
 import 'package:health/presentation/widgets/dateandtimepicker.widgets.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../widgets/bluetooth.widgets.dart';
 import '../widgets/language.widgets.dart';
 
 class UltraSound extends StatefulWidget {
@@ -179,6 +180,14 @@ class _UltraSoundState extends State<UltraSound> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            Align(
+              alignment: Alignment.topRight,
+              child: BluetoothConnectionWidget(
+                onDeviceConnected: (deviceName) {
+                  print('Connected to device: $deviceName');
+                },
+              ),
+            ),
             Center(
               child: Image.asset('assets/images/ultrasound.png', height: 200, width: 200), // Replace with your Ultrasound image asset
             ),

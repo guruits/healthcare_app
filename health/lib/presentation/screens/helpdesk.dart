@@ -8,6 +8,7 @@ import 'package:health/presentation/screens/appointments.dart';
 import 'package:health/presentation/screens/start.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:intl/intl.dart';
 //import 'package:url_launcher/url_launcher.dart';
 
 import '../../data/datasources/api_service.dart';
@@ -317,6 +318,7 @@ class _HelpdeskState extends State<Helpdesk> with SingleTickerProviderStateMixin
     );
   }
 // Patient Registration Widget
+
   Widget _buildPatientRegistration(AppLocalizations localizations, double textScaleFactor) {
     return ListView(
       padding: const EdgeInsets.all(16.0),
@@ -349,7 +351,7 @@ class _HelpdeskState extends State<Helpdesk> with SingleTickerProviderStateMixin
                 ),
               ),
             ),
-            SizedBox(width: 10),
+            SizedBox(width: 20),
             Expanded(
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
@@ -377,6 +379,7 @@ class _HelpdeskState extends State<Helpdesk> with SingleTickerProviderStateMixin
             ),
           ],
         ),
+        SizedBox(height: 20),
         if (_controller.isExistingPatient) ...[
           Form(
             key: _formKey,
@@ -668,10 +671,25 @@ class _HelpdeskState extends State<Helpdesk> with SingleTickerProviderStateMixin
         SizedBox(height: 16),
         TextFormField(
           controller: _controller.dateofbirth,
+          readOnly: true,
           validator: _controller.validateDOB,
           decoration: InputDecoration(
             labelText: localizations.dob,
             border: OutlineInputBorder(),
+            suffixIcon: IconButton(
+              icon: Icon(Icons.calendar_today),
+              onPressed: () async {
+                DateTime? pickedDate = await showDatePicker(
+                  context: context,
+                  initialDate: DateTime.now(),
+                  firstDate: DateTime(1900),
+                  lastDate: DateTime.now(),
+                );
+                if (pickedDate != null) {
+                  _controller.dateofbirth.text = DateFormat('dd-MM-yyyy').format(pickedDate);
+                }
+              },
+            ),
           ),
         ),
         SizedBox(height: 16),
@@ -700,55 +718,124 @@ class _HelpdeskState extends State<Helpdesk> with SingleTickerProviderStateMixin
   }
 
   Widget _buildProfilePictureSection(AppLocalizations localizations) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(localizations.capture_face,
-                style: Theme.of(context).textTheme.titleMedium),
-            SizedBox(height: 16),
-            Container(
-              height: 300,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey),
-                borderRadius: BorderRadius.circular(8),
+    final MediaQueryData mediaQuery = MediaQuery.of(context);
+    final Orientation orientation = mediaQuery.orientation;
+    final bool isPortrait = orientation == Orientation.portrait;
 
-              ),
-              child: _controller.imageFile != null
-                  ? Image.file(_controller.imageFile!, fit: BoxFit.cover)
-                  : FutureBuilder<void>(
-                future: _initializeControllerFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.done) {
-                    return _cameraController != null
-                        ? CameraPreview(_cameraController!)
-                        : Center(child: Text(localizations.capture_face));
-                  }
-                  return Center(child: CircularProgressIndicator());
-                },
-              ),
+    final double containerHeight = isPortrait
+        ? mediaQuery.size.height * 0.4
+        : mediaQuery.size.height * 0.6;
+
+    return Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Title
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              localizations.capture_face,
+              style: Theme.of(context).textTheme.titleMedium,
             ),
-            SizedBox(height: 16),
-            Center(
+          ),
+
+          // Camera Preview Container
+          Container(
+            width: double.infinity,
+            height: containerHeight,
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey, width: 1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: _buildCameraPreview(orientation),
+          ),
+
+          // Capture/Retake Button
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Center(
               child: ElevatedButton.icon(
-                onPressed: _controller.imageFile == null ? _takePicture : () {
+                onPressed: _controller.imageFile == null
+                    ? _takePictureWithOrientation
+                    : () {
                   setState(() {
                     _controller.imageFile = null;
                   });
                 },
-                icon: Icon(_controller.imageFile == null ? Icons.camera : Icons.refresh),
+                icon: Icon(_controller.imageFile == null
+                    ? Icons.camera_alt
+                    : Icons.refresh),
                 label: Text(_controller.imageFile == null
                     ? localizations.capture_face
                     : localizations.retake),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
+  }
+
+  Widget _buildCameraPreview(Orientation orientation) {
+    if (_controller.imageFile != null) {
+      return Image.file(
+        _controller.imageFile!,
+        width: double.infinity,
+        height: double.infinity,
+      );
+    }
+
+    // If no image, show camera preview
+    return FutureBuilder<void>(
+      future: _initializeControllerFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.done) {
+          // Rotate camera preview based on device orientation
+          return Center(
+            child: _cameraController != null
+                ? _transformCameraPreview(orientation)
+                : Text("errror"),
+          );
+        }
+        return const Center(child: CircularProgressIndicator());
+      },
+    );
+  }
+
+  Widget _transformCameraPreview(Orientation orientation) {
+    int quarterTurns = 3;
+    if (orientation == Orientation.portrait) {
+      quarterTurns = 1;
+    } else {
+      quarterTurns = 3;
+    }
+
+    return RotatedBox(
+      quarterTurns: quarterTurns,
+      child: AspectRatio(
+        aspectRatio: _cameraController!.value.aspectRatio,
+        child: CameraPreview(_cameraController!),
+      ),
+    );
+  }
+
+  Future<void> _takePictureWithOrientation() async {
+    try {
+      await _initializeControllerFuture;
+
+      final Orientation orientation = MediaQuery.of(context).orientation;
+
+      final XFile imageFile = await _cameraController!.takePicture();
+
+      // Load the image
+      File capturedImage = File(imageFile.path);
+      setState(() {
+        _controller.imageFile = capturedImage;
+      });
+    } catch (e) {
+      print('Error taking picture: $e');
+      // Handle error appropriately
+    }
   }
 
   void showConfirmationPopup(AppLocalizations localizations) {

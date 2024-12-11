@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:health/presentation/controller/register.controller.dart';
 import 'package:health/presentation/screens/login.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:intl/intl.dart';
 import 'dart:io';
 import '../../data/datasources/api_service.dart';
 import '../widgets/language.widgets.dart';
@@ -97,13 +98,19 @@ class _RegisterState extends State<Register> {
     return _buildLoadingOverlay(
       child: Scaffold(
         appBar: _buildAppBar(localizations),
-        body: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: isLargeScreen
-                ? _buildLargeScreenLayout()
-                : _buildSmallScreenLayout(),
-          ),
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            if (isLargeScreen) {
+              return _buildLargeScreenLayout();
+            } else {
+              return SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: _buildSmallScreenLayout(),
+                ),
+              );
+            }
+          },
         ),
       ),
     );
@@ -158,7 +165,10 @@ class _RegisterState extends State<Register> {
     final localizations = AppLocalizations.of(context)!;
     return Form(
       key: _controller.formKey,
-      child: Column(
+      child: SingleChildScrollView(
+        child: Padding(
+        padding: const EdgeInsets.all(16.0),
+    child:Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           PhoneInputWidget(
@@ -190,6 +200,8 @@ class _RegisterState extends State<Register> {
           ],
         ],
       ),
+      ),
+      )
     );
   }
 
@@ -347,12 +359,28 @@ class _RegisterState extends State<Register> {
         SizedBox(height: 16),
         TextFormField(
           controller: _controller.dateofbirth,
+          readOnly: true,
           validator: _controller.validateDOB,
           decoration: InputDecoration(
             labelText: localizations.dob,
             border: OutlineInputBorder(),
+            suffixIcon: IconButton(
+              icon: Icon(Icons.calendar_today),
+              onPressed: () async {
+                DateTime? pickedDate = await showDatePicker(
+                  context: context,
+                  initialDate: DateTime.now(),
+                  firstDate: DateTime(1900),
+                  lastDate: DateTime.now(),
+                );
+                if (pickedDate != null) {
+                  _controller.dateofbirth.text = DateFormat('dd-MM-yyyy').format(pickedDate);
+                }
+              },
+            ),
           ),
         ),
+
         SizedBox(height: 16),
         TextFormField(
           controller: _controller.addresss,
@@ -381,32 +409,46 @@ class _RegisterState extends State<Register> {
   Widget _buildProfilePictureSection(AppLocalizations localizations) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(localizations.capture_face,
-                style: Theme.of(context).textTheme.titleMedium),
-            SizedBox(height: 16),
-            Container(
-              height: 300,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: _controller.imageFile != null
-                  ? Image.file(_controller.imageFile!, fit: BoxFit.cover)
-                  : FutureBuilder<void>(
-                future: _initializeControllerFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.done) {
-                    return _cameraController != null
-                        ? CameraPreview(_cameraController!)
-                        : Center(child: Text(localizations.address));
-                  }
-                  return Center(child: CircularProgressIndicator());
-                },
+            Text(localizations.capture_face, style: Theme.of(context).textTheme.titleMedium),
+            SizedBox(height: 6),
+            AspectRatio(
+              aspectRatio: 1 / 1,
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: _controller.imageFile != null
+                    ? Image.file(
+                  _controller.imageFile!,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  height: double.infinity,
+                )
+                    : FutureBuilder<void>(
+                  future: _initializeControllerFuture,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.done) {
+                      return _cameraController != null
+                          ? Center(
+                        child: RotatedBox(
+                          quarterTurns: 1,
+                          child: AspectRatio(
+                            aspectRatio: 1 / 1,
+                            child: CameraPreview(_cameraController!),
+                          ),
+                        ),
+                      )
+                          : Center(child: Text(localizations.errorOccurred));
+                    }
+                    return Center(child: CircularProgressIndicator());
+                  },
+                ),
               ),
             ),
             SizedBox(height: 16),
@@ -428,6 +470,7 @@ class _RegisterState extends State<Register> {
       ),
     );
   }
+
 
   void showPasswordPopup(AppLocalizations localizations) {
     showDialog(

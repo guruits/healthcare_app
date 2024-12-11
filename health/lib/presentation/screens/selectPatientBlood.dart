@@ -1,33 +1,49 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:health/presentation/controller/language.controller.dart';
+import '../controller/bloodcollection.controller.dart';
 import '../widgets/language.widgets.dart';
 import 'package:health/presentation/screens/start.dart';
 import 'package:health/presentation/controller/selectPatient.controller.dart';
 
-class SelectPatient extends StatefulWidget {
-  final Function(String) onSelect;
+class SelectPatientBlood extends StatefulWidget {
+  final Function(Map<String, dynamic>) onSelect;
+  final BloodCollectionController bloodCollectionController;
 
-  const SelectPatient({Key? key, required this.onSelect}) : super(key: key);
-
-  get bloodCollectionController => null;
+  const SelectPatientBlood({
+    Key? key,
+    required this.onSelect,
+    required this.bloodCollectionController
+  }) : super(key: key);
 
   @override
-  State<SelectPatient> createState() => _SelectPatientState();
+  State<SelectPatientBlood> createState() => _SelectPatientBloodState();
 }
 
-class _SelectPatientState extends State<SelectPatient> {
+class _SelectPatientBloodState extends State<SelectPatientBlood> {
   final SelectpatientController _controller = SelectpatientController();
   final LanguageController _languageController = LanguageController();
 
-
-
-
-  void _selectPatient(Map<String, dynamic> patient) async{
+  void _selectPatient(Map<String, dynamic> patient) async {
     final localizations = AppLocalizations.of(context)!;
-    widget.onSelect(patient['patientName'] ?? '');
-    await _languageController.speakText("${localizations.selected_patient("${patient['patientName']?? 'unknown'}")}");
-    //await Future.delayed(Duration(milliseconds: 3000));
+
+    // Call the onSelect callback with the entire patient map
+    widget.onSelect(patient);
+
+    widget.bloodCollectionController.selectPatient(
+        patient['patientName'] ?? '',
+        patient['mobileNumber'] ?? '',
+        patient['aadharNumber'] ?? '',
+        patient['appointmentSlot'] ?? '',
+        patient['address'] ?? ''
+    );
+
+    // Speak selected patient name
+    await _languageController.speakText(
+      "${localizations.selected_patient("${patient['patientName'] ?? 'unknown'}")}",
+    );
+
+    // Navigate back
     Navigator.pop(context);
   }
 
@@ -40,7 +56,6 @@ class _SelectPatientState extends State<SelectPatient> {
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context)!;
-    final screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
       appBar: AppBar(
@@ -55,15 +70,12 @@ class _SelectPatientState extends State<SelectPatient> {
       ),
       body: Column(
         children: [
-         // _buildFilterSection(localizations),
           _buildDataTable(localizations),
           _buildPaginationControls(localizations),
         ],
       ),
     );
   }
-
-
 
   Widget _buildDataTable(AppLocalizations localizations) {
     final filteredPatients = _controller.getFilteredPatients();
@@ -72,7 +84,12 @@ class _SelectPatientState extends State<SelectPatient> {
         itemCount: filteredPatients.length,
         itemBuilder: (context, index) {
           final patient = filteredPatients[index];
+          final isSelected = widget.bloodCollectionController.selectedPatient == patient['patientName'];
+
           return Card(
+            color: isSelected
+                ? Colors.green
+                : Colors.red.shade200,
             elevation: 5,
             margin: const EdgeInsets.symmetric(vertical: 9, horizontal: 18),
             child: GestureDetector(
@@ -82,10 +99,33 @@ class _SelectPatientState extends State<SelectPatient> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      '                           ${patient['patientName']}',
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            patient['patientName'] ?? 'Unknown Patient',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: isSelected
+                                  ? Colors.black
+                                  : Colors.black,
+                            ),
+                          ),
+                        ),
+
+                      ],
                     ),
+                    if (patient['mobileNumber'] != null)
+                      Text(
+                        'Mobile: ${patient['mobileNumber']}',
+                        style: TextStyle(
+                          color: isSelected
+                              ? Colors.green.shade800
+                              : Colors.grey.shade700,
+                        ),
+                      ),
                   ],
                 ),
               ),

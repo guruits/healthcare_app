@@ -263,6 +263,9 @@
   "print_label": "Print Label",
   "submit": "Submit",
 
+  "screen": "phonewidget",
+  "select_country": "select your country",
+
   "screen": "dateandtimepicker",
   "appointment_date_time": "Appointment Date and Time",
   "pick_date_time": "Pick Date & Time",

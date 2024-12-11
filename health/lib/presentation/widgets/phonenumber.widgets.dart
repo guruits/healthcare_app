@@ -81,22 +81,42 @@ class _PhoneInputWidgetState extends State<PhoneInputWidget> {
     final localizations = AppLocalizations.of(context)!;
     return Column(
       children: [
-        DropdownButton<String>(
-          value: selectedCountry,
-          onChanged: (String? newCountry) {
-            setState(() {
-              selectedCountry = newCountry!;
-              _updateValidationLogic();
-              _validatePhone(_phoneController.text);
-            });
-          },
-          items: countryPrefixes.keys.map<DropdownMenuItem<String>>((String country) {
-            return DropdownMenuItem<String>(
-              value: country,
-              child: Text(country),
-            );
-          }).toList(),
+        Container(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              DropdownButtonHideUnderline(
+                child: DropdownButtonFormField<String>(
+                  value: selectedCountry,
+                  decoration: InputDecoration(
+                    labelText: AppLocalizations.of(context)!.select_country,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                  ),
+                  isExpanded: true,
+                  onChanged: (String? newCountry) {
+                    setState(() {
+                      selectedCountry = newCountry!;
+                      _updateValidationLogic();
+                      _validatePhone(_phoneController.text);
+                    });
+                  },
+                  items: countryPrefixes.keys
+                      .map<DropdownMenuItem<String>>((String country) {
+                    return DropdownMenuItem<String>(
+                      value: country,
+                      child: Text(country),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ],
+          ),
         ),
+
+
+
         SizedBox(height: 20),
         TextFormField(
           controller: _phoneController,

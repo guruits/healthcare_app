@@ -255,6 +255,10 @@
   "status_completed": "Terminé",
   "status_yet_to_start": "À Commencer",
 
+
+  "screen": "phonewidget",
+  "select_country": "sélectionnez votre pays",
+
   "screen": "arc",
   "eye_arc_test": "Test d'Arc Oculaire",
   "select_patient": "Sélectionner le Patient",

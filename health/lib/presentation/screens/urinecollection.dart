@@ -7,6 +7,7 @@ import 'package:health/presentation/screens/start.dart';
 import 'package:health/presentation/widgets/dateandtimepicker.widgets.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../widgets/bluetooth.widgets.dart';
 import '../widgets/language.widgets.dart';
 
 class Urinecollection extends StatefulWidget {
@@ -23,7 +24,6 @@ class _UrineCollectionState extends State<Urinecollection> {
 
 
   void _submit() {
-    // Add your submission logic here
     print('Submitting Urine Collection for $_controller.selectedPatient');
     print('Collection DateTime: $_controller.collectionDateTime');
     print('Collection Number: $_controller.collectionNumber');
@@ -194,6 +194,14 @@ class _UrineCollectionState extends State<Urinecollection> {
           child:Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            Align(
+              alignment: Alignment.topRight,
+              child: BluetoothConnectionWidget(
+                onDeviceConnected: (deviceName) {
+                  print('Connected to device: $deviceName');
+                },
+              ),
+            ),
             Center(
               child: Image.asset('assets/images/urinecollection.png', height: 200, width: 200),
             ),

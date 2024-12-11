@@ -1,4 +1,4 @@
-import 'dart:math'; // Import this to generate random numbers
+import 'dart:math';
 
 class BloodCollectionController {
   String _selectedPatient = '';

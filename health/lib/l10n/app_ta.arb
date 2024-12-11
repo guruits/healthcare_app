@@ -263,6 +263,9 @@
   "print_label": "லேபிள் அச்சிடு",
   "submit": "சமர்ப்பி",
 
+  "screen": "phonewidget",
+  "select_country": "உங்கள் நாட்டைத் தேர்ந்தெடுக்கவும்",
+
   "screen": "dateandtimepicker",
   "appointment_date_time": "நியமன தேதி மற்றும் நேரம்",
   "pick_date_time": "தேதி மற்றும் நேரத்தைத் தேர்ந்தெடுக்கவும்",
