@@ -184,6 +184,7 @@
   "print_label": "Imprimer l'Étiquette",
   "selected_patient_info": "Informations du Patient Sélectionné",
   "back_button": "Retour",
+  "test_taken_time":"Date et heure du test",
 
   "screen":"consultation",
   "title_consultation": "Consultation",

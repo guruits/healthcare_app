@@ -176,6 +176,7 @@
   "full_address": "123 2nd Avenue, Karaikudi District, Karaikudi, TamilNadu - 685245",
   "hospital_description": "Diabetic Centre",
   "required_documents_list": "Aadhar card, Phone number",
+  "test_taken_time":"Test Taken Date and Time",
 
   "screen":"consultation",
   "consultation": "Consultation",

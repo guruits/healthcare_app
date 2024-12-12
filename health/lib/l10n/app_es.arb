@@ -186,6 +186,7 @@
   "selected_patient_info": "Información del Paciente Seleccionado",
   "back_button": "Atrás",
   "blood_appointment_success": "Número de cita para la recolección de sangre generado con éxito.",
+  "test_taken_time":"Fecha y hora de la prueba",
 
   "screen":"consultation",
   "title_consultation": "Consulta",

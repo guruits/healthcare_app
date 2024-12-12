@@ -39,6 +39,7 @@ class BloodCollectionController {
     return '$datePart$randomPart';
   }
 
+
   void submit() {
     print('Submitting Blood Collection for $_selectedPatient');
     print('Collection DateTime: $_collectionDateTime');
