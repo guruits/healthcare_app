@@ -4,15 +4,18 @@ import 'package:health/presentation/controller/language.controller.dart';
 import '../widgets/language.widgets.dart';
 import 'package:health/presentation/screens/start.dart';
 import 'package:health/presentation/controller/selectPatient.controller.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class SelectPatientblood extends StatefulWidget {
+class SelectPatienttest extends StatefulWidget {
   final Function(Map<String, dynamic>) onSelect;
   final String? testType;
   final List<String> submittedPatientNames;
   final Map<String, dynamic>? initialSelectedPatient;
   final String? TestStatus;
 
-  const SelectPatientblood({
+
+
+  const SelectPatienttest({
     Key? key,
     required this.onSelect,
     this.testType,
@@ -22,54 +25,58 @@ class SelectPatientblood extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<SelectPatientblood> createState() => _SelectPatientState();
+  State<SelectPatienttest> createState() => _SelectPatientState();
 }
 
-class _SelectPatientState extends State<SelectPatientblood> {
+class _SelectPatientState extends State<SelectPatienttest> {
   final SelectpatientController _controller = SelectpatientController();
   final LanguageController _languageController = LanguageController();
 
   @override
   void initState() {
     super.initState();
+    _initializePatientStatus();
+  }
+
+  Future<void> _initializePatientStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+
     if (widget.initialSelectedPatient != null) {
-      _updateInitialPatientStatus();
+      String statusKey = _getStatusKeyForTest(widget.testType);
+      String patientName = widget.initialSelectedPatient!['patientName'];
+      String mobileNumber = widget.initialSelectedPatient!['mobileNumber'];
+
+      // Try to get the stored status from SharedPreferences
+      String? storedStatus = prefs.getString('${patientName}_${statusKey}');
+      String testStatus = storedStatus ??
+          widget.TestStatus ??
+          widget.initialSelectedPatient!['labTestStatus'] ??
+          SelectpatientController.STATUS_YET_TO_START;
+
+      int index = _controller.patients.indexWhere(
+              (patient) =>
+          patient['patientName'] == patientName ||
+              patient['mobileNumber'] == mobileNumber
+      );
+
+      if (index != -1) {
+        _controller.changeStatus(index, statusKey, testStatus);
+        setState(() {});
+      }
     }
   }
-  void _updateInitialPatientStatus() {
-    if (widget.initialSelectedPatient == null) return;
 
+  Future<void> _savePatientStatus(Map<String, dynamic> patient, String status) async {
+    final prefs = await SharedPreferences.getInstance();
     String statusKey = _getStatusKeyForTest(widget.testType);
-    String patientName = widget.initialSelectedPatient!['patientName'];
-    String mobileNumber = widget.initialSelectedPatient!['mobileNumber'];
 
-    String testStatus = widget.TestStatus ??
-        widget.initialSelectedPatient!['bloodTestStatus'] ??
-        SelectpatientController.STATUS_YET_TO_START;
-
-    int index = _controller.patients.indexWhere(
-            (patient) =>
-        patient['patientName'] == patientName ||
-            patient['mobileNumber'] == mobileNumber
-    );
-
-    if (index != -1) {
-      _controller.changeStatus(index, statusKey, testStatus);
-      setState(() {});
-    }
+    // Save the status with a unique key based on patient name and status type
+    await prefs.setString('${patient['patientName']}_$statusKey', status);
   }
-
-
-
-
 
   void _selectPatient(Map<String, dynamic> patient) async {
     final localizations = AppLocalizations.of(context)!;
-
-    // Determine status key for the specific test
     String statusKey = _getStatusKeyForTest(widget.testType);
-
-    // Update patient status in the controller
     int patientIndex = _controller.patients.indexWhere(
             (p) =>
         p['patientName'] == patient['patientName'] &&
@@ -82,6 +89,9 @@ class _SelectPatientState extends State<SelectPatientblood> {
           statusKey,
           SelectpatientController.STATUS_COMPLETED
       );
+
+      // Save the updated status
+      await _savePatientStatus(patient, SelectpatientController.STATUS_COMPLETED);
     }
 
     // Speak selected patient name
@@ -89,14 +99,12 @@ class _SelectPatientState extends State<SelectPatientblood> {
         "${localizations.selected_patient(patient['patientName'] ?? 'unknown')}"
     );
 
-
     Map<String, dynamic> selectedPatientData = {
       ...patient,
       'testType': widget.testType,
       'TestStatus': SelectpatientController.STATUS_COMPLETED
     };
 
-    // Call the onSelect callback with the patient details
     widget.onSelect(selectedPatientData);
 
     // Navigate back
@@ -104,7 +112,6 @@ class _SelectPatientState extends State<SelectPatientblood> {
   }
 
 
-  // Determine the status key based on the test type
   String _getStatusKeyForTest(String? testType) {
     switch (testType) {
       case 'blood_test_label':
@@ -163,7 +170,7 @@ class _SelectPatientState extends State<SelectPatientblood> {
 
   Widget _buildDataTable(AppLocalizations localizations) {
     final filteredPatients = _controller.getFilteredPatients();
-    print('Filtered Patients: $filteredPatients');
+    //print('Filtered Patients: $filteredPatients');
 
     return Expanded(
       child: ListView.builder(
@@ -174,14 +181,14 @@ class _SelectPatientState extends State<SelectPatientblood> {
           String statusKey = _getStatusKeyForTest(widget.testType);
 
           String currentStatus = patient[statusKey] ?? '';
-          print('Current Status for Patient $index: $currentStatus');
+          //print('Current Status for Patient $index: $currentStatus');
 
           Color? cardColor;
           if (currentStatus.toLowerCase() ==
               SelectpatientController.STATUS_COMPLETED.toLowerCase()) {
-            cardColor = Colors.green[100];
+            cardColor = Colors.green[300];
           } else {
-            cardColor = Colors.red[50];
+            cardColor = Colors.red[100];
           }
 
           return Card(

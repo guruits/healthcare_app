@@ -55,7 +55,7 @@ class _SelectPatientState extends State<SelectPatient> {
       ),
       body: Column(
         children: [
-         // _buildFilterSection(localizations),
+          // _buildFilterSection(localizations),
           _buildDataTable(localizations),
           _buildPaginationControls(localizations),
         ],

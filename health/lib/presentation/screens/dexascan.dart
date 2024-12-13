@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:health/presentation/controller/language.controller.dart';
-import 'package:health/presentation/screens/selectPatient.dart';
+import 'package:health/presentation/screens/selectPatienttest.dart';
 import 'package:health/presentation/screens/start.dart';
 import 'package:health/presentation/widgets/dateandtimepicker.widgets.dart';
 import '../controller/dexascan.controller.dart';
+import '../controller/selectPatient.controller.dart';
 import '../widgets/bluetooth.widgets.dart';
 import '../widgets/language.widgets.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -16,28 +17,65 @@ class DexaScan extends StatefulWidget {
 }
 
 class _DexaScanState extends State<DexaScan> {
-  final DexaScanController _controller = DexaScanController();
+  final DexaScanController controller = DexaScanController();
   final LanguageController _languageController = LanguageController();
-  String _dexascanTestStatus = 'STATUS_YET_TO_START';
+  final SelectpatientController _selectpatientcontroller = SelectpatientController();
+  DateTime? _selectedDateTime;
+  late String TestStatus;
+
+  @override
+  void initState() {
+    super.initState();
+    TestStatus = 'YET-TO-START';
+  }
+  void _selectPatient(Map<String, dynamic> patient) {
+    setState(() {
+      controller.selectPatient(
+          patient['patientName'],
+          patient['mobileNumber'] ?? '',
+          patient['aadharNumber'] ?? '',
+          patient['appointmentSlot'] ?? '',
+          patient['address'] ?? ''
+      );
+      TestStatus = patient['TestStatus'] ?? 'YET-TO-START';
+    });
+  }
 
   void _submit() {
-    print('Submitting Dexa Scan Appointment for ${_controller.selectedPatient}');
-    print('Appointment DateTime: ${_controller.dexaScanAppointmentDateTime}');
-    print('Dexa Scan Appointment Number: ${_controller.dexaScanAppointmentNumber}');
+    Map<String, dynamic> currentPatient = {
+      'patientName': controller.selectedPatient,
+      'mobileNumber': controller.patientMobileNumber,
+      'aadharNumber': controller.patientAadharNumber,
+      'appointmentSlot': controller.appointmentSlot,
+      'address': controller.patientAddress,
+      'bloodTestStatus': TestStatus,
+    };
 
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (context) => SelectPatient(
-          onSelect: (patientName) {
-            print('$patientName state: completed');
-          },
-        ),
+        builder: (context) =>
+            SelectPatienttest(
+              onSelect: (patient) {
+                print(
+                    '${patient['patientName']} state: ${patient['ArcTestStatus']}');
+              },
+              testType: 'arc_test_label',
+              submittedPatientNames: [currentPatient['patientName']],
+              initialSelectedPatient: currentPatient,
+              TestStatus: TestStatus, // Explicitly pass the TestStatus
+            ),
       ),
     );
   }
+  void _printLabel() {
+    setState(() {
+      controller.printLabel();
+    });
+  }
 
-  void _navigateToScreen(Widget screen) {
+  // Function to handle navigation
+  void navigateToScreen(Widget screen) {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => screen),
     );
@@ -51,7 +89,7 @@ class _DexaScanState extends State<DexaScan> {
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
           onPressed: () {
-            _navigateToScreen(Start());
+            navigateToScreen(Start());
           },
         ),
         title: Text(localizations.dexa_scan_appointment),
@@ -61,7 +99,7 @@ class _DexaScanState extends State<DexaScan> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: _controller.isPatientSelected ? _buildDexaScanAppointmentForm() : _buildSelectPatientButton(),
+        child: controller.isPatientSelected ? _buildDexaScanAppointmentForm() : _buildSelectPatientButton(),
       ),
     );
   }
@@ -85,19 +123,13 @@ class _DexaScanState extends State<DexaScan> {
               await Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => SelectPatient(
-                    onSelect: (patientName) {
-                      setState(() {
-                        _controller.selectPatient(
-                          patientName,
-                          '9876543210',
-                          '1234-5678-9123',
-                          '10:00 AM - 10:30 AM',
-                          '123, Example Street, City, Country',
-                        );
-                      });
+                  builder: (context) => SelectPatienttest(
+                    onSelect: (patient) {
+                      _selectPatient(patient);
                     },
-                  ),
+                    testType: 'dexa_scan_label',
+                    submittedPatientNames: [controller.selectedPatient],
+                  )
                 ),
               );
             },
@@ -155,9 +187,9 @@ class _DexaScanState extends State<DexaScan> {
             SizedBox(height: 20),
             _buildPatientInfoBox(),
             SizedBox(height: 20),
-            Dateandtimepicker(),
+            _buildDateAndTimePicker(),
             SizedBox(height: 20),
-            _buildDexascanStatusDropdown(localizations),
+            _buildStatusDropdown(localizations),
             SizedBox(height: 20),
             _buildDexaScanAppointmentNumberAndLabel(),
             SizedBox(height: 20),
@@ -173,37 +205,68 @@ class _DexaScanState extends State<DexaScan> {
       ),
     );
   }
-  Widget _buildDexascanStatusDropdown(AppLocalizations localizations) {
+  Widget _buildStatusDropdown(AppLocalizations localizations) {
+    final List<DropdownMenuItem<String>> dropdownItems = [
+      DropdownMenuItem(
+          value: 'STATUS_YET_TO_START',
+          child: Text(localizations.status_yet_to_start)),
+      DropdownMenuItem(
+          value: 'STATUS_IN_PROGRESS',
+          child: Text(localizations.status_in_progress)),
+    ];
+
+    // Only add the completed status if both date and collection number are available
+    if (_selectedDateTime != null &&
+        controller.dexaScanAppointmentNumber.isNotEmpty) {
+      dropdownItems.add(
+        DropdownMenuItem(
+          value: 'STATUS_COMPLETED',
+          child: Text(localizations.status_completed),
+        ),
+      );
+    }
+
+    // Ensure the current TestStatus is valid
+    if (!dropdownItems.any((item) => item.value == TestStatus)) {
+      TestStatus = dropdownItems.first.value!;
+    }
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-            localizations.dexa_scan_label,
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)
-        ),
-        DropdownButton<String>(
-          value: _dexascanTestStatus,
-          items: [
-            DropdownMenuItem(
-                value: 'STATUS_YET_TO_START',
-                child: Text(localizations.status_yet_to_start)
+        Expanded(
+          child: DropdownButtonFormField<String>(
+            value: TestStatus,
+            items: dropdownItems,
+            onChanged: (String? newValue) {
+              setState(() {
+                TestStatus = newValue!;
+              });
+            },
+            decoration: InputDecoration(
+              contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              labelText: localizations.dexa_scan_label,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8.0),
+                borderSide: BorderSide(
+                  color: Colors.grey,
+                  width: 1.5,
+                ),
+              ),
             ),
-            DropdownMenuItem(
-                value: 'STATUS_IN_PROGRESS',
-                child: Text(localizations.status_in_progress)
-            ),
-            DropdownMenuItem(
-                value: 'STATUS_COMPLETED',
-                child: Text(localizations.status_completed)
-            ),
-          ],
-          onChanged: (String? newValue) {
-            setState(() {
-              _dexascanTestStatus = newValue!;
-            });
-          },
+          ),
         ),
       ],
+    );
+  }
+  Widget _buildDateAndTimePicker() {
+    return Dateandtimepicker(
+      onDateTimeSelected: (DateTime? dateTime) {
+        setState(() {
+          _selectedDateTime = dateTime;
+          _selectpatientcontroller.appointmentDateTime = dateTime;
+        });
+      },
     );
   }
 
@@ -219,11 +282,11 @@ class _DexaScanState extends State<DexaScan> {
           children: [
             Text(localizations.selected_patient_info, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             Divider(),
-            _buildInfoRow(localizations.patient_name,_controller.selectedPatient),
-            _buildInfoRow(localizations.mobile_number, _controller.patientMobileNumber),
-            _buildInfoRow(localizations.aadhar_number, _controller.patientAadharNumber),
-            _buildInfoRow(localizations.appointment_slot, _controller.appointmentSlot),
-            _buildInfoRow(localizations.address, _controller.patientAddress),
+            _buildInfoRow(localizations.patient_name,controller.selectedPatient),
+            _buildInfoRow(localizations.mobile_number, controller.patientMobileNumber),
+            _buildInfoRow(localizations.aadhar_number, controller.patientAadharNumber),
+            _buildInfoRow(localizations.appointment_slot, controller.appointmentSlot),
+            _buildInfoRow(localizations.address, controller.patientAddress),
           ],
         ),
       ),
@@ -259,22 +322,20 @@ class _DexaScanState extends State<DexaScan> {
               border: OutlineInputBorder(),
               hintText: 'Automatically generated',
             ),
-            controller: TextEditingController(text: _controller.dexaScanAppointmentNumber),
+            controller: TextEditingController(text: controller.dexaScanAppointmentNumber),
           ),
         ),
         SizedBox(width: 10),
         ElevatedButton(
           onPressed: () {
             _languageController.speakText(localizations.print_label);
-            setState(() {
-
-              _controller.printLabel(() {
-                print('Label printed for ${_controller.selectedPatient}');
-              });
-            });
+            _printLabel();
           },
-          child: Text(_controller.isPrinting ? 'Printing...' : localizations.print_label),
+          child: controller.isPrinting
+              ? CircularProgressIndicator()
+              : Text(localizations.print_label),
         ),
+
       ],
     );
   }

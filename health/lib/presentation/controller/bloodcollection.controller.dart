@@ -33,11 +33,7 @@ class BloodCollectionController {
     _isPatientSelected = true;
   }
 
-  String _generateBloodCollectionNumber() {
-    String datePart = DateTime.now().toString().split(' ')[0].replaceAll('-', '');
-    String randomPart = Random().nextInt(9000 + 1).toString().padLeft(4, '0');
-    return '$datePart$randomPart';
-  }
+
 
 
   void submit() {

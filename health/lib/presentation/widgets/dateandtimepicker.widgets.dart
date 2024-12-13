@@ -4,6 +4,8 @@ import 'package:health/presentation/controller/arc.controller.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:health/presentation/controller/language.controller.dart';
 
+import '../controller/selectPatient.controller.dart';
+
 class Dateandtimepicker extends StatefulWidget {
   final Function(DateTime?)? onDateTimeSelected;
 
@@ -14,7 +16,7 @@ class Dateandtimepicker extends StatefulWidget {
 }
 
 class _DateandtimepickerState extends State<Dateandtimepicker> {
-  final ArcController controller = ArcController();
+  final SelectpatientController controller = SelectpatientController();
   final LanguageController _languageController = LanguageController();
 
   @override

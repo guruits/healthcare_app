@@ -2,11 +2,12 @@
 import 'package:flutter/material.dart';
 import 'package:health/presentation/controller/language.controller.dart';
 import 'package:health/presentation/controller/urinecollection.contoller.dart';
-import 'package:health/presentation/screens/selectPatient.dart';
+import 'package:health/presentation/screens/selectPatienttest.dart';
 import 'package:health/presentation/screens/start.dart';
 import 'package:health/presentation/widgets/dateandtimepicker.widgets.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../controller/selectPatient.controller.dart';
 import '../widgets/bluetooth.widgets.dart';
 import '../widgets/language.widgets.dart';
 
@@ -18,41 +19,61 @@ class Urinecollection extends StatefulWidget {
 }
 
 class _UrineCollectionState extends State<Urinecollection> {
-  final UrinecollectionController _controller = UrinecollectionController();
+  final UrinecollectionController controller = UrinecollectionController();
   final LanguageController _languageController = LanguageController();
-  String _urinecollectionTestStatus = 'STATUS_YET_TO_START';
+  final SelectpatientController _selectpatientcontroller = SelectpatientController();
+  DateTime? _selectedDateTime;
+  late String TestStatus;
 
+
+  @override
+  void initState() {
+    super.initState();
+    TestStatus = 'YET-TO-START';
+  }
+  void _selectPatient(Map<String, dynamic> patient) {
+    setState(() {
+      controller.selectPatient(
+          patient['patientName'],
+          patient['mobileNumber'] ?? '',
+          patient['aadharNumber'] ?? '',
+          patient['appointmentSlot'] ?? '',
+          patient['address'] ?? ''
+      );
+      TestStatus = patient['TestStatus'] ?? 'YET-TO-START';
+    });
+  }
 
   void _submit() {
-    print('Submitting Urine Collection for $_controller.selectedPatient');
-    print('Collection DateTime: $_controller.collectionDateTime');
-    print('Collection Number: $_controller.collectionNumber');
+    Map<String, dynamic> currentPatient = {
+      'patientName': controller.selectedPatient,
+      'mobileNumber': controller.patientMobileNumber,
+      'aadharNumber': controller.patientAadharNumber,
+      'appointmentSlot': controller.appointmentSlot,
+      'address': controller.patientAddress,
+      'urineTestStatus': TestStatus,
+    };
 
-    // Reset the selected patient and navigate back to SelectPatient screen
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (context) => SelectPatient(
-          onSelect: (patientName) {
-            print('$patientName state: completed');
-          },
-        ),
+        builder: (context) =>
+            SelectPatienttest(
+              onSelect: (patient) {
+                print(
+                    '${patient['patientName']} state: ${patient['UrineTestStatus']}');
+              },
+              testType: 'urine_test_label',
+              submittedPatientNames: [currentPatient['patientName']],
+              initialSelectedPatient: currentPatient,
+              TestStatus: TestStatus, // Explicitly pass the TestStatus
+            ),
       ),
     );
   }
-
   void _printLabel() {
     setState(() {
-      _controller.isPrinting = true;
-      _controller.statusMessage = 'Label is printing...';
-    });
-
-    // Simulate label printing delay
-    Future.delayed(Duration(seconds: 2), () {
-      setState(() {
-        _controller.isPrinting = false;
-        _controller.statusMessage = 'Label printing done';
-      });
+      controller.printLabel();
     });
   }
 
@@ -81,7 +102,7 @@ class _UrineCollectionState extends State<Urinecollection> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: _controller.isPatientSelected ? _buildUrineCollectionForm() : _buildSelectPatientButton(),
+        child: controller.isPatientSelected ? _buildUrineCollectionForm() : _buildSelectPatientButton(),
       ),
     );
   }
@@ -106,42 +127,41 @@ class _UrineCollectionState extends State<Urinecollection> {
               await Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => SelectPatient(
-                    onSelect: (patientName) {
-                      _controller.selectPatient(
-                        patientName,
-                        '9876543210',
-                        '1234-5678-9123',
-                        '10:00 AM - 10:30 AM',
-                        '123, Example Street, City, Country',
-                      );
-                      setState(() {});
-                    },
-                  ),
+                    builder: (context) =>
+                        SelectPatienttest(
+                          onSelect: (patient) {
+                            _selectPatient(patient);
+                          },
+                          testType: 'arc_test_label',
+                          submittedPatientNames: [controller.selectedPatient],
+                        )
                 ),
               );
             },
             style: ElevatedButton.styleFrom(
-              padding: EdgeInsets.symmetric(horizontal: 40, vertical: 15), // Increase button size
-              backgroundColor: Colors.blueAccent, // Change background color
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30), // Rounded corners
+              padding: EdgeInsets.symmetric(
+                horizontal: screenWidth * 0.1,
+                vertical: screenHeight * 0.02,
               ),
-              elevation: 10, // Add shadow to make it stand out
-              shadowColor: Colors.blue.withOpacity(0.5), // Shadow color
+              backgroundColor: Colors.purpleAccent,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30),
+              ),
+              elevation: 10,
+              shadowColor: Colors.purple.withOpacity(0.5),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.person_add, color: Colors.white), // Add an icon
+                Icon(Icons.person_add, color: Colors.white),
                 SizedBox(width: screenWidth * 0.02),
                 Text(
                   localizations.select_patient,
                   style: TextStyle(
                     fontSize: screenWidth * 0.028,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white, // White text for better contrast
-                    letterSpacing: 1.2, // Slight letter spacing
+                    color: Colors.white,
+                    letterSpacing: 1.2,
                   ),
                 ),
               ],
@@ -152,35 +172,56 @@ class _UrineCollectionState extends State<Urinecollection> {
       ),
     );
   }
-  Widget _buildUrineCollectionStatusDropdown(AppLocalizations localizations) {
+  Widget _buildStatusDropdown(AppLocalizations localizations) {
+    final List<DropdownMenuItem<String>> dropdownItems = [
+      DropdownMenuItem(
+          value: 'STATUS_YET_TO_START',
+          child: Text(localizations.status_yet_to_start)),
+      DropdownMenuItem(
+          value: 'STATUS_IN_PROGRESS',
+          child: Text(localizations.status_in_progress)),
+    ];
+
+    // Only add the completed status if both date and collection number are available
+    if (_selectedDateTime != null &&
+        controller.collectionNumber.isNotEmpty) {
+      dropdownItems.add(
+        DropdownMenuItem(
+          value: 'STATUS_COMPLETED',
+          child: Text(localizations.status_completed),
+        ),
+      );
+    }
+
+    // Ensure the current TestStatus is valid
+    if (!dropdownItems.any((item) => item.value == TestStatus)) {
+      TestStatus = dropdownItems.first.value!;
+    }
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-            localizations.urine_test_label,
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)
-        ),
-        DropdownButton<String>(
-          value: _urinecollectionTestStatus,
-          items: [
-            DropdownMenuItem(
-                value: 'STATUS_YET_TO_START',
-                child: Text(localizations.status_yet_to_start)
+        Expanded(
+          child: DropdownButtonFormField<String>(
+            value: TestStatus,
+            items: dropdownItems,
+            onChanged: (String? newValue) {
+              setState(() {
+                TestStatus = newValue!;
+              });
+            },
+            decoration: InputDecoration(
+              contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              labelText: localizations.urine_test_label,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8.0),
+                borderSide: BorderSide(
+                  color: Colors.grey,
+                  width: 1.5,
+                ),
+              ),
             ),
-            DropdownMenuItem(
-                value: 'STATUS_IN_PROGRESS',
-                child: Text(localizations.status_in_progress)
-            ),
-            DropdownMenuItem(
-                value: 'STATUS_COMPLETED',
-                child: Text(localizations.status_completed)
-            ),
-          ],
-          onChanged: (String? newValue) {
-            setState(() {
-              _urinecollectionTestStatus = newValue!;
-            });
-          },
+          ),
         ),
       ],
     );
@@ -208,9 +249,9 @@ class _UrineCollectionState extends State<Urinecollection> {
             SizedBox(height: 20),
             _buildPatientInfoBox(),
             SizedBox(height: 20),
-            Dateandtimepicker(),
+            _buildDateAndTimePicker(),
             SizedBox(height: 20),
-            _buildUrineCollectionStatusDropdown(localizations),
+            _buildStatusDropdown(localizations),
             SizedBox(height: 20),
             _buildUrineCollectionNumberAndLabel(),
             SizedBox(height: 20),
@@ -239,11 +280,11 @@ class _UrineCollectionState extends State<Urinecollection> {
           children: [
             Text(localizations.selected_patient_info, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             Divider(),
-            _buildInfoRow(localizations.patient_name,_controller.selectedPatient),
-            _buildInfoRow(localizations.mobile_number, _controller.patientMobileNumber),
-            _buildInfoRow(localizations.aadhar_number, _controller.patientAadharNumber),
-            _buildInfoRow(localizations.appointment_slot, _controller.appointmentSlot),
-            _buildInfoRow(localizations.address, _controller.patientAddress),
+            _buildInfoRow(localizations.patient_name,controller.selectedPatient),
+            _buildInfoRow(localizations.mobile_number, controller.patientMobileNumber),
+            _buildInfoRow(localizations.aadhar_number, controller.patientAadharNumber),
+            _buildInfoRow(localizations.appointment_slot, controller.appointmentSlot),
+            _buildInfoRow(localizations.address, controller.patientAddress),
           ],
         ),
       ),
@@ -265,6 +306,17 @@ class _UrineCollectionState extends State<Urinecollection> {
     );
   }
 
+  Widget _buildDateAndTimePicker() {
+    return Dateandtimepicker(
+      onDateTimeSelected: (DateTime? dateTime) {
+        setState(() {
+          _selectedDateTime = dateTime;
+          _selectpatientcontroller.appointmentDateTime = dateTime;
+        });
+      },
+    );
+  }
+
 
   Widget _buildUrineCollectionNumberAndLabel() {
     final localizations = AppLocalizations.of(context)!;
@@ -278,14 +330,14 @@ class _UrineCollectionState extends State<Urinecollection> {
               border: OutlineInputBorder(),
               hintText: 'Automatically generated',
             ),
-            controller: TextEditingController(text: _controller.collectionNumber),
+            controller: TextEditingController(text: controller.collectionNumber),
           ),
         ),
         SizedBox(width: 10),
         ElevatedButton(
           onPressed: (){
             _languageController.speakText(localizations.submit);
-            _controller.isPrinting ? null : _printLabel();
+            controller.isPrinting ? null : _printLabel();
           },
           child: Text(localizations.print_label),
         ),

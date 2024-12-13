@@ -2,6 +2,7 @@ class SelectpatientController {
   static const String STATUS_IN_PROGRESS = 'status_in_progress';
   static const String STATUS_COMPLETED = 'status_completed';
   static const String STATUS_YET_TO_START = 'status_yet_to_start';
+  DateTime? appointmentDateTime;
 
   final List<String> tamilNames = [
     'Anbu',
@@ -54,6 +55,7 @@ class SelectpatientController {
   final int rowsPerPage = 10;
   String? selectedTest;
   String? selectedStatus;
+
 
   SelectpatientController() {
     _initializePatients();

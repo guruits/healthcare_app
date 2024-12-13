@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:health/presentation/controller/language.controller.dart';
-import 'package:health/presentation/screens/selectPatient.dart';
+import 'package:health/presentation/screens/selectPatienttest.dart';
 import 'package:health/presentation/screens/start.dart';
 import 'package:health/presentation/widgets/dateandtimepicker.widgets.dart';
 import '../controller/dentist.controller.dart';
+import '../controller/selectPatient.controller.dart';
 import '../widgets/bluetooth.widgets.dart';
 import '../widgets/language.widgets.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -16,9 +17,70 @@ class Dentist extends StatefulWidget {
 }
 
 class _DentistState extends State<Dentist> {
-  final DentistController _controller = DentistController();
+  final DentistController controller = DentistController();
   final LanguageController _languageController = LanguageController();
-  String _dentistTestStatus = 'STATUS_YET_TO_START';
+  final SelectpatientController _selectpatientcontroller = SelectpatientController();
+  DateTime? _selectedDateTime;
+  late String TestStatus;
+
+  @override
+  void initState() {
+    super.initState();
+    TestStatus = 'YET-TO-START';
+  }
+  void _selectPatient(Map<String, dynamic> patient) {
+    setState(() {
+      controller.selectPatient(
+          patient['patientName'],
+          patient['mobileNumber'] ?? '',
+          patient['aadharNumber'] ?? '',
+          patient['appointmentSlot'] ?? '',
+          patient['address'] ?? ''
+      );
+      TestStatus = patient['TestStatus'] ?? 'YET-TO-START';
+    });
+  }
+
+  void _submit() {
+    Map<String, dynamic> currentPatient = {
+      'patientName': controller.selectedPatient,
+      'mobileNumber': controller.patientMobileNumber,
+      'aadharNumber': controller.patientAadharNumber,
+      'appointmentSlot': controller.appointmentSlot,
+      'address': controller.patientAddress,
+      'bloodTestStatus': TestStatus,
+    };
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            SelectPatienttest(
+              onSelect: (patient) {
+                print(
+                    '${patient['patientName']} state: ${patient['TestStatus']}');
+              },
+              testType: 'dentist_test_label',
+              submittedPatientNames: [currentPatient['patientName']],
+              initialSelectedPatient: currentPatient,
+              TestStatus: TestStatus, // Explicitly pass the TestStatus
+            ),
+      ),
+    );
+  }
+  void _printLabel() {
+    setState(() {
+      controller.printLabel();
+    });
+  }
+
+  // Function to handle navigation
+  void navigateToScreen(Widget screen) {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => screen),
+    );
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -39,16 +101,10 @@ class _DentistState extends State<Dentist> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: _controller.isPatientSelected
+        child: controller.isPatientSelected
             ? _buildDentistAppointmentForm()
             : _buildSelectPatientButton(),
       ),
-    );
-  }
-
-  void navigateToScreen(Widget screen) {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => screen),
     );
   }
 
@@ -71,18 +127,13 @@ class _DentistState extends State<Dentist> {
               await Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => SelectPatient(
-                    onSelect: (patientName) {
-                      _controller.selectPatient(
-                        patientName,
-                        '9876543210',
-                        '1234-5678-9123',
-                        '10:00 AM - 10:30 AM',
-                        '123, Example Street, City, Country',
-                      );
-                      setState(() {});
+                  builder: (context) => SelectPatienttest(
+                    onSelect: (patient) {
+                      _selectPatient(patient);
                     },
-                  ),
+                    testType: 'dentist_test_label',
+                    submittedPatientNames: [controller.selectedPatient],
+                  )
                 ),
               );
             },
@@ -118,35 +169,55 @@ class _DentistState extends State<Dentist> {
       ),
     );
   }
-  Widget _buildDentistStatusDropdown(AppLocalizations localizations) {
+  Widget _buildStatusDropdown(AppLocalizations localizations) {
+    final List<DropdownMenuItem<String>> dropdownItems = [
+      DropdownMenuItem(
+          value: 'STATUS_YET_TO_START',
+          child: Text(localizations.status_yet_to_start)),
+      DropdownMenuItem(
+          value: 'STATUS_IN_PROGRESS',
+          child: Text(localizations.status_in_progress)),
+    ];
+
+    if (_selectedDateTime != null &&
+        controller.dentistAppointmentNumber.isNotEmpty) {
+      dropdownItems.add(
+        DropdownMenuItem(
+          value: 'STATUS_COMPLETED',
+          child: Text(localizations.status_completed),
+        ),
+      );
+    }
+
+    // Ensure the current TestStatus is valid
+    if (!dropdownItems.any((item) => item.value == TestStatus)) {
+      TestStatus = dropdownItems.first.value!;
+    }
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-            localizations.dentist_test_label,
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)
-        ),
-        DropdownButton<String>(
-          value: _dentistTestStatus,
-          items: [
-            DropdownMenuItem(
-                value: 'STATUS_YET_TO_START',
-                child: Text(localizations.status_yet_to_start)
+        Expanded(
+          child: DropdownButtonFormField<String>(
+            value: TestStatus,
+            items: dropdownItems,
+            onChanged: (String? newValue) {
+              setState(() {
+                TestStatus = newValue!;
+              });
+            },
+            decoration: InputDecoration(
+              contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              labelText: localizations.dentist_test_label,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8.0),
+                borderSide: BorderSide(
+                  color: Colors.grey,
+                  width: 1.5,
+                ),
+              ),
             ),
-            DropdownMenuItem(
-                value: 'STATUS_IN_PROGRESS',
-                child: Text(localizations.status_in_progress)
-            ),
-            DropdownMenuItem(
-                value: 'STATUS_COMPLETED',
-                child: Text(localizations.status_completed)
-            ),
-          ],
-          onChanged: (String? newValue) {
-            setState(() {
-              _dentistTestStatus = newValue!;
-            });
-          },
+          ),
         ),
       ],
     );
@@ -173,16 +244,16 @@ class _DentistState extends State<Dentist> {
             SizedBox(height: 20),
             _buildPatientInfoBox(),
             SizedBox(height: 20),
-            Dateandtimepicker(),
+            _buildDateAndTimePicker(),
             SizedBox(height: 20),
-            _buildDentistStatusDropdown(localizations),
+            _buildStatusDropdown(localizations),
             SizedBox(height: 20),
             _buildDentistAppointmentNumberAndLabel(),
             SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
                 _languageController.speakText(localizations.submit);
-                _controller.submit(context, _controller.selectedPatient, _controller.appointmentDateTime);
+                _submit();
               },
               child: Text(localizations.submit),
             ),
@@ -204,11 +275,11 @@ class _DentistState extends State<Dentist> {
           children: [
             Text(localizations.selected_patient_info, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             Divider(),
-            _buildInfoRow(localizations.patient_name,_controller.selectedPatient),
-            _buildInfoRow(localizations.mobile_number, _controller.patientMobileNumber),
-            _buildInfoRow(localizations.aadhar_number, _controller.patientAadharNumber),
-            _buildInfoRow(localizations.appointment_slot, _controller.appointmentSlot),
-            _buildInfoRow(localizations.address, _controller.patientAddress),
+            _buildInfoRow(localizations.patient_name,controller.selectedPatient),
+            _buildInfoRow(localizations.mobile_number, controller.patientMobileNumber),
+            _buildInfoRow(localizations.aadhar_number, controller.patientAadharNumber),
+            _buildInfoRow(localizations.appointment_slot, controller.appointmentSlot),
+            _buildInfoRow(localizations.address, controller.patientAddress),
 
           ],
         ),
@@ -231,6 +302,17 @@ class _DentistState extends State<Dentist> {
     );
   }
 
+  Widget _buildDateAndTimePicker() {
+    return Dateandtimepicker(
+      onDateTimeSelected: (DateTime? dateTime) {
+        setState(() {
+          _selectedDateTime = dateTime;
+          _selectpatientcontroller.appointmentDateTime = dateTime;
+        });
+      },
+    );
+  }
+
 
 
   Widget _buildDentistAppointmentNumberAndLabel() {
@@ -245,16 +327,16 @@ class _DentistState extends State<Dentist> {
               border: OutlineInputBorder(),
               hintText: 'Automatically generated',
             ),
-            controller: TextEditingController(text: _controller.dentistAppointmentNumber),
+            controller: TextEditingController(text: controller.dentistAppointmentNumber),
           ),
         ),
         SizedBox(width: 10),
         ElevatedButton(
           onPressed:(){
             _languageController.speakText(localizations.print_label);
-            _controller.printLabel();
+            controller.printLabel();
           },
-          child: _controller.isPrinting
+          child: controller.isPrinting
               ? CircularProgressIndicator()
               : Text(localizations.print_label),
         )

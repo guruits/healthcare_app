@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:health/presentation/screens/selectPatienttest.dart';
 import 'package:health/presentation/screens/selectPatient.dart';
-import 'package:health/presentation/screens/selectPatientBlood.dart';
 import 'package:health/presentation/screens/start.dart';
 import 'package:health/presentation/widgets/dateandtimepicker.widgets.dart';
-import '../controller/arc.controller.dart';
 import '../controller/bloodcollection.controller.dart';
 import '../controller/language.controller.dart';
+import '../controller/selectPatient.controller.dart';
 import '../widgets/language.widgets.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
@@ -19,7 +19,7 @@ class Bloodcollection extends StatefulWidget {
 class _BloodcollectionState extends State<Bloodcollection> {
   final BloodCollectionController _controller = BloodCollectionController();
   final LanguageController _languageController = LanguageController();
-  final ArcController _arcController = ArcController();
+  final SelectpatientController _selectpatientcontroller = SelectpatientController();
   DateTime? _selectedDateTime;
   late String TestStatus;
 
@@ -56,7 +56,7 @@ class _BloodcollectionState extends State<Bloodcollection> {
       context,
       MaterialPageRoute(
         builder: (context) =>
-            SelectPatientblood(
+            SelectPatienttest(
               onSelect: (patient) {
                 print(
                     '${patient['patientName']} state: ${patient['bloodTestStatus']}');
@@ -136,7 +136,7 @@ class _BloodcollectionState extends State<Bloodcollection> {
                 context,
                 MaterialPageRoute(
                     builder: (context) =>
-                        SelectPatientblood(
+                        SelectPatienttest(
                           onSelect: (patient) {
                             _selectPatient(patient);
                           },
@@ -318,7 +318,7 @@ class _BloodcollectionState extends State<Bloodcollection> {
       onDateTimeSelected: (DateTime? dateTime) {
         setState(() {
           _selectedDateTime = dateTime;
-          _arcController.appointmentDateTime = dateTime;
+          _selectpatientcontroller.appointmentDateTime = dateTime;
         });
       },
     );

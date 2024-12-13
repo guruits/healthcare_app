@@ -11,8 +11,9 @@ class DexaScanController {
   String dexaScanAppointmentNumber = '';
   bool isPatientSelected = false;
   bool isPrinting = false;
-
+  String _statusMessage = '';
   // Function to select patient details
+  // Select patient and generate Arc Test Number
   void selectPatient(String patientName, String mobileNumber, String aadharNumber, String appointmentSlot, String address) {
     selectedPatient = patientName;
     patientMobileNumber = mobileNumber;
@@ -30,23 +31,14 @@ class DexaScanController {
     return '$datePart$randomPart';
   }
 
-  // Function to simulate label printing
-  void printLabel(Function onComplete) {
+  void printLabel() {
     isPrinting = true;
+    _statusMessage = 'Label is printing...';
     Future.delayed(Duration(seconds: 2), () {
       isPrinting = false;
-      onComplete();
+      _statusMessage = 'Label printing done';
     });
   }
 
-  // Function to update the appointment date and time
-  void updateAppointmentDateTime(DateTime date, TimeOfDay time) {
-    dexaScanAppointmentDateTime = DateTime(
-      date.year,
-      date.month,
-      date.day,
-      time.hour,
-      time.minute,
-    );
-  }
+
 }

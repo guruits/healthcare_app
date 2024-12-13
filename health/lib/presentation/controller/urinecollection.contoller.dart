@@ -24,6 +24,15 @@ class UrinecollectionController{
     };
   }
 
+  void printLabel() {
+    isPrinting = true;
+    statusMessage = 'Label is printing...';
+    Future.delayed(Duration(seconds: 2), () {
+      isPrinting = false;
+      statusMessage = 'Label printing done';
+    });
+  }
+
   String _generateUrineCollectionNumber() {
     // Get the current date in the format YYYYMMDD
     String datePart = DateTime.now().toString().split(' ')[0].replaceAll('-', '');
