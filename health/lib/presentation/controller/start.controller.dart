@@ -25,6 +25,7 @@ import 'package:health/presentation/screens/xray.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../screens/bluetoothDevices.dart';
+import 'bluetoothDevices.controller.dart';
 import 'notification_controller.dart';
 
 class StartController {
@@ -58,7 +59,7 @@ class StartController {
           {'title': 'Helpdesk', 'screen': Helpdesk()},
           {'title': 'Notifications', 'screen': NotificationScreen(userRole: UserRole.admin)},
           {'title': 'Appointments', 'screen': Appointments()},
-          {'title': 'Vitals', 'screen': AudioBluetoothPage()},
+          {'title': 'Vitals', 'screen': BluetoothBatteryApp()},
           {'title': 'Blood Collection', 'screen': Bloodcollection()},
           {'title': 'Urine Collection', 'screen': Urinecollection()},
           {'title': 'Arc', 'screen': Arc()},

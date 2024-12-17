@@ -40,6 +40,10 @@ class MainActivity: FlutterActivity() {
     private val SPP_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
     private val A2DP_UUID = UUID.fromString("0000110b-0000-1000-8000-00805f9b34fb")
 
+    // Battery Service and Characteristic UUIDs
+    private val BATTERY_SERVICE_UUID = UUID.fromString("0000180F-0000-1000-8000-00805f9b34fb")
+    private val BATTERY_LEVEL_CHARACTERISTIC_UUID = UUID.fromString("00002A19-0000-1000-8000-00805f9b34fb")
+
     private val bluetoothProfile = object : BluetoothProfile.ServiceListener {
         override fun onServiceConnected(profile: Int, proxy: BluetoothProfile) {
             if (profile == BluetoothProfile.A2DP) {
@@ -141,6 +145,31 @@ class MainActivity: FlutterActivity() {
                             handler.post {
                                 Log.d("Bluetooth", "Connection status: $success")
                                 result.success(success)
+                            }
+                        }
+                    }
+
+                    "getBatteryLevel" -> {
+                        val deviceAddress = call.argument<String>("deviceAddress")
+                        if (deviceAddress == null) {
+                            result.error(
+                                "INVALID_ARGUMENT",
+                                "Device address is required", null
+                            )
+                            return@setMethodCallHandler
+                        }
+
+                        getBatteryLevel(deviceAddress) { batteryLevel ->
+                            handler.post {
+                                if (batteryLevel != null) {
+                                    result.success(batteryLevel)
+                                } else {
+                                    result.error(
+                                        "BATTERY_LEVEL_ERROR",
+                                        "Could not retrieve battery level",
+                                        null
+                                    )
+                                }
                             }
                         }
                     }
@@ -274,8 +303,8 @@ class MainActivity: FlutterActivity() {
     }
 
     private fun connectClassic(device: BluetoothDevice, callback: (Boolean) -> Unit) {
-        Log.d("Bluetooth", "Attempting to connect to Classic device: ${device.name}")
         Thread {
+            var socket: BluetoothSocket? = null
             try {
                 if (ActivityCompat.checkSelfPermission(
                         this,
@@ -286,16 +315,145 @@ class MainActivity: FlutterActivity() {
                     return@Thread
                 }
 
-                val socket = device.createRfcommSocketToServiceRecord(SPP_UUID)
-                classicSocket = socket
+                // Create multiple fallback methods for connection
+                socket = device.createRfcommSocketToServiceRecord(SPP_UUID)
+
+                // Attempt to cancel any ongoing discovery to improve connection
+                bluetoothAdapter?.cancelDiscovery()
+
                 socket.connect()
-                Log.d("Bluetooth", "Successfully connected to Classic device")
+                classicSocket = socket
+                Log.d(TAG, "Successfully connected to Classic device")
                 callback(true)
             } catch (e: IOException) {
-                Log.e("Bluetooth", "Error connecting to Classic device: ${e.message}")
+                Log.e(TAG, "Error connecting to Classic device: ${e.message}")
+
+                // Additional fallback connection method
+                try {
+                    socket = fallbackConnect(device)
+                    if (socket != null && socket.isConnected) {
+                        classicSocket = socket
+                        callback(true)
+                        return@Thread
+                    }
+                } catch (fallbackEx: Exception) {
+                    Log.e(TAG, "Fallback connection failed: ${fallbackEx.message}")
+                }
+
+                // Ensure socket is closed properly
+                safeCloseSocket(socket)
                 callback(false)
             }
         }.start()
+    }
+    private fun fallbackConnect(device: BluetoothDevice): BluetoothSocket? {
+        return try {
+            val method = device.javaClass.getMethod("createRfcommSocket", Int::class.javaPrimitiveType)
+            method.invoke(device, 1) as BluetoothSocket?
+        } catch (e: Exception) {
+            Log.e(TAG, "Fallback connection method failed: ${e.message}")
+            null
+        }
+    }
+
+
+    private fun getBatteryLevel(deviceAddress: String, callback: (Int?) -> Unit) {
+        // Validate device address
+        val device = bluetoothAdapter?.getRemoteDevice(deviceAddress) ?: run {
+            Log.e(TAG, "Invalid device address: $deviceAddress")
+            callback(null)
+            return
+        }
+
+        // Check Bluetooth permissions
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.BLUETOOTH_CONNECT
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            Log.e(TAG, "Bluetooth connect permission not granted")
+            callback(null)
+            return
+        }
+
+        val bluetoothGattCallback = object : BluetoothGattCallback() {
+            override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
+                when (newState) {
+                    BluetoothProfile.STATE_CONNECTED -> {
+                        Log.d(TAG, "Connected to GATT server")
+                        gatt.discoverServices()
+                    }
+                    BluetoothProfile.STATE_DISCONNECTED -> {
+                        Log.d(TAG, "Disconnected from GATT server")
+                        callback(null)
+                        gatt.close()
+                    }
+                }
+            }
+
+            override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
+                if (status == BluetoothGatt.GATT_SUCCESS) {
+                    val batteryService = gatt.getService(BATTERY_SERVICE_UUID)
+                    batteryService?.let { service ->
+                        val batteryCharacteristic = service.getCharacteristic(BATTERY_LEVEL_CHARACTERISTIC_UUID)
+                        batteryCharacteristic?.let { characteristic ->=
+                            gatt.setCharacteristicNotification(characteristic, true)
+
+                            // Read battery level
+                            if (gatt.readCharacteristic(characteristic)) {
+                                Log.d(TAG, "Reading battery characteristic")
+                            } else {
+                                Log.e(TAG, "Failed to read battery characteristic")
+                                callback(null)
+                                gatt.disconnect()
+                            }
+
+
+                        } ?: run {
+                            Log.e(TAG, "Battery level characteristic not found")
+                            callback(null)
+                            gatt.disconnect()
+                        }
+                    } ?: run {
+                        Log.e(TAG, "Battery service not found")
+                        callback(null)
+                        gatt.disconnect()
+                    }
+                } else {
+                    Log.e(TAG, "Service discovery failed")
+                    callback(null)
+                    gatt.disconnect()
+                }
+            }
+
+            override fun onCharacteristicRead(
+                gatt: BluetoothGatt,
+                characteristic: BluetoothGattCharacteristic,
+                value: ByteArray,
+                status: Int
+            ) {
+                if (status == BluetoothGatt.GATT_SUCCESS &&
+                    characteristic.uuid == BATTERY_LEVEL_CHARACTERISTIC_UUID
+                ) {
+                    val batteryLevel = value[0].toInt().coerceIn(0, 100)
+                    Log.d(TAG, "Battery Level: $batteryLevel%")
+                    callback(batteryLevel)
+                    gatt.disconnect()
+                } else {
+                    Log.e(TAG, "Battery level read failed")
+                    callback(null)
+                    gatt.disconnect()
+                }
+            }
+        }
+
+        // Connect to GATT server
+        val bluetoothGatt = device.connectGatt(
+            this,
+            false,  // autoConnect
+            bluetoothGattCallback
+        )
+        this.gatt = bluetoothGatt
     }
 
     private fun handleAudioStreaming(deviceAddress: String, audioData: ByteArray, callback: (Boolean) -> Unit) {
@@ -504,11 +662,28 @@ class MainActivity: FlutterActivity() {
     }
 
     private fun disconnectAll() {
-        Log.d("Bluetooth", "Disconnecting from all devices")
-        classicSocket?.close()
-        classicSocket = null
-        gatt?.close()
-        gatt = null
+        Log.d(TAG, "Disconnecting from all devices")
+
+        // Safely close Classic Socket
+        classicSocket?.let { socket ->
+            try {
+                if (socket.isConnected) {
+                    socket.close()
+                }
+            } catch (e: IOException) {
+                Log.e(TAG, "Error closing Classic socket: ${e.message}")
+            }
+            classicSocket = null
+        }
+
+        // Close GATT connection
+        gatt?.let {
+            it.disconnect()
+            it.close()
+            gatt = null
+        }
+
+        // Stop audio streaming
         stopAudioStreaming()
     }
 
@@ -540,4 +715,19 @@ class MainActivity: FlutterActivity() {
             true
         }
     }
+    private fun safeCloseSocket(socket: BluetoothSocket?) {
+        socket?.let {
+            try {
+                if (it.isConnected) {
+                    it.close()
+                } else {
+                    Log.d(TAG, "Socket is not connected, no need to close")
+                }
+            } catch (e: IOException) {
+                Log.e(TAG, "Error closing Bluetooth socket: ${e.message}")
+            }
+        }
+    }
+
+
 }

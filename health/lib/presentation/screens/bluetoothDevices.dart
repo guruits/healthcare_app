@@ -8,6 +8,9 @@ import 'package:health/presentation/screens/start.dart';
 import '../widgets/language.widgets.dart';
 
 class AudioBluetoothPage extends StatefulWidget {
+  final String? deviceAddress;
+
+  const AudioBluetoothPage({Key? key, this.deviceAddress}) : super(key: key);
   @override
   _AudioBluetoothPageState createState() => _AudioBluetoothPageState();
 }
@@ -21,15 +24,22 @@ class _AudioBluetoothPageState extends State<AudioBluetoothPage> {
   String? _selectedFilePath;
   String? _selectedFileName;
   List<Map<String, dynamic>> _pairedDevices = [];
+  int? _batteryLevel;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeBluetoothConnection();
+
+      if (widget.deviceAddress != null) {
+        _fetchBatteryLevel();
+      }
     });
 
   }
+
+
 
   Future<void> _pickAudioFile() async {
     try {
@@ -49,6 +59,18 @@ class _AudioBluetoothPageState extends State<AudioBluetoothPage> {
       _showSnackBar('Error selecting audio file: $e');
     }
   }
+  Future<void> _fetchBatteryLevel() async {
+    if (widget.deviceAddress == null) {
+      print('No device address provided');
+      return;
+    }
+
+    final batteryLevel = await _bluetoothService.getBatteryLevel(widget.deviceAddress!);
+    setState(() {
+      _batteryLevel = batteryLevel;
+    });
+  }
+
 
   void _showSnackBar(String message) {
     if (!mounted) return;
@@ -176,6 +198,17 @@ class _AudioBluetoothPageState extends State<AudioBluetoothPage> {
           ? Center(child: CircularProgressIndicator())
           : Column(
         children: [
+          if (_batteryLevel != null)
+            ListTile(
+              title: Text('Battery Level:'),
+              subtitle: Text('$_batteryLevel%'),
+
+            )
+          else if (_connectedDeviceAddress != null)
+            ListTile(
+              title: Text('Battery Level:'),
+              //subtitle: CircularProgressIndicator(),
+            ),
           // Paired Devices List
           if (_pairedDevices.isNotEmpty && _connectedDeviceAddress == null)
             Expanded(
@@ -245,6 +278,7 @@ class _AudioBluetoothPageState extends State<AudioBluetoothPage> {
             ),
           ],
         ],
+
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _initializeBluetoothConnection,
@@ -253,6 +287,8 @@ class _AudioBluetoothPageState extends State<AudioBluetoothPage> {
     );
   }
 }
+
+
 
 class BluetoothAudioService {
   static const platform = MethodChannel('bluetooth_health');
@@ -298,8 +334,19 @@ class BluetoothAudioService {
       return [];
     }
   }
+  Future<int?> getBatteryLevel(String deviceAddress) async {
+    try {
+      final batteryLevel = await platform.invokeMethod('getBatteryLevel', {
+        'deviceAddress': deviceAddress
+      });
+      return batteryLevel is int ? batteryLevel : null;
+    } on PlatformException catch (e) {
+      print('Battery level retrieval failed: ${e.message}');
+      return null;
+    }
+  }
 
-  Future<bool> startAudioStreaming(String deviceAddress, Uint8List audioData) async {
+Future<bool> startAudioStreaming(String deviceAddress, Uint8List audioData) async {
     try {
       return await platform.invokeMethod('startAudioStreaming', {
         "deviceAddress": deviceAddress,
