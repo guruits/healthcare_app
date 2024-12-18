@@ -198,18 +198,6 @@ class _AudioBluetoothPageState extends State<AudioBluetoothPage> {
           ? Center(child: CircularProgressIndicator())
           : Column(
         children: [
-          if (_batteryLevel != null)
-            ListTile(
-              title: Text('Battery Level:'),
-              subtitle: Text('$_batteryLevel%'),
-
-            )
-          else if (_connectedDeviceAddress != null)
-            ListTile(
-              title: Text('Battery Level:'),
-              //subtitle: CircularProgressIndicator(),
-            ),
-          // Paired Devices List
           if (_pairedDevices.isNotEmpty && _connectedDeviceAddress == null)
             Expanded(
               child: ListView.builder(
@@ -239,7 +227,7 @@ class _AudioBluetoothPageState extends State<AudioBluetoothPage> {
             Divider(),
 
             // Audio File Selection
-            ListTile(
+            /*ListTile(
               title: Text('Selected Audio:'),
               subtitle: Text(_selectedFileName ?? 'No file selected'),
               trailing: ElevatedButton(
@@ -265,7 +253,7 @@ class _AudioBluetoothPageState extends State<AudioBluetoothPage> {
                 ],
               ),
             ),
-            Divider(),
+            Divider(),*/
 
             // Services List
             Expanded(

@@ -249,6 +249,45 @@ class MainActivity: FlutterActivity() {
         }
         return devices
     }
+    private fun connectLE(device: BluetoothDevice, callback: (Boolean) -> Unit) {
+        Log.d("Bluetooth", "Attempting LE connection")
+        val gattCallback = object : BluetoothGattCallback() {
+            override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
+                when (newState) {
+                    BluetoothProfile.STATE_CONNECTED -> {
+                        Log.d("Bluetooth", "Connected to LE device")
+                        callback(true)
+                    }
+                    BluetoothProfile.STATE_DISCONNECTED -> {
+                        Log.d("Bluetooth", "Disconnected from LE device")
+                        callback(false)
+                    }
+                }
+            }
+        }
+
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.BLUETOOTH_CONNECT
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            callback(false)
+            return
+        }
+
+        device.connectGatt(this, false, gattCallback)
+    }
+
+    private fun connectDual(device: BluetoothDevice, callback: (Boolean) -> Unit) {
+        // Try Classic connection first, then fall back to LE if needed
+        connectClassic(device) { classicSuccess ->
+            if (classicSuccess) {
+                callback(true)
+            } else {
+                connectLE(device, callback)
+            }
+        }
+    }
 
     private fun getDeviceServices(deviceAddress: String, callback: (List<String>) -> Unit) {
         Log.d("Bluetooth", "Getting services for device: $deviceAddress")
@@ -265,38 +304,60 @@ class MainActivity: FlutterActivity() {
                 return
             }
 
-            when (it.type) {
-                BluetoothDevice.DEVICE_TYPE_CLASSIC -> {
-                    Log.d("Bluetooth", "Fetching services for Classic Bluetooth Device")
-                    servicesList.add("Classic Bluetooth Device")
-                    servicesList.add("Available Profiles:")
-                    it.uuids?.forEach { uuid ->
-                        Log.d("Bluetooth", "Found profile UUID: ${uuid.uuid}")
-                        servicesList.add("  Profile: ${uuid.uuid}")
-                    }
-                    callback(servicesList)
-                }
-                else -> {
-                    Log.d("Bluetooth", "Unsupported device type")
-                    callback(emptyList())
+            // Log device details
+            Log.d("Bluetooth", "Device Name: ${it.name}")
+            Log.d("Bluetooth", "Device Address: ${it.address}")
+            Log.d("Bluetooth", "Device Type: ${it.type}")
+
+            // Add more detailed service discovery
+            servicesList.add("Device Name: ${it.name}")
+            servicesList.add("Device Address: ${it.address}")
+            servicesList.add("Device Type: ${getDeviceTypeName(it.type)}")
+
+            // Check available UUIDs
+            it.uuids?.let { uuids ->
+                servicesList.add("Available Services:")
+                uuids.forEach { uuid ->
+                    Log.d("Bluetooth", "Found UUID: ${uuid.uuid}")
+                    servicesList.add("  Service: ${uuid.uuid}")
                 }
             }
+
+            callback(servicesList)
         } ?: callback(emptyList())
     }
 
+    private fun getDeviceTypeName(type: Int): String {
+        return when (type) {
+            BluetoothDevice.DEVICE_TYPE_CLASSIC -> "Classic"
+            BluetoothDevice.DEVICE_TYPE_LE -> "Low Energy"
+            BluetoothDevice.DEVICE_TYPE_DUAL -> "Dual-mode"
+            else -> "Unknown"
+        }
+    }
     private fun connectToDevice(deviceAddress: String, callback: (Boolean) -> Unit) {
         Log.d("Bluetooth", "Connecting to device: $deviceAddress")
         val device = bluetoothAdapter?.getRemoteDevice(deviceAddress)
 
         device?.let {
+            Log.d("Bluetooth", "Device type: ${it.type}")
             when (it.type) {
                 BluetoothDevice.DEVICE_TYPE_CLASSIC -> {
                     Log.d("Bluetooth", "Connecting to Classic device")
                     connectClassic(it, callback)
                 }
+                BluetoothDevice.DEVICE_TYPE_LE -> {
+                    Log.d("Bluetooth", "Connecting to LE device")
+                    connectLE(it, callback)
+                }
+                BluetoothDevice.DEVICE_TYPE_DUAL -> {
+                    Log.d("Bluetooth", "Connecting to Dual-mode device")
+                    connectDual(it, callback)
+                }
                 else -> {
-                    Log.d("Bluetooth", "Unsupported device type")
-                    callback(false)
+                    Log.e("Bluetooth", "Unsupported or unknown device type: ${it.type}")
+                    // Attempt fallback to Classic connection
+                    connectClassic(it, callback)
                 }
             }
         } ?: callback(false)
@@ -396,8 +457,8 @@ class MainActivity: FlutterActivity() {
                     val batteryService = gatt.getService(BATTERY_SERVICE_UUID)
                     batteryService?.let { service ->
                         val batteryCharacteristic = service.getCharacteristic(BATTERY_LEVEL_CHARACTERISTIC_UUID)
-                        batteryCharacteristic?.let { characteristic ->=
-                            gatt.setCharacteristicNotification(characteristic, true)
+                        batteryCharacteristic?.let { characteristic ->
+                        gatt.setCharacteristicNotification(characteristic, true)
 
                             // Read battery level
                             if (gatt.readCharacteristic(characteristic)) {
@@ -728,6 +789,4 @@ class MainActivity: FlutterActivity() {
             }
         }
     }
-
-
 }

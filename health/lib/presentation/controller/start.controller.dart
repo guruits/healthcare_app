@@ -59,7 +59,7 @@ class StartController {
           {'title': 'Helpdesk', 'screen': Helpdesk()},
           {'title': 'Notifications', 'screen': NotificationScreen(userRole: UserRole.admin)},
           {'title': 'Appointments', 'screen': Appointments()},
-          {'title': 'Vitals', 'screen': BluetoothBatteryApp()},
+          {'title': 'Vitals', 'screen': AudioBluetoothPage()},
           {'title': 'Blood Collection', 'screen': Bloodcollection()},
           {'title': 'Urine Collection', 'screen': Urinecollection()},
           {'title': 'Arc', 'screen': Arc()},
