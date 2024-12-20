@@ -4,7 +4,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:health/presentation/screens/start.dart';
-
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
 import '../widgets/language.widgets.dart';
 
 class AudioBluetoothPage extends StatefulWidget {
@@ -25,6 +26,8 @@ class _AudioBluetoothPageState extends State<AudioBluetoothPage> {
   String? _selectedFileName;
   List<Map<String, dynamic>> _pairedDevices = [];
   int? _batteryLevel;
+  bool _isTransferring = false;
+  String? _transferProgress;
 
   @override
   void initState() {
@@ -170,6 +173,117 @@ class _AudioBluetoothPageState extends State<AudioBluetoothPage> {
     }
   }
 
+  Future<void> _pickFile() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.any,
+        allowMultiple: false,
+      );
+
+      if (result != null && result.files.isNotEmpty) {
+        setState(() {
+          _selectedFilePath = result.files.single.path;
+          _selectedFileName = result.files.single.name;
+          _transferProgress = null; // Reset transfer progress when new file selected
+        });
+        _showSnackBar('File selected: ${result.files.single.name}');
+      }
+    } catch (e) {
+      print('Error picking file: $e');
+      _showSnackBar('Error selecting file: $e');
+    }
+  }
+
+  Future<void> _pickAndSendFile() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.any,
+        allowMultiple: false,
+      );
+
+      if (result != null && result.files.isNotEmpty) {
+        final filePath = result.files.single.path!;
+        final fileName = result.files.single.name;
+        final fileSize = result.files.single.size;
+
+        // Show transfer starting
+        setState(() {
+          _isTransferring = true;
+          _transferProgress = 'Preparing to send $fileName...';
+        });
+
+        // Attempt to send file
+        final success = await _bluetoothService.sendFile(
+          _connectedDeviceAddress!,
+          filePath,
+        );
+
+        setState(() {
+          _isTransferring = false;
+          _transferProgress = success
+              ? 'Successfully sent: $fileName'
+              : 'Failed to send: $fileName';
+        });
+
+        _showSnackBar(success
+            ? 'File sent successfully'
+            : 'Failed to send file');
+      }
+    } catch (e) {
+      setState(() {
+        _isTransferring = false;
+        _transferProgress = 'Error: $e';
+      });
+      print('Error sending file: $e');
+      _showSnackBar('Error sending file: $e');
+    }
+  }
+  Future<void> _sendSelectedFile() async {
+    if (_selectedFilePath == null) {
+      _showSnackBar('Please select a file first');
+      return;
+    }
+
+    if (_connectedDeviceAddress == null) {
+      _showSnackBar('No device connected');
+      return;
+    }
+
+    try {
+      setState(() {
+        _isTransferring = true;
+        _transferProgress = 'Sending ${_selectedFileName}...';
+      });
+
+      final success = await _bluetoothService.sendFile(
+        _connectedDeviceAddress!,
+        _selectedFilePath!,
+      );
+
+      setState(() {
+        _isTransferring = false;
+        _transferProgress = success ? 'File sent successfully' : 'Failed to send file';
+      });
+
+      _showSnackBar(_transferProgress!);
+
+      // Reset file selection after successful transfer
+      if (success) {
+        setState(() {
+          _selectedFilePath = null;
+          _selectedFileName = null;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isTransferring = false;
+        _transferProgress = 'Error: $e';
+      });
+      _showSnackBar('Error sending file: $e');
+    }
+  }
+
+
   @override
   void dispose() {
     _bluetoothService.stopAudioStreaming();
@@ -224,6 +338,47 @@ class _AudioBluetoothPageState extends State<AudioBluetoothPage> {
               )['name'] ?? 'Unknown Device'
               ),
             ),
+            Divider(),
+            ListTile(
+              leading: Icon(Icons.file_present),
+              title: Text('Selected File'),
+              subtitle: Text(_selectedFileName ?? 'No file selected'),
+              trailing: ElevatedButton.icon(
+                onPressed: _isTransferring ? null : _pickFile,
+                icon: Icon(Icons.folder_open),
+                label: Text('Select File'),
+              ),
+            ),
+            if (_selectedFileName != null)
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: ElevatedButton.icon(
+                  onPressed: _isTransferring ? null : _sendSelectedFile,
+                  icon: Icon(Icons.send),
+                  label: Text('Send File'),
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: Size(double.infinity, 48),
+                  ),
+                ),
+              ),
+            if (_transferProgress != null)
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Column(
+                  children: [
+                    if (_isTransferring) LinearProgressIndicator(),
+                    SizedBox(height: 8),
+                    Text(_transferProgress!,
+                      style: TextStyle(
+                          color: _isTransferring ? Colors.blue :
+                          _transferProgress!.contains('success') ? Colors.green :
+                          Colors.red
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
             Divider(),
 
             // Audio File Selection
@@ -309,6 +464,18 @@ class BluetoothAudioService {
       return false;
     }
   }
+  Future<bool> sendFile(String deviceAddress, String filePath) async {
+    try {
+      return await platform.invokeMethod('sendFile', {
+        "deviceAddress": deviceAddress,
+        "filePath": filePath, // Just send the raw file path
+      });
+    } on PlatformException catch (e) {
+      print("Failed to send file: ${e.message}");
+      return false;
+    }
+  }
+
 
   Future<List<String>> getDeviceServices(String deviceAddress) async {
     try {
