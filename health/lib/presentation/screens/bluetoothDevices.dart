@@ -20,14 +20,13 @@ class _AudioBluetoothPageState extends State<AudioBluetoothPage> {
   final BluetoothAudioService _bluetoothService = BluetoothAudioService();
   List<String> _services = [];
   String? _connectedDeviceAddress;
-  bool _isStreaming = false;
   bool _isConnecting = false;
-  String? _selectedFilePath;
-  String? _selectedFileName;
   List<Map<String, dynamic>> _pairedDevices = [];
-  int? _batteryLevel;
-  bool _isTransferring = false;
-  String? _transferProgress;
+  String? _selectedImagePath;
+  String? _selectedImageName;
+  String? _selectedFileName;
+  bool _isImageTransferring = false;
+  String? _imageTransferProgress;
 
   @override
   void initState() {
@@ -36,42 +35,9 @@ class _AudioBluetoothPageState extends State<AudioBluetoothPage> {
       _initializeBluetoothConnection();
 
       if (widget.deviceAddress != null) {
-        _fetchBatteryLevel();
       }
     });
 
-  }
-
-
-
-  Future<void> _pickAudioFile() async {
-    try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.audio,
-        allowMultiple: false,
-      );
-
-      if (result != null) {
-        setState(() {
-          _selectedFilePath = result.files.single.path;
-          _selectedFileName = result.files.single.name;
-        });
-      }
-    } catch (e) {
-      print('Error picking audio file: $e');
-      _showSnackBar('Error selecting audio file: $e');
-    }
-  }
-  Future<void> _fetchBatteryLevel() async {
-    if (widget.deviceAddress == null) {
-      print('No device address provided');
-      return;
-    }
-
-    final batteryLevel = await _bluetoothService.getBatteryLevel(widget.deviceAddress!);
-    setState(() {
-      _batteryLevel = batteryLevel;
-    });
   }
 
 
@@ -136,111 +102,34 @@ class _AudioBluetoothPageState extends State<AudioBluetoothPage> {
     }
   }
 
-  Future<void> _toggleAudioStreaming() async {
-    if (_connectedDeviceAddress == null) {
-      _showSnackBar('No device connected');
-      return;
-    }
 
-    if (_selectedFilePath == null) {
-      _showSnackBar('Please select an audio file first');
-      return;
-    }
 
-    try {
-      if (!_isStreaming) {
-        final File audioFile = File(_selectedFilePath!);
-        final Uint8List audioData = await audioFile.readAsBytes();
 
-        final success = await _bluetoothService.startAudioStreaming(
-          _connectedDeviceAddress!,
-          audioData,
-        );
 
-        setState(() => _isStreaming = success);
-        _showSnackBar(success
-            ? 'Started streaming: $_selectedFileName'
-            : 'Failed to start audio streaming'
-        );
-      } else {
-        await _bluetoothService.stopAudioStreaming();
-        setState(() => _isStreaming = false);
-        _showSnackBar('Stopped streaming');
-      }
-    } catch (e) {
-      print('Error toggling audio stream: $e');
-      _showSnackBar('Error: $e');
-    }
-  }
-
-  Future<void> _pickFile() async {
+  Future<void> _pickImage() async {
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.any,
+        type: FileType.image,
         allowMultiple: false,
       );
 
       if (result != null && result.files.isNotEmpty) {
         setState(() {
-          _selectedFilePath = result.files.single.path;
-          _selectedFileName = result.files.single.name;
-          _transferProgress = null; // Reset transfer progress when new file selected
+          _selectedImagePath = result.files.single.path;
+          _selectedImageName = result.files.single.name;
+          _imageTransferProgress = null; // Reset transfer progress
         });
-        _showSnackBar('File selected: ${result.files.single.name}');
+        _showSnackBar('Image selected: ${result.files.single.name}');
       }
     } catch (e) {
-      print('Error picking file: $e');
-      _showSnackBar('Error selecting file: $e');
+      print('Error picking image: $e');
+      _showSnackBar('Error selecting image: $e');
     }
   }
 
-  Future<void> _pickAndSendFile() async {
-    try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.any,
-        allowMultiple: false,
-      );
-
-      if (result != null && result.files.isNotEmpty) {
-        final filePath = result.files.single.path!;
-        final fileName = result.files.single.name;
-        final fileSize = result.files.single.size;
-
-        // Show transfer starting
-        setState(() {
-          _isTransferring = true;
-          _transferProgress = 'Preparing to send $fileName...';
-        });
-
-        // Attempt to send file
-        final success = await _bluetoothService.sendFile(
-          _connectedDeviceAddress!,
-          filePath,
-        );
-
-        setState(() {
-          _isTransferring = false;
-          _transferProgress = success
-              ? 'Successfully sent: $fileName'
-              : 'Failed to send: $fileName';
-        });
-
-        _showSnackBar(success
-            ? 'File sent successfully'
-            : 'Failed to send file');
-      }
-    } catch (e) {
-      setState(() {
-        _isTransferring = false;
-        _transferProgress = 'Error: $e';
-      });
-      print('Error sending file: $e');
-      _showSnackBar('Error sending file: $e');
-    }
-  }
-  Future<void> _sendSelectedFile() async {
-    if (_selectedFilePath == null) {
-      _showSnackBar('Please select a file first');
+  Future<void> _sendSelectedImage() async {
+    if (_selectedImagePath == null) {
+      _showSnackBar('Please select an image first');
       return;
     }
 
@@ -251,42 +140,51 @@ class _AudioBluetoothPageState extends State<AudioBluetoothPage> {
 
     try {
       setState(() {
-        _isTransferring = true;
-        _transferProgress = 'Sending ${_selectedFileName}...';
+        _isImageTransferring = true;
+        _imageTransferProgress = 'Connecting to device...';
       });
 
-      final success = await _bluetoothService.sendFile(
+      // First ensure we're connected
+      final bool connected = await _bluetoothService.connectToDevice(_connectedDeviceAddress!);
+      if (!connected) {
+        throw Exception('Failed to connect to device');
+      }
+
+      setState(() {
+        _imageTransferProgress = 'Sending ${_selectedImageName}...';
+      });
+
+      final success = await _bluetoothService.sendImage(
         _connectedDeviceAddress!,
-        _selectedFilePath!,
+        _selectedImagePath!,
       );
 
       setState(() {
-        _isTransferring = false;
-        _transferProgress = success ? 'File sent successfully' : 'Failed to send file';
+        _isImageTransferring = false;
+        _imageTransferProgress = success ? 'Image sent successfully' : 'Failed to send image';
       });
 
-      _showSnackBar(_transferProgress!);
+      _showSnackBar(_imageTransferProgress!);
 
-      // Reset file selection after successful transfer
       if (success) {
         setState(() {
-          _selectedFilePath = null;
+          _selectedImagePath = null;
           _selectedFileName = null;
         });
       }
     } catch (e) {
       setState(() {
-        _isTransferring = false;
-        _transferProgress = 'Error: $e';
+        _isImageTransferring = false;
+        _imageTransferProgress = 'Error: $e';
       });
-      _showSnackBar('Error sending file: $e');
+      _showSnackBar('Error sending image: $e');
     }
   }
 
 
+
   @override
   void dispose() {
-    _bluetoothService.stopAudioStreaming();
     _bluetoothService.disconnect();
     super.dispose();
   }
@@ -340,6 +238,48 @@ class _AudioBluetoothPageState extends State<AudioBluetoothPage> {
             ),
             Divider(),
             ListTile(
+              leading: Icon(Icons.image),
+              title: Text('Selected Image'),
+              subtitle: Text(_selectedImageName ?? 'No image selected'),
+              trailing: ElevatedButton.icon(
+                onPressed: _isImageTransferring ? null : _pickImage,
+                icon: Icon(Icons.photo_library),
+                label: Text('Select Image'),
+              ),
+            ),
+
+            if (_selectedImageName != null)
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: ElevatedButton.icon(
+                  onPressed: _isImageTransferring ? null : _sendSelectedImage,
+                  icon: Icon(Icons.send),
+                  label: Text('Send Image'),
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: Size(double.infinity, 48),
+                  ),
+                ),
+              ),
+
+            if (_imageTransferProgress != null)
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Column(
+                  children: [
+                    if (_isImageTransferring) LinearProgressIndicator(),
+                    SizedBox(height: 8),
+                    Text(_imageTransferProgress!,
+                      style: TextStyle(
+                          color: _isImageTransferring ? Colors.blue :
+                          _imageTransferProgress!.contains('success') ? Colors.green :
+                          Colors.red
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+           /* Divider(),
+            ListTile(
               leading: Icon(Icons.file_present),
               title: Text('Selected File'),
               subtitle: Text(_selectedFileName ?? 'No file selected'),
@@ -378,7 +318,7 @@ class _AudioBluetoothPageState extends State<AudioBluetoothPage> {
                   ],
                 ),
               ),
-
+*/
             Divider(),
 
             // Audio File Selection
@@ -445,6 +385,30 @@ class BluetoothAudioService {
     }
   }
 
+  Future<bool> sendImage(String deviceAddress, String imagePath) async {
+    try {
+      // First ensure we're connected
+      final bool connected = await connectToDevice(deviceAddress);
+      if (!connected) {
+        throw PlatformException(
+            code: 'CONNECTION_ERROR',
+            message: 'Failed to connect to device'
+        );
+      }
+
+      // Then send the image
+      return await platform.invokeMethod('sendImage', {
+        "deviceAddress": deviceAddress,
+        "imagePath": imagePath,
+      });
+    } on PlatformException catch (e) {
+      print("Failed to send image: ${e.message}");
+      return false;
+    }
+  }
+
+
+
   Future<List<Map<String, dynamic>>> getPairedDevices() async {
     try {
       final List<dynamic> result = await platform.invokeMethod('getPairedDevices');
@@ -489,37 +453,7 @@ class BluetoothAudioService {
       return [];
     }
   }
-  Future<int?> getBatteryLevel(String deviceAddress) async {
-    try {
-      final batteryLevel = await platform.invokeMethod('getBatteryLevel', {
-        'deviceAddress': deviceAddress
-      });
-      return batteryLevel is int ? batteryLevel : null;
-    } on PlatformException catch (e) {
-      print('Battery level retrieval failed: ${e.message}');
-      return null;
-    }
-  }
 
-Future<bool> startAudioStreaming(String deviceAddress, Uint8List audioData) async {
-    try {
-      return await platform.invokeMethod('startAudioStreaming', {
-        "deviceAddress": deviceAddress,
-        "audioData": audioData,
-      });
-    } on PlatformException catch (e) {
-      print("Failed to start audio streaming: ${e.message}");
-      return false;
-    }
-  }
-
-  Future<void> stopAudioStreaming() async {
-    try {
-      await platform.invokeMethod('stopAudioStreaming');
-    } on PlatformException catch (e) {
-      print("Failed to stop audio streaming: ${e.message}");
-    }
-  }
 
   Future<void> disconnect() async {
     try {

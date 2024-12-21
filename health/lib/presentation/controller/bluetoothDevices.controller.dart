@@ -1,255 +1,150 @@
-/*
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 
-import '../screens/start.dart';
-
-class BluetoothBatteryApp extends StatelessWidget {
+class BluetoothTransferScreen extends StatefulWidget {
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Bluetooth Battery Levels',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-      ),
-      home: BluetoothBatteryPage(),
-    );
-  }
+  _BluetoothTransferScreenState createState() => _BluetoothTransferScreenState();
 }
 
-class BluetoothBatteryPage extends StatefulWidget {
-  @override
-  _BluetoothBatteryPageState createState() => _BluetoothBatteryPageState();
-}
-
-class _BluetoothBatteryPageState extends State<BluetoothBatteryPage> {
-  final BluetoothBatteryService _bluetoothService = BluetoothBatteryService();
-
-  List<BluetoothDevice> _pairedDevices = [];
-  bool _isLoading = false;
-  String? _selectedDeviceAddress;
-  int? _batteryLevel;
+class _BluetoothTransferScreenState extends State<BluetoothTransferScreen> {
+  static const platform = MethodChannel('bluetooth_health');
+  final ImagePicker _picker = ImagePicker();
+  bool isConnected = false;
+  String? selectedDeviceAddress;
+  List<Map<String, dynamic>> pairedDevices = [];
+  String transferStatus = '';
 
   @override
   void initState() {
     super.initState();
-    _initializeBluetoothDevices();
+    _getPairedDevices();
   }
 
-  Future<void> _initializeBluetoothDevices() async {
-    setState(() => _isLoading = true);
-
+  Future<void> _getPairedDevices() async {
     try {
-      // Check if Bluetooth is enabled
-      final bool isBluetoothEnabled = await _bluetoothService.isBluetoothEnabled();
-
-      if (isBluetoothEnabled) {
-        // Fetch paired devices
-        final devices = await _bluetoothService.getPairedDevices();
-        setState(() {
-          _pairedDevices = devices;
-        });
-
-        // Automatically select first device if available
-        if (devices.isNotEmpty) {
-          _connectToDevice(devices.first);
-        }
-      } else {
-        _showSnackBar('Bluetooth is not enabled');
-      }
-    } catch (e) {
-      _showSnackBar('Error initializing Bluetooth: $e');
-    } finally {
-      setState(() => _isLoading = false);
+      final List<dynamic> devices = await platform.invokeMethod('getPairedDevices');
+      setState(() {
+        pairedDevices = devices.cast<Map<String, dynamic>>();
+      });
+    } on PlatformException catch (e) {
+      print("Failed to get paired devices: ${e.message}");
     }
   }
 
-  Future<void> _connectToDevice(BluetoothDevice device) async {
-    setState(() {
-      _isLoading = true;
-      _selectedDeviceAddress = device.address;
-    });
-
+  Future<void> _connectToDevice(String address) async {
+    setState(() => transferStatus = 'Connecting...');
     try {
-      // Attempt to connect to the device
-      final bool connected = await _bluetoothService.connectToDevice(device.address);
-
-      if (connected) {
-        // Fetch battery level
-        final int? batteryLevel = await _bluetoothService.getBatteryLevel(device.address);
-
-        setState(() {
-          _batteryLevel = batteryLevel;
-        });
-
-        _showSnackBar('Connected to ${device.name}');
-      } else {
-        _showSnackBar('Failed to connect to ${device.name}');
-      }
-    } catch (e) {
-      _showSnackBar('Connection error: $e');
-    } finally {
-      setState(() => _isLoading = false);
+      final bool success = await platform.invokeMethod('connectToDevice', {
+        'deviceAddress': address
+      });
+      setState(() {
+        isConnected = success;
+        selectedDeviceAddress = success ? address : null;
+        transferStatus = success ? 'Connected' : 'Connection failed';
+      });
+    } on PlatformException catch (e) {
+      setState(() {
+        transferStatus = 'Connection error: ${e.message}';
+        isConnected = false;
+      });
     }
   }
 
-  void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+  Future<void> _sendImage() async {
+    if (!isConnected) {
+      setState(() => transferStatus = 'Not connected to any device');
+      return;
+    }
+
+    try {
+      // Pick image
+      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+      if (image == null) {
+        setState(() => transferStatus = 'No image selected');
+        return;
+      }
+
+      setState(() => transferStatus = 'Sending image...');
+
+      // Get temporary directory path
+      final directory = await getTemporaryDirectory();
+      final String tempPath = directory.path;
+
+      // Copy image to temp directory with a fixed name
+      final File tempImage = await File(image.path)
+          .copy('$tempPath/transfer_image.jpg');
+
+      // Send image
+      final bool success = await platform.invokeMethod('sendImage', {
+        'imagePath': tempImage.path
+      });
+
+      setState(() => transferStatus = success
+          ? 'Image sent successfully'
+          : 'Failed to send image');
+
+    } on PlatformException catch (e) {
+      setState(() => transferStatus = 'Error: ${e.message}');
+    }
   }
-  void navigateToScreen(Widget screen) {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => screen),
-    );
+
+  Future<void> _disconnect() async {
+    try {
+      await platform.invokeMethod('disconnect');
+      setState(() {
+        isConnected = false;
+        selectedDeviceAddress = null;
+        transferStatus = 'Disconnected';
+      });
+    } on PlatformException catch (e) {
+      print("Error disconnecting: ${e.message}");
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Bluetooth Battery Levels'),
-        actions: [
+      appBar: AppBar(title: Text('Bluetooth File Transfer')),
+      body: Padding(
+        padding: EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Status: $transferStatus',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            SizedBox(height: 20),
+            Text('Paired Devices:', style: TextStyle(fontSize: 16)),
+            Expanded(
+              child: ListView.builder(
+                itemCount: pairedDevices.length,
+                itemBuilder: (context, index) {
+                  final device = pairedDevices[index];
+                  final bool isSelected = device['address'] == selectedDeviceAddress;
 
-          IconButton(
-            icon: Icon(Icons.refresh),
-            onPressed: _initializeBluetoothDevices,
-          ),
-        ],
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {(Start());
-          },
-        ),
-      ),
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator())
-          : Column(
-        children: [
-          // Paired Devices List
-          Expanded(
-            child: ListView.builder(
-              itemCount: _pairedDevices.length,
-              itemBuilder: (context, index) {
-                final device = _pairedDevices[index];
-                return ListTile(
-                  title: Text(device.name),
-                  subtitle: Text(device.address),
-                  trailing: device.address == _selectedDeviceAddress
-                      ? Icon(Icons.check_circle, color: Colors.green)
-                      : null,
-                  onTap: () => _connectToDevice(device),
-                );
-              },
-            ),
-          ),
-
-          // Battery Level Display
-          if (_selectedDeviceAddress != null) ...[
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Card(
-                child: ListTile(
-                  title: Text('Battery Level'),
-                  subtitle: _batteryLevel != null
-                      ? Text('$_batteryLevel%')
-                      : Text('Unable to retrieve battery level'),
-                  leading: Icon(
-                    Icons.battery_full,
-                    color: _batteryLevel != null
-                        ? _getBatteryColor(_batteryLevel!)
-                        : Colors.grey,
-                  ),
-                ),
+                  return ListTile(
+                    title: Text(device['name'] ?? 'Unknown Device'),
+                    subtitle: Text(device['address']),
+                    trailing: isSelected ? Icon(Icons.check) : null,
+                    onTap: () => _connectToDevice(device['address']),
+                  );
+                },
               ),
             ),
+            ElevatedButton(
+              onPressed: isConnected ? _sendImage : null,
+              child: Text('Send Image'),
+            ),
+            SizedBox(height: 10),
+            ElevatedButton(
+              onPressed: isConnected ? _disconnect : null,
+              child: Text('Disconnect'),
+            ),
           ],
-        ],
+        ),
       ),
     );
   }
-
-  Color _getBatteryColor(int batteryLevel) {
-    if (batteryLevel > 80) return Colors.green;
-    if (batteryLevel > 50) return Colors.orange;
-    if (batteryLevel > 20) return Colors.amber;
-    return Colors.red;
-  }
-
-  @override
-  void dispose() {
-    _bluetoothService.disconnect();
-    super.dispose();
-  }
 }
-
-class BluetoothDevice {
-  final String name;
-  final String address;
-  final String type;
-
-  BluetoothDevice({
-    required this.name,
-    required this.address,
-    this.type = 'Unknown',
-  });
-}
-
-class BluetoothBatteryService {
-  static const platform = MethodChannel('bluetooth_health');
-
-  Future<bool> isBluetoothEnabled() async {
-    try {
-      return await platform.invokeMethod('isBluetoothEnabled') ?? false;
-    } on PlatformException catch (e) {
-      print("Bluetooth status check failed: ${e.message}");
-      return false;
-    }
-  }
-
-  Future<List<BluetoothDevice>> getPairedDevices() async {
-    try {
-      final List<dynamic> result = await platform.invokeMethod('getPairedDevices');
-      return result.map((device) {
-        return BluetoothDevice(
-          name: device['name'] ?? 'Unknown Device',
-          address: device['address'] ?? '',
-          type: device['type'] ?? 'Unknown',
-        );
-      }).toList();
-    } on PlatformException catch (e) {
-      print("Failed to get paired devices: ${e.message}");
-      return [];
-    }
-  }
-
-  Future<bool> connectToDevice(String address) async {
-    try {
-      return await platform.invokeMethod('connectToDevice', {"deviceAddress": address}) ?? false;
-    } on PlatformException catch (e) {
-      print("Device connection failed: ${e.message}");
-      return false;
-    }
-  }
-
-  Future<int?> getBatteryLevel(String deviceAddress) async {
-    try {
-      final int? batteryLevel = await platform.invokeMethod('getBatteryLevel', {
-        'deviceAddress': deviceAddress
-      });
-      return batteryLevel;
-    } on PlatformException catch (e) {
-      print('Battery level retrieval failed: ${e.message}');
-      return null;
-    }
-  }
-
-  Future<void> disconnect() async {
-    try {
-      await platform.invokeMethod('disconnect');
-    } on PlatformException catch (e) {
-      print("Disconnection failed: ${e.message}");
-    }
-  }
-}*/
