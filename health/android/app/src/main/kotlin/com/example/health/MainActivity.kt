@@ -22,7 +22,8 @@ import java.io.InputStream
 import android.net.Uri
 import androidx.core.content.FileProvider
 import java.io.File
-private val ACK_TIMEOUT = 5000L
+import java.nio.ByteOrder
+import java.nio.ByteBuffer
 
 class MainActivity: FlutterActivity() {
     private val TAG = "BluetoothFile"
@@ -41,6 +42,12 @@ class MainActivity: FlutterActivity() {
     private var inputStream: InputStream? = null
     private var currentConnectedDevice: BluetoothDevice? = null
     private var isConnected = false
+    private val ACK_TIMEOUT = 5000L
+    private var isReceivingMode = false
+    private var receiverThread: Thread? = null
+    private val FTP_UUID = UUID.fromString("00001106-0000-1000-8000-00805f9b34fb")
+    private val ROOT_PATH = "/"
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -125,6 +132,27 @@ class MainActivity: FlutterActivity() {
                             return@setMethodCallHandler
                         }
                         sendImage(imagePath, result)
+                    }
+
+                    "startReceiving" -> {
+                        startReceiving(result)
+                    }
+                    "stopReceiving" -> {
+                        stopReceiving()
+                        result.success(true)
+                    }
+
+                    "browseFiles" -> {
+                        val path = call.argument<String>("path") ?: ROOT_PATH
+                        browseRemoteFiles(path, result)
+                    }
+                    "downloadFile" -> {
+                        val remotePath = call.argument<String>("remotePath")
+                        if (remotePath == null) {
+                            result.error("INVALID_ARGUMENT", "Remote file path is required", null)
+                            return@setMethodCallHandler
+                        }
+                        downloadRemoteFile(remotePath, result)
                     }
 
 
@@ -444,8 +472,321 @@ class MainActivity: FlutterActivity() {
         }.start()
     }
 
+    private fun startReceiving(result: MethodChannel.Result) {
+        if (!hasRequiredPermissions()) {
+            result.error("PERMISSION_ERROR", "Bluetooth permissions not granted", null)
+            return
+        }
 
-    private fun hasStoragePermissions(): Boolean {
+        isReceivingMode = true
+
+        // Create accepting thread
+        receiverThread = Thread {
+            try {
+                val serverSocket = if (ActivityCompat.checkSelfPermission(
+                        this,
+                        Manifest.permission.BLUETOOTH_CONNECT
+                    ) == PackageManager.PERMISSION_GRANTED
+                ) {
+                    bluetoothAdapter?.listenUsingRfcommWithServiceRecord(
+                        "HealthFileReceiver",
+                        OPP_UUID
+                    )
+                } else {
+                    null
+                }
+
+                serverSocket?.use { server ->
+                    while (isReceivingMode) {
+                        try {
+                            Log.d(TAG, "Waiting for incoming connection...")
+                            val socket = server.accept()
+
+                            Log.d(TAG, "Connection accepted from: ${socket.remoteDevice.address}")
+
+                            handleIncomingFile(socket)
+                        } catch (e: IOException) {
+                            Log.e(TAG, "Error accepting connection: ${e.message}")
+                            if (!isReceivingMode) break
+                        }
+                    }
+                }
+
+                handler.post { result.success(true) }
+
+            } catch (e: IOException) {
+                Log.e(TAG, "Error setting up receiver: ${e.message}")
+                handler.post {
+                    result.error(
+                        "RECEIVER_ERROR",
+                        "Failed to start receiver: ${e.message}",
+                        null
+                    )
+                }
+            }
+        }.apply { start() }
+    }
+
+        private fun handleIncomingFile(socket: BluetoothSocket) {
+            try {
+                socket.use { connectedSocket ->
+                    // Read file size header (8 bytes)
+                    val sizeBuffer = ByteArray(8)
+                    connectedSocket.inputStream.read(sizeBuffer)
+                    val expectedFileSize = String(sizeBuffer).toLong()
+
+                    Log.d(TAG, "Expected file size: $expectedFileSize bytes")
+
+                    // Create file to save the incoming data
+                    val timestamp = System.currentTimeMillis()
+                    val receivedFile = File(getExternalFilesDir(null), "received_image_$timestamp.jpg")
+
+                    var totalBytesReceived = 0L
+                    val buffer = ByteArray(8192)
+
+                    receivedFile.outputStream().use { fileOutputStream ->
+                        while (totalBytesReceived < expectedFileSize) {
+                            val bytesRead = connectedSocket.inputStream.read(buffer)
+                            if (bytesRead == -1) break
+
+                            fileOutputStream.write(buffer, 0, bytesRead)
+                            totalBytesReceived += bytesRead
+
+                            // Log progress
+                            val progress = (totalBytesReceived.toFloat() / expectedFileSize * 100).toInt()
+                            if (progress % 10 == 0) {
+                                Log.d(TAG, "Receiving progress: $progress%")
+                            }
+                        }
+                    }
+
+                    Log.d(TAG, "File received successfully: ${receivedFile.absolutePath}")
+
+                    // Send acknowledgment
+                    connectedSocket.outputStream.write(byteArrayOf(1))
+                    connectedSocket.outputStream.flush()
+                    handler.post {
+                        flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
+                            MethodChannel(messenger, CHANNEL).invokeMethod("onFileReceived", mapOf(
+                                "path" to receivedFile.absolutePath,
+                                "size" to totalBytesReceived
+                            ))
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error handling incoming file: ${e.message}")
+            }
+        }
+
+        private fun stopReceiving() {
+            isReceivingMode = false
+            receiverThread?.interrupt()
+            receiverThread = null
+        }
+
+    private fun browseRemoteFiles(path: String, result: MethodChannel.Result) {
+        if (!isConnected || currentConnectedDevice == null) {
+            result.error("CONNECTION_ERROR", "No device connected", null)
+            return
+        }
+
+        Thread {
+            try {
+                if (!hasRequiredPermissions()) {
+                    handler.post {
+                        result.error("PERMISSION_ERROR", "Bluetooth permission not granted", null)
+                    }
+                    return@Thread
+                }
+
+                // Create FTP connection
+                val ftpSocket = currentConnectedDevice?.createRfcommSocketToServiceRecord(FTP_UUID)
+                ftpSocket?.connect()
+
+                ftpSocket?.use { socket ->
+                    val output = socket.outputStream
+                    val input = socket.inputStream
+
+                    // Send browse request command
+                    val browseCommand = buildBrowseCommand(path)
+                    output.write(browseCommand)
+                    output.flush()
+
+                    // Read response
+                    val response = readFileListResponse(input)
+
+                    handler.post {
+                        result.success(response)
+                    }
+                }
+
+            } catch (e: Exception) {
+                Log.e(TAG, "Error browsing files: ${e.message}")
+                handler.post {
+                    result.error("BROWSE_ERROR", "Failed to browse files: ${e.message}", null)
+                }
+            }
+        }.start()
+    }
+    private fun buildBrowseCommand(path: String): ByteArray {
+        // Format: [0x01][path length][path]
+        val pathBytes = path.toByteArray()
+        return byteArrayOf(0x01) + pathBytes.size.toByte() + pathBytes
+    }
+
+    private fun readFileListResponse(input: InputStream): List<Map<String, Any>> {
+        val files = mutableListOf<Map<String, Any>>()
+
+        try {
+            // Read header (number of files)
+            val countBuffer = ByteArray(4)
+            if (input.read(countBuffer) != 4) {
+                throw IOException("Failed to read file count")
+            }
+
+            // Create ByteBuffer and specify byte order
+            val countByteBuffer = ByteBuffer.wrap(countBuffer).order(ByteOrder.BIG_ENDIAN)
+            val fileCount = countByteBuffer.getInt()
+
+            // Read each file entry
+            for (i in 0 until fileCount) {
+                // Read name length
+                val nameLength = input.read()
+                if (nameLength == -1) break
+
+                // Read name
+                val nameBuffer = ByteArray(nameLength)
+                if (input.read(nameBuffer) != nameLength) {
+                    throw IOException("Failed to read filename")
+                }
+
+                // Read file size
+                val sizeBuffer = ByteArray(8)
+                if (input.read(sizeBuffer) != 8) {
+                    throw IOException("Failed to read file size")
+                }
+
+                // Create ByteBuffer for size and specify byte order
+                val sizeByteBuffer = ByteBuffer.wrap(sizeBuffer).order(ByteOrder.BIG_ENDIAN)
+                val fileSize = sizeByteBuffer.getLong()
+
+                // Read is directory flag
+                val isDirectory = input.read() == 1
+
+                files.add(mapOf(
+                    "name" to String(nameBuffer),
+                    "size" to fileSize,
+                    "isDirectory" to isDirectory
+                ))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error reading file list: ${e.message}")
+        }
+
+        return files
+    }
+
+    private fun downloadRemoteFile(remotePath: String, result: MethodChannel.Result) {
+        if (!isConnected || currentConnectedDevice == null) {
+            result.error("CONNECTION_ERROR", "No device connected", null)
+            return
+        }
+
+        Thread {
+            try {
+                if (!hasRequiredPermissions()) {
+                    handler.post {
+                        result.error("PERMISSION_ERROR", "Bluetooth permission not granted", null)
+                    }
+                    return@Thread
+                }
+
+                val ftpSocket = currentConnectedDevice?.createRfcommSocketToServiceRecord(FTP_UUID)
+                ftpSocket?.connect()
+
+                ftpSocket?.use { socket ->
+                    val output = socket.outputStream
+                    val input = socket.inputStream
+
+                    // Send download request command
+                    val downloadCommand = buildDownloadCommand(remotePath)
+                    output.write(downloadCommand)
+                    output.flush()
+
+                    // Read file size with ByteBuffer
+                    val sizeBuffer = ByteArray(8)
+                    if (input.read(sizeBuffer) != 8) {
+                        throw IOException("Failed to read file size")
+                    }
+
+                    val sizeByteBuffer = ByteBuffer.wrap(sizeBuffer).order(ByteOrder.BIG_ENDIAN)
+                    val fileSize = sizeByteBuffer.getLong()
+
+                    // Create local file
+                    val fileName = remotePath.substringAfterLast('/')
+                    val localFile = File(getExternalFilesDir(null), fileName)
+
+                    // Download file with progress tracking
+                    var totalReceived = 0L
+                    val buffer = ByteArray(8192)
+
+                    localFile.outputStream().use { fileOutput ->
+                        while (totalReceived < fileSize) {
+                            val read = input.read(buffer, 0, minOf(buffer.size, (fileSize - totalReceived).toInt()))
+                            if (read == -1) break
+
+                            fileOutput.write(buffer, 0, read)
+                            totalReceived += read
+
+                            // Report progress
+                            val progress = (totalReceived * 100 / fileSize).toInt()
+                            if (progress % 10 == 0) {
+                                Log.d(TAG, "Download progress: $progress%")
+                                // Notify Flutter of progress
+                                handler.post {
+                                    flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
+                                        MethodChannel(messenger, CHANNEL).invokeMethod(
+                                            "onDownloadProgress",
+                                            mapOf(
+                                                "progress" to progress,
+                                                "totalSize" to fileSize,
+                                                "received" to totalReceived
+                                            )
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    handler.post {
+                        result.success(mapOf(
+                            "path" to localFile.absolutePath,
+                            "size" to totalReceived
+                        ))
+                    }
+                }
+
+            } catch (e: Exception) {
+                Log.e(TAG, "Error downloading file: ${e.message}")
+                handler.post {
+                    result.error("DOWNLOAD_ERROR", "Failed to download file: ${e.message}", null)
+                }
+            }
+        }.start()
+    }
+
+    private fun buildDownloadCommand(path: String): ByteArray {
+        // Format: [0x02][path length][path]
+        val pathBytes = path.toByteArray()
+        return byteArrayOf(0x02) + pathBytes.size.toByte() + pathBytes
+    }
+
+
+
+
+        private fun hasStoragePermissions(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             true // Android 10 and above handle storage differently
         } else {
