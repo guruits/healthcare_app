@@ -46,7 +46,7 @@ class MainActivity: FlutterActivity() {
     private var isReceivingMode = false
     private var receiverThread: Thread? = null
     private val FTP_UUID = UUID.fromString("00001106-0000-1000-8000-00805f9b34fb")
-    private val ROOT_PATH = "/"
+    private val ROOT_PATH = "/storage/emulated/0/Android/data/com.example.health/files/"
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -584,6 +584,13 @@ class MainActivity: FlutterActivity() {
             receiverThread?.interrupt()
             receiverThread = null
         }
+    private fun sanitizePath(path: String): String {
+        return if (!path.startsWith(ROOT_PATH)) {
+            ROOT_PATH + path.trimStart('/')
+        } else {
+            path
+        }
+    }
 
     private fun browseRemoteFiles(path: String, result: MethodChannel.Result) {
         if (!isConnected || currentConnectedDevice == null) {
@@ -591,87 +598,157 @@ class MainActivity: FlutterActivity() {
             return
         }
 
+        val sanitizedPath = sanitizePath(path)
+        Log.d(TAG, "Browsing files at path: $sanitizedPath")
+
         Thread {
-            try {
-                if (!hasRequiredPermissions()) {
-                    handler.post {
-                        result.error("PERMISSION_ERROR", "Bluetooth permission not granted", null)
+            var retryCount = 0
+            val maxRetries = 3
+            var hasResponded = false
+
+            while (retryCount < maxRetries && !hasResponded) {
+                try {
+                    if (!hasRequiredPermissions()) {
+                        if (!hasResponded) {
+                            handler.post {
+                                result.error("PERMISSION_ERROR", "Bluetooth permission not granted", null)
+                            }
+                            hasResponded = true
+                        }
+                        return@Thread
                     }
-                    return@Thread
-                }
 
-                // Create FTP connection
-                val ftpSocket = currentConnectedDevice?.createRfcommSocketToServiceRecord(FTP_UUID)
-                ftpSocket?.connect()
+                    // Create FTP connection
+                    val ftpSocket = currentConnectedDevice?.createRfcommSocketToServiceRecord(FTP_UUID)
+                    ftpSocket?.let { socket ->
+                        try {
+                            // Set connection timeout
+                            socket.connect()
 
-                ftpSocket?.use { socket ->
-                    val output = socket.outputStream
-                    val input = socket.inputStream
+                            val output = socket.outputStream
+                            val input = socket.inputStream
 
-                    // Send browse request command
-                    val browseCommand = buildBrowseCommand(path)
-                    output.write(browseCommand)
-                    output.flush()
+                            // Send browse request command
+                            val browseCommand = buildBrowseCommand(sanitizedPath)
+                            output.write(browseCommand)
+                            output.flush()
 
-                    // Read response
-                    val response = readFileListResponse(input)
+                            // Check for initial response
+                            if (checkForResponse(input)) {
+                                // Read response
+                                val response = readFileListResponse(input)
 
-                    handler.post {
-                        result.success(response)
+                                if (!hasResponded) {
+                                    handler.post {
+                                        result.success(response)
+                                    }
+                                    hasResponded = true
+                                }
+                                return@Thread
+                            } else {
+                                throw IOException("No response received within timeout")
+                            }
+                        } finally {
+                            try {
+                                socket.close()
+                            } catch (e: IOException) {
+                                Log.e(TAG, "Error closing socket: ${e.message}")
+                            }
+                        }
+                    } ?: throw IOException("Failed to create socket")
+
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error browsing files (attempt ${retryCount + 1}): ${e.message}")
+                    retryCount++
+
+                    if (retryCount >= maxRetries && !hasResponded) {
+                        handler.post {
+                            result.error("BROWSE_ERROR",
+                                "Failed to browse files after $maxRetries attempts: ${e.message}",
+                                null)
+                        }
+                        hasResponded = true
+                    } else if (!hasResponded) {
+                        // Wait before retry
+                        Thread.sleep(1000)
+                        // Attempt to reconnect
+                        reconnectIfNeeded()
                     }
-                }
-
-            } catch (e: Exception) {
-                Log.e(TAG, "Error browsing files: ${e.message}")
-                handler.post {
-                    result.error("BROWSE_ERROR", "Failed to browse files: ${e.message}", null)
                 }
             }
         }.start()
     }
-    private fun buildBrowseCommand(path: String): ByteArray {
-        // Format: [0x01][path length][path]
-        val pathBytes = path.toByteArray()
-        return byteArrayOf(0x01) + pathBytes.size.toByte() + pathBytes
+    private fun checkForResponse(input: InputStream): Boolean {
+        val startTime = System.currentTimeMillis()
+        val timeout = 10000L // 10 seconds
+
+        while (System.currentTimeMillis() - startTime < timeout) {
+            if (input.available() > 0) {
+                return true
+            }
+            Thread.sleep(100)
+        }
+        return false
+    }
+
+
+    private fun reconnectIfNeeded() {
+        if (!isConnected && currentConnectedDevice != null) {
+            try {
+                connectToDevice(currentConnectedDevice!!.address) { success ->
+                    Log.d(TAG, "Reconnection ${if (success) "successful" else "failed"}")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error during reconnection: ${e.message}")
+            }
+        }
     }
 
     private fun readFileListResponse(input: InputStream): List<Map<String, Any>> {
         val files = mutableListOf<Map<String, Any>>()
 
         try {
-            // Read header (number of files)
+            // Read header with timeout
             val countBuffer = ByteArray(4)
-            if (input.read(countBuffer) != 4) {
-                throw IOException("Failed to read file count")
+            var totalRead = 0
+            val startTime = System.currentTimeMillis()
+
+            while (totalRead < 4 && System.currentTimeMillis() - startTime < 5000) {
+                val read = input.read(countBuffer, totalRead, 4 - totalRead)
+                if (read > 0) {
+                    totalRead += read
+                } else if (read == -1) {
+                    throw IOException("End of stream reached while reading header")
+                }
             }
 
-            // Create ByteBuffer and specify byte order
+            if (totalRead < 4) {
+                throw IOException("Incomplete header received")
+            }
+
             val countByteBuffer = ByteBuffer.wrap(countBuffer).order(ByteOrder.BIG_ENDIAN)
             val fileCount = countByteBuffer.getInt()
 
-            // Read each file entry
+            Log.d(TAG, "Reading $fileCount files")
+
+            // Read each file entry with timeout
             for (i in 0 until fileCount) {
-                // Read name length
                 val nameLength = input.read()
                 if (nameLength == -1) break
 
-                // Read name
                 val nameBuffer = ByteArray(nameLength)
-                if (input.read(nameBuffer) != nameLength) {
-                    throw IOException("Failed to read filename")
+                if (!readFully(input, nameBuffer, 5000)) {
+                    throw IOException("Failed to read complete filename")
                 }
 
-                // Read file size
                 val sizeBuffer = ByteArray(8)
-                if (input.read(sizeBuffer) != 8) {
+                if (!readFully(input, sizeBuffer, 5000)) {
                     throw IOException("Failed to read file size")
                 }
 
-                // Create ByteBuffer for size and specify byte order
                 val sizeByteBuffer = ByteBuffer.wrap(sizeBuffer).order(ByteOrder.BIG_ENDIAN)
                 val fileSize = sizeByteBuffer.getLong()
 
-                // Read is directory flag
                 val isDirectory = input.read() == 1
 
                 files.add(mapOf(
@@ -682,9 +759,31 @@ class MainActivity: FlutterActivity() {
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error reading file list: ${e.message}")
+            throw e
         }
 
         return files
+    }
+
+    private fun readFully(input: InputStream, buffer: ByteArray, timeout: Int): Boolean {
+        var totalRead = 0
+        val startTime = System.currentTimeMillis()
+
+        while (totalRead < buffer.size && System.currentTimeMillis() - startTime < timeout) {
+            val read = input.read(buffer, totalRead, buffer.size - totalRead)
+            if (read > 0) {
+                totalRead += read
+            } else if (read == -1) {
+                return false
+            }
+        }
+
+        return totalRead == buffer.size
+    }
+
+    private fun buildBrowseCommand(path: String): ByteArray {
+        val pathBytes = path.toByteArray()
+        return byteArrayOf(0x01) + pathBytes.size.toByte() + pathBytes
     }
 
     private fun downloadRemoteFile(remotePath: String, result: MethodChannel.Result) {
@@ -692,6 +791,8 @@ class MainActivity: FlutterActivity() {
             result.error("CONNECTION_ERROR", "No device connected", null)
             return
         }
+        val sanitizedPath = sanitizePath(remotePath)
+        Log.d(TAG, "Downloading file from path: $sanitizedPath")
 
         Thread {
             try {
@@ -710,7 +811,7 @@ class MainActivity: FlutterActivity() {
                     val input = socket.inputStream
 
                     // Send download request command
-                    val downloadCommand = buildDownloadCommand(remotePath)
+                    val downloadCommand = buildDownloadCommand(sanitizedPath)
                     output.write(downloadCommand)
                     output.flush()
 

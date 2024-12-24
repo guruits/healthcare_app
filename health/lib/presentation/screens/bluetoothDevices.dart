@@ -26,6 +26,10 @@
     String? _imageTransferProgress;
     bool _isReceivingMode = false;
     String? _receivedFilePath;
+    List<BluetoothFileEntry> _currentDirectoryFiles = [];
+    String _currentPath = "/storage/emulated/0/Android/data/com.example.health/files/";
+    bool _isLoading = false;
+
 
     @override
     void initState() {
@@ -96,6 +100,148 @@
       } finally {
         setState(() => _isConnecting = false);
       }
+    }
+
+    Future<void> _browseRemoteFiles(String path) async {
+      if (_connectedDeviceAddress == null) {
+        _showSnackBar('No device connected');
+        return;
+      }
+
+      setState(() {
+        _isLoading = true;
+      });
+
+      try {
+        final files = await _bluetoothService.browseFiles(path);
+        setState(() {
+          _currentDirectoryFiles = files;
+          _currentPath = path;
+        });
+      } catch (e) {
+        _showSnackBar('Error browsing files: $e');
+      } finally {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+
+    // Add this method to download a file
+    Future<void> _downloadFile(BluetoothFileEntry file) async {
+      if (_connectedDeviceAddress == null) {
+        _showSnackBar('No device connected');
+        return;
+      }
+
+      setState(() {
+        _isImageTransferring = true;
+        _imageTransferProgress = 'Downloading ${file.name}...';
+      });
+
+      try {
+        final result = await _bluetoothService.downloadFile(file.path);
+
+        if (result != null) {
+          setState(() {
+            _receivedFilePath = result['path'];
+            _imageTransferProgress = 'Downloaded: ${(result['size'] / 1024).toStringAsFixed(2)} KB';
+          });
+          _showSnackBar('File downloaded successfully');
+        } else {
+          _showSnackBar('Failed to download file');
+        }
+      } catch (e) {
+        _showSnackBar('Error downloading file: $e');
+      } finally {
+        setState(() {
+          _isImageTransferring = false;
+        });
+      }
+    }
+    Widget _buildFileBrowser() {
+      if (_isLoading) {
+        return Center(child: CircularProgressIndicator());
+      }
+
+      return Column(
+        children: [
+          // Path navigation
+          Container(
+            padding: EdgeInsets.all(8),
+            child: Row(
+              children: [
+                IconButton(
+                  icon: Icon(Icons.arrow_back),
+                  onPressed: _currentPath == "/" ? null : () {
+                    final parentPath = _currentPath.substring(0, _currentPath.lastIndexOf('/'));
+                    _browseRemoteFiles(parentPath.isEmpty ? "/" : parentPath);
+                  },
+                ),
+                Expanded(
+                  child: Text(
+                    _currentPath,
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.refresh),
+                  onPressed: () => _browseRemoteFiles(_currentPath),
+                ),
+              ],
+            ),
+          ),
+          Divider(),
+          // File list
+          Expanded(
+            child: ListView.builder(
+              itemCount: _currentDirectoryFiles.length,
+              itemBuilder: (context, index) {
+                final file = _currentDirectoryFiles[index];
+                return ListTile(
+                  leading: Icon(
+                    file.isDirectory ? Icons.folder : Icons.insert_drive_file,
+                    color: file.isDirectory ? Colors.amber : Colors.blue,
+                  ),
+                  title: Text(file.name),
+                  subtitle: Text(
+                    file.isDirectory
+                        ? 'Directory'
+                        : '${(file.size / 1024).toStringAsFixed(2)} KB',
+                  ),
+                  onTap: () {
+                    if (file.isDirectory) {
+                      _browseRemoteFiles(file.path);
+                    } else {
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: Text('Download File'),
+                          content: Text('Do you want to download ${file.name}?'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: Text('Cancel'),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.pop(context);
+                                _downloadFile(file);
+                              },
+                              child: Text('Download'),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      );
     }
 
 
@@ -238,6 +384,11 @@
             },
           ),
           actions: [
+            if (_connectedDeviceAddress != null)
+              IconButton(
+                icon: Icon(Icons.folder),
+                onPressed: () => _browseRemoteFiles("/"),
+              ),
             // Add a switch for receiving mode
             Switch(
               value: _isReceivingMode,
@@ -280,6 +431,14 @@
                       style: TextStyle(color: Colors.blue),
                     ),
                   ],
+                ),
+              ),
+
+            if (_connectedDeviceAddress != null)
+              Expanded(
+                child: Card(
+                  margin: EdgeInsets.all(8),
+                  child: _buildFileBrowser(),
                 ),
               ),
 
@@ -559,5 +718,54 @@
       } on PlatformException catch (e) {
         print("Failed to disconnect: ${e.message}");
       }
+    }
+
+    Future<List<BluetoothFileEntry>> browseFiles(String path) async {
+      try {
+        final List<dynamic> result = await platform.invokeMethod('browseFiles', {'path': '/',});
+        return result.map((item) => BluetoothFileEntry.fromMap(Map<String, dynamic>.from(item))).toList();
+      } on PlatformException catch (e) {
+        print("Failed to browse files: ${e.message}");
+        return [];
+      }
+    }
+
+    Future<Map<String, dynamic>?> downloadFile(String remotePath) async {
+      try {
+        final result = await platform.invokeMethod('downloadFile', {'remotePath': '/myfile.txt'});
+
+
+
+
+
+        return Map<String, dynamic>.from(result);
+      } on PlatformException catch (e) {
+        print("Failed to download file: ${e.message}");
+        return null;
+      }
+    }
+
+  }
+
+  class BluetoothFileEntry {
+    final String name;
+    final int size;
+    final bool isDirectory;
+    final String path;
+
+    BluetoothFileEntry({
+      required this.name,
+      required this.size,
+      required this.isDirectory,
+      required this.path,
+    });
+
+    factory BluetoothFileEntry.fromMap(Map<String, dynamic> map) {
+      return BluetoothFileEntry(
+        name: map['name'] as String,
+        size: map['size'] as int,
+        isDirectory: map['isDirectory'] as bool,
+        path: map['path'] as String,
+      );
     }
   }
