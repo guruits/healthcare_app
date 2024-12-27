@@ -29,6 +29,7 @@
     List<BluetoothFileEntry> _currentDirectoryFiles = [];
     String _currentPath = "/storage/emulated/0/Android/data/com.example.health/files/";
     bool _isLoading = false;
+    Map<String, dynamic>? _currentFileDetails;
 
 
     @override
@@ -159,10 +160,60 @@
         });
       }
     }
+    Future<void> _getFileDetails(String path) async {
+      if (_connectedDeviceAddress == null) {
+        _showSnackBar('No device connected');
+        return;
+      }
+
+      setState(() {
+        _isLoading = true;
+      });
+
+      try {
+        final details = await _bluetoothService.getFileDetails(path);
+        setState(() {
+          _currentFileDetails = details;
+        });
+
+        // Show file details in a dialog
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text('File Details'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Size: ${(details['size'] as int).toStringAsFixed(2)} KB'),
+                Text('Modified: ${DateTime.fromMillisecondsSinceEpoch(details['modified'] as int).toString()}'),
+                Text('Permissions:'),
+                Text('  Readable: ${(details['permissions'] as Map)['readable']}'),
+                Text('  Writable: ${(details['permissions'] as Map)['writable']}'),
+                Text('  Executable: ${(details['permissions'] as Map)['executable']}'),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text('Close'),
+              ),
+            ],
+          ),
+        );
+      } catch (e) {
+        _showSnackBar('Error getting file details: $e');
+      } finally {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
     Widget _buildFileBrowser() {
       if (_isLoading) {
         return Center(child: CircularProgressIndicator());
       }
+
 
       return Column(
         children: [
@@ -189,9 +240,11 @@
                   icon: Icon(Icons.refresh),
                   onPressed: () => _browseRemoteFiles(_currentPath),
                 ),
+
               ],
             ),
           ),
+
           Divider(),
           // File list
           Expanded(
@@ -508,78 +561,6 @@
                     ],
                   ),
                 ),
-             /* Divider(),
-              ListTile(
-                leading: Icon(Icons.file_present),
-                title: Text('Selected File'),
-                subtitle: Text(_selectedFileName ?? 'No file selected'),
-                trailing: ElevatedButton.icon(
-                  onPressed: _isTransferring ? null : _pickFile,
-                  icon: Icon(Icons.folder_open),
-                  label: Text('Select File'),
-                ),
-              ),
-              if (_selectedFileName != null)
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: ElevatedButton.icon(
-                    onPressed: _isTransferring ? null : _sendSelectedFile,
-                    icon: Icon(Icons.send),
-                    label: Text('Send File'),
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: Size(double.infinity, 48),
-                    ),
-                  ),
-                ),
-              if (_transferProgress != null)
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Column(
-                    children: [
-                      if (_isTransferring) LinearProgressIndicator(),
-                      SizedBox(height: 8),
-                      Text(_transferProgress!,
-                        style: TextStyle(
-                            color: _isTransferring ? Colors.blue :
-                            _transferProgress!.contains('success') ? Colors.green :
-                            Colors.red
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-  */
-              Divider(),
-
-              // Audio File Selection
-              /*ListTile(
-                title: Text('Selected Audio:'),
-                subtitle: Text(_selectedFileName ?? 'No file selected'),
-                trailing: ElevatedButton(
-                  onPressed: _pickAudioFile,
-                  child: Text('Choose File'),
-                ),
-              ),
-
-              // Playback Controls
-              Container(
-                padding: EdgeInsets.symmetric(vertical: 20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    ElevatedButton.icon(
-                      onPressed:_toggleAudioStreaming ,
-                      icon: Icon(_isStreaming ? Icons.stop : Icons.play_arrow),
-                      label: Text(_isStreaming ? 'Stop' : 'Play'),
-                      style: ElevatedButton.styleFrom(
-                        padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Divider(),*/
-
               // Services List
               Expanded(
                 child: ListView(
@@ -710,6 +691,30 @@
         return [];
       }
     }
+    Future<List<BluetoothFileEntry>> browseFiles(String path) async {
+      try {
+        final List<dynamic> result = await platform.invokeMethod('browseDeviceFiles', {
+          'path': path,
+        });
+        return result.map((item) => BluetoothFileEntry.fromMap(Map<String, dynamic>.from(item))).toList();
+      } on PlatformException catch (e) {
+        print("Failed to browse files: ${e.message}");
+        throw Exception("Failed to browse files: ${e.message}");
+      }
+    }
+
+    Future<Map<String, dynamic>> getFileDetails(String path) async {
+      try {
+        final result = await platform.invokeMethod('getFileDetails', {
+          'path': path,
+        });
+        return Map<String, dynamic>.from(result);
+      } on PlatformException catch (e) {
+        print("Failed to get file details: ${e.message}");
+        throw Exception("Failed to get file details: ${e.message}");
+      }
+    }
+
 
 
     Future<void> disconnect() async {
@@ -720,7 +725,7 @@
       }
     }
 
-    Future<List<BluetoothFileEntry>> browseFiles(String path) async {
+    /*Future<List<BluetoothFileEntry>> browseFiles(String path) async {
       try {
         final List<dynamic> result = await platform.invokeMethod('browseFiles', {'path': '/',});
         return result.map((item) => BluetoothFileEntry.fromMap(Map<String, dynamic>.from(item))).toList();
@@ -728,7 +733,7 @@
         print("Failed to browse files: ${e.message}");
         return [];
       }
-    }
+    }*/
 
     Future<Map<String, dynamic>?> downloadFile(String remotePath) async {
       try {
@@ -751,13 +756,17 @@
     final String name;
     final int size;
     final bool isDirectory;
+    final bool isHidden;
     final String path;
+    final String mimeType;
 
     BluetoothFileEntry({
       required this.name,
       required this.size,
       required this.isDirectory,
+      required this.isHidden,
       required this.path,
+      required this.mimeType,
     });
 
     factory BluetoothFileEntry.fromMap(Map<String, dynamic> map) {
@@ -765,7 +774,9 @@
         name: map['name'] as String,
         size: map['size'] as int,
         isDirectory: map['isDirectory'] as bool,
+        isHidden: map['isHidden'] as bool,
         path: map['path'] as String,
+        mimeType: map['mimeType'] as String,
       );
     }
   }
