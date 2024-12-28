@@ -32,21 +32,19 @@ class _AudioBluetoothPageState extends State<AudioBluetoothPage> {
   String? _imageTransferProgress;
   bool _isReceivingMode = false;
   String? _receivedFilePath;
-  FileMonitor? _fileMonitor;
   List<FileSystemEntity> _detectedFiles = [];
   String? _selectedFilePath;
   String? _fileTransferProgress;
   bool _isFileTransferring = false;
+  bool _isScanning = false;
+
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await _requestStoragePermissions();
       _initializeBluetoothConnection();
       _setupReceiveListener();
-      _setupFileMonitor();
-    });
+      _scanForNewFiles();
   }
 
 
@@ -86,41 +84,6 @@ class _AudioBluetoothPageState extends State<AudioBluetoothPage> {
       setState(() => _isConnecting = false);
     }
   }
-  Future<void> _requestStoragePermissions() async {
-    Map<Permission, PermissionStatus> statuses = await [
-      Permission.storage,
-      Permission.manageExternalStorage,
-    ].request();
-
-    bool allGranted = statuses.values.every((status) => status.isGranted);
-
-    if (!allGranted) {
-      if (mounted) {
-        showDialog(
-          context: context,
-          builder: (BuildContext context) => AlertDialog(
-            title: Text('Permissions Required'),
-            content: Text('Storage permissions are required to monitor files. Please grant the permissions in app settings.'),
-            actions: [
-              TextButton(
-                child: Text('Cancel'),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-              TextButton(
-                child: Text('Open Settings'),
-                onPressed: () {
-                  openAppSettings();
-                  Navigator.of(context).pop();
-                },
-              ),
-            ],
-          ),
-        );
-      }
-    }
-  }
-
-
 
   Future<void> _connectToDevice(String address, String name) async {
     try {
@@ -145,9 +108,103 @@ class _AudioBluetoothPageState extends State<AudioBluetoothPage> {
     }
   }
 
+  Future<void> _scanForNewFiles() async {
+    setState(() {
+      _isScanning = true;
+    });
 
+    print('Starting scan for new files...');
 
+    try {
+      final Directory? monitoredDir = await _getMonitoredDirectory();
+      print('Monitored directory: ${monitoredDir?.path}');
 
+      if (monitoredDir == null) {
+        _showSnackBar('Cannot access monitored directory');
+        print('Monitored directory is null');
+        return;
+      }
+
+      print('Listing files in monitored directory...');
+      final List<FileSystemEntity> files = await monitoredDir.list().toList();
+      print('Total files found: ${files.length}');
+
+      final List<File> imageFiles = files
+          .whereType<File>()
+          .where((file) {
+        final extension = path.extension(file.path).toLowerCase();
+        print('File found: ${file.path}, Extension: $extension');
+        return ['.jpg', '.jpeg', '.png'].contains(extension);
+      }).toList();
+
+      print('Image files found: ${imageFiles.length}');
+
+      if (imageFiles.isEmpty) {
+        _showSnackBar('No new images found');
+        print('No image files found in the monitored directory');
+        return;
+      }
+
+      print('Sorting image files by modified time...');
+      imageFiles.sort((a, b) => b.statSync().modified.compareTo(a.statSync().modified));
+
+      final File mostRecentImage = imageFiles.first;
+      print('Most recent image: ${mostRecentImage.path}');
+
+      setState(() {
+        _selectedImagePath = mostRecentImage.path;
+        _selectedImageName = path.basename(mostRecentImage.path);
+        _imageTransferProgress = null;
+      });
+
+      _showSnackBar('Found new image: ${_selectedImageName}');
+    } catch (e) {
+      print('Error scanning for files: $e');
+      _showSnackBar('Error scanning for files: $e');
+    } finally {
+      print('Scan completed. Resetting scanning state...');
+      setState(() {
+        _isScanning = false;
+      });
+    }
+  }
+
+  Future<Directory?> _getMonitoredDirectory() async {
+    print('Getting monitored directory...');
+
+    if (Platform.isAndroid) {
+      try {
+        print('Checking Downloads directory for Android...');
+        final downloadsDir = Directory('/storage/emulated/0/Download');
+        if (await downloadsDir.exists()) {
+          print('Downloads directory found: ${downloadsDir.path}');
+          return downloadsDir;
+        }
+
+        print('Downloads directory not found. Using app-specific directory.');
+        final directories = await getExternalStorageDirectories();
+        if (directories != null && directories.isNotEmpty) {
+          final monitorDir = Directory('${directories.first.path}/Downloads');
+          if (!await monitorDir.exists()) {
+            print('Creating app-specific Downloads directory...');
+            await monitorDir.create(recursive: true);
+          }
+          return monitorDir;
+        }
+      } catch (e) {
+        print('Error getting monitored directory on Android: $e');
+      }
+    }
+
+    print('Using documents directory for iOS or fallback...');
+    final dir = await getApplicationDocumentsDirectory();
+    final monitorDir = Directory('${dir.path}/Downloads');
+    if (!await monitorDir.exists()) {
+      print('Creating Downloads directory in documents...');
+      await monitorDir.create(recursive: true);
+    }
+    return monitorDir;
+  }
 
   Future<void> _pickImage() async {
     try {
@@ -258,67 +315,10 @@ class _AudioBluetoothPageState extends State<AudioBluetoothPage> {
       _showSnackBar('Error toggling receiving mode: $e');
     }
   }
-  void _setupFileMonitor() async {
-    try {
-      // Check permissions before starting monitor
-      bool hasStoragePermission = await Permission.storage.isGranted;
-      bool hasManageStoragePermission = await Permission.manageExternalStorage.isGranted;
-
-      if (!hasStoragePermission || !hasManageStoragePermission) {
-        throw Exception('Required permissions not granted');
-      }
-
-      _fileMonitor = FileMonitor(
-          onNewFile: (String path, String name) {
-            setState(() {
-              _selectedFilePath = path;
-              _selectedFileName = name;
-              _fileTransferProgress = null;
-              _detectedFiles.add(File(path));
-            });
-            _showSnackBar('New file detected: $name');
-          }
-      );
-
-      await _fileMonitor?.startMonitoring();
-      print('File monitor started successfully');
-    } catch (e) {
-      print('Error starting file monitor: $e');
-      _showSnackBar('Failed to monitor for new files: $e');
-    }
-  }
-
-
   @override
   void dispose() {
-    _fileMonitor?.stopMonitoring();
     _bluetoothService.disconnect();
     super.dispose();
-  }
-
-  Widget _buildDetectedFilesList() {
-    return Container(
-      height: 200,
-      child: ListView.builder(
-        itemCount: _detectedFiles.length,
-        itemBuilder: (context, index) {
-          final file = _detectedFiles[index];
-          return ListTile(
-            leading: Icon(Icons.file_present),
-            title: Text(path.basename(file.path)),
-            subtitle: Text('Tap to select'),
-            onTap: () {
-              setState(() {
-                _selectedFilePath = file.path;
-                _selectedFileName = path.basename(file.path);
-                _fileTransferProgress = null;
-              });
-              _showSnackBar('Selected file: ${path.basename(file.path)}');
-            },
-          );
-        },
-      ),
-    );
   }
   void navigateToScreen(Widget screen) {
     Navigator.of(context).pushReplacement(
@@ -338,7 +338,7 @@ class _AudioBluetoothPageState extends State<AudioBluetoothPage> {
           },
         ),
         actions: [
-          // Add a switch for receiving mode
+
           Switch(
             value: _isReceivingMode,
             onChanged: (value) => _toggleReceivingMode(),
@@ -349,7 +349,7 @@ class _AudioBluetoothPageState extends State<AudioBluetoothPage> {
           ),
         ],
       ),
-      body: _isConnecting
+      body: _isConnecting || _isScanning
           ? Center(child: CircularProgressIndicator())
           : Column(
         children: [
@@ -399,29 +399,26 @@ class _AudioBluetoothPageState extends State<AudioBluetoothPage> {
           // Connected Device UI
           if (_connectedDeviceAddress != null) ...[
             Divider(),
-            Text('Detected Files', style: Theme.of(context).textTheme.titleMedium),
-            _buildDetectedFilesList(),
             ListTile(
-              title: Text('Connected Device:'),
-              subtitle: Text(_pairedDevices
-                  .firstWhere(
-                      (d) => d['address'] == _connectedDeviceAddress,
-                  orElse: () => {'name': 'Unknown Device'}
-              )['name'] ?? 'Unknown Device'
-              ),
-            ),
-            Divider(),
-            ListTile(
-              leading: Icon(Icons.image),
               title: Text('Selected Image'),
               subtitle: Text(_selectedImageName ?? 'No image selected'),
-              trailing: ElevatedButton.icon(
-                onPressed: _isImageTransferring ? null : _pickImage,
-                icon: Icon(Icons.photo_library),
-                label: Text('Select Image'),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: _isScanning ? null : _scanForNewFiles,
+                    icon: Icon(Icons.document_scanner),
+                    label: Text('Scan'),
+                  ),
+                  SizedBox(width: 8),
+                  ElevatedButton.icon(
+                    onPressed: _isImageTransferring ? null : _pickImage,
+                    icon: Icon(Icons.photo_library),
+                    label: Text('Select'),
+                  ),
+                ],
               ),
             ),
-
             if (_selectedImageName != null)
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -594,127 +591,7 @@ class BluetoothAudioService {
   }
 }
 
-class FileMonitor {
-  final Function(String path, String name) onNewFile;
-  Directory? _monitoredDir;
-  DateTime _lastCheck = DateTime.now();
-  bool _isMonitoring = false;
-  Timer? _timer;
-  final List<String> _allowedExtensions;
 
-  FileMonitor({
-    required this.onNewFile,
-    List<String>? allowedExtensions,
-  }) : _allowedExtensions = allowedExtensions ?? ['.jpg', '.jpeg', '.png', '.pdf', '.doc', '.docx', '.txt'];
-
-  Future<void> startMonitoring() async {
-    if (_isMonitoring) return;
-
-    // Request permissions
-    if (!await _requestPermissions()) {
-      throw Exception('Required permissions not granted');
-    }
-
-    // Get the monitored directory
-    _monitoredDir = await _getMonitoredDirectory();
-    if (_monitoredDir == null) {
-      throw Exception('Could not access monitored directory');
-    }
-
-    _isMonitoring = true;
-    _timer = Timer.periodic(Duration(seconds: 2), (_) => _checkForNewFiles());
-    print('Started monitoring directory: ${_monitoredDir?.path}');
-  }
-
-
-
-  Future<bool> _requestPermissions() async {
-    if (Platform.isAndroid) {
-      // Request both permissions
-      Map<Permission, PermissionStatus> statuses = await [
-        Permission.storage,
-        Permission.manageExternalStorage,
-      ].request();
-
-      // Check if both permissions are granted
-      return statuses[Permission.storage]?.isGranted == true &&
-          statuses[Permission.manageExternalStorage]?.isGranted == true;
-    } else if (Platform.isIOS) {
-      final status = await Permission.photos.request();
-      return status.isGranted;
-    }
-    return false;
-  }
-
-  Future<Directory?> _getMonitoredDirectory() async {
-    if (Platform.isAndroid) {
-      try {
-        // First try to get the Downloads directory
-        final downloadsDir = Directory('/storage/emulated/0/Download');
-        if (await downloadsDir.exists()) {
-          print('Using Downloads directory: ${downloadsDir.path}');
-          return downloadsDir;
-        }
-
-        // Fallback to app-specific directory
-        final directories = await getExternalStorageDirectories();
-        if (directories != null && directories.isNotEmpty) {
-          final monitorDir = Directory('${directories.first.path}/Downloads');
-          if (!await monitorDir.exists()) {
-            await monitorDir.create(recursive: true);
-          }
-          print('Using app-specific directory: ${monitorDir.path}');
-          return monitorDir;
-        }
-      } catch (e) {
-        print('Error getting monitored directory: $e');
-      }
-    } else if (Platform.isIOS) {
-      final dir = await getApplicationDocumentsDirectory();
-      final monitorDir = Directory('${dir.path}/Downloads');
-      if (!await monitorDir.exists()) {
-        await monitorDir.create(recursive: true);
-      }
-      return monitorDir;
-    }
-    return null;
-  }
-
-
-  void _checkForNewFiles() async {
-    if (!_isMonitoring || _monitoredDir == null) return;
-
-    try {
-      final entities = await _monitoredDir!.list().toList();
-      for (var entity in entities) {
-        if (entity is File) {
-          final stats = await entity.stat();
-          if (stats.modified.isAfter(_lastCheck)) {
-            final extension = path.extension(entity.path).toLowerCase();
-            if (_allowedExtensions.contains(extension)) {
-              _lastCheck = DateTime.now();
-              print('New file detected: ${entity.path}');
-              onNewFile(
-                  entity.path,
-                  path.basename(entity.path)
-              );
-              // Don't break here - process all new files
-            }
-          }
-        }
-      }
-    } catch (e) {
-      print('Error checking for new files: $e');
-    }
-  }
-
-  void stopMonitoring() {
-    _isMonitoring = false;
-    _timer?.cancel();
-    _timer = null;
-    print('Stopped monitoring directory');
-  }
-}
 class PermissionManager {
   static Future<bool> requestStoragePermissions(BuildContext context) async {
     // First check if permissions are already granted
