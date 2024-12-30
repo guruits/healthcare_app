@@ -646,7 +646,6 @@ class PermissionManager {
 
       if (shouldShowSettings) {
         await openAppSettings();
-        // Recheck permissions after returning from settings
         final recheckedStatuses = await Future.wait([
           Permission.storage.status,
           Permission.manageExternalStorage.status,

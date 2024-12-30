@@ -132,6 +132,8 @@ class _SelectPatientState extends State<SelectPatienttest> {
         return 'ultrasoundStatus';
       case 'consultation_label':
         return 'consultationStatus';
+      case 'neurotouch_test_label':
+        return 'neurotouchStatus';
       default:
         return 'TestStatus';
     }

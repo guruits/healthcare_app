@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:health/presentation/screens/neurotouch.dart';
 import 'package:health/presentation/screens/notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:health/presentation/screens/appointments.dart';
@@ -61,6 +62,7 @@ class StartController {
           {'title': 'Appointments', 'screen': Appointments()},
           {'title': 'Vitals', 'screen': AudioBluetoothPage()},
           {'title': 'Blood Collection', 'screen': Bloodcollection()},
+          {'title': 'Neuro touch', 'screen': Neurotouch()},
           {'title': 'Urine Collection', 'screen': Urinecollection()},
           {'title': 'Arc', 'screen': Arc()},
           {'title': 'Dentist', 'screen': Dentist()},
