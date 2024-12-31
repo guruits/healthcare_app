@@ -1,13 +1,17 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:health/presentation/screens/selectPatienttest.dart';
-import 'package:health/presentation/screens/selectPatient.dart';
 import 'package:health/presentation/screens/start.dart';
 import 'package:health/presentation/widgets/dateandtimepicker.widgets.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:pdf/pdf.dart';
 import '../controller/bloodcollection.controller.dart';
 import '../controller/language.controller.dart';
 import '../controller/selectPatient.controller.dart';
 import '../widgets/language.widgets.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:pdf/widgets.dart' as pw;
 
 class Bloodcollection extends StatefulWidget {
   const Bloodcollection({super.key});
@@ -50,6 +54,7 @@ class _BloodcollectionState extends State<Bloodcollection> {
       'appointmentSlot': _controller.appointmentSlot,
       'address': _controller.patientAddress,
       'bloodTestStatus': TestStatus,
+      'testReport': _controller.getTestData(),
     };
 
     Navigator.pushReplacement(
@@ -81,6 +86,244 @@ class _BloodcollectionState extends State<Bloodcollection> {
       MaterialPageRoute(builder: (_) => screen),
     );
   }
+
+  void _showResultsDialog() {
+    // Convert form data to TestResults object
+    final results = TestResults(
+      bloodGroup: _controller.bloodGroup,
+      fastingGlucose: _parseDouble(_controller.fastingGlucoseController.text),
+      ppGlucose: _parseDouble(_controller.ppGlucoseController.text),
+      hba1c: _parseDouble(_controller.hba1cController.text),
+      hemoglobin: _parseDouble(_controller.hemoglobinController.text),
+      totalCholesterol: _parseDouble(_controller.cholesterolController.text),
+      hdl: _parseDouble(_controller.hdlController.text),
+      ldl: _parseDouble(_controller.ldlController.text),
+      triglycerides: _parseDouble(_controller.triglyceridesController.text),
+      creatinine: _parseDouble(_controller.creatinineController.text),
+      microalbumin: _parseDouble(_controller.microalbuminController.text),
+    );
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          insetPadding: EdgeInsets.all(16),
+          child: SingleChildScrollView(
+            padding: EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                buildResultCard(results),
+                SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text('Close'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+  Future<void> generateAndDownloadPDF(TestResults results) async {
+    final pdf = pw.Document();
+
+    pdf.addPage(
+      pw.Page(
+        build: (context) => pw.Padding(
+          padding: const pw.EdgeInsets.all(16.0),
+          child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              // Header
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text(
+                    'Test Results',
+                    style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold),
+                  ),
+                  pw.Text(
+                    'Date: ${DateTime.now().toString().split(' ')[0]}',
+                    style: pw.TextStyle(color: PdfColors.grey),
+                  ),
+                ],
+              ),
+              pw.Divider(),
+              pw.SizedBox(height: 16),
+
+              // Blood Group
+              if (results.bloodGroup != null)
+                buildPDFInfoRow(
+                  'Blood Group',
+                  results.bloodGroup!,
+                  'N/A',
+                  false,
+                ),
+
+              // Diabetes Tests Section
+              pw.SizedBox(height: 16),
+              pw.Text(
+                'Diabetes Tests',
+                style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+              ),
+              pw.SizedBox(height: 8),
+
+              if (results.fastingGlucose != null)
+                buildPDFInfoRow(
+                  'Fasting Blood Sugar',
+                  '${results.fastingGlucose} mg/dL',
+                  '70-100 mg/dL',
+                  results.fastingGlucose! > 100,
+                ),
+
+              if (results.ppGlucose != null)
+                buildPDFInfoRow(
+                  'Post Prandial Blood Sugar',
+                  '${results.ppGlucose} mg/dL',
+                  '< 140 mg/dL',
+                  results.ppGlucose! > 140,
+                ),
+
+              if (results.hba1c != null)
+                buildPDFInfoRow(
+                  'HbA1c',
+                  '${results.hba1c}%',
+                  '4.0-5.6%',
+                  results.hba1c! > 5.6,
+                ),
+
+              // Additional Tests Section
+              pw.SizedBox(height: 16),
+              pw.Text(
+                'Additional Blood Tests',
+                style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+              ),
+              pw.SizedBox(height: 8),
+
+              if (results.hemoglobin != null)
+                buildPDFInfoRow(
+                  'Hemoglobin',
+                  '${results.hemoglobin} g/dL',
+                  '13.5-17.5 g/dL',
+                  results.hemoglobin! < 13.5 || results.hemoglobin! > 17.5,
+                ),
+
+              // Cholesterol Panel
+              if (results.totalCholesterol != null)
+                buildPDFInfoRow(
+                  'Total Cholesterol',
+                  '${results.totalCholesterol} mg/dL',
+                  '< 200 mg/dL',
+                  results.totalCholesterol! > 200,
+                ),
+
+              if (results.hdl != null)
+                buildPDFInfoRow(
+                  'HDL Cholesterol',
+                  '${results.hdl} mg/dL',
+                  '> 40 mg/dL',
+                  results.hdl! < 40,
+                ),
+
+              if (results.ldl != null)
+                buildPDFInfoRow(
+                  'LDL Cholesterol',
+                  '${results.ldl} mg/dL',
+                  '< 100 mg/dL',
+                  results.ldl! > 100,
+                ),
+
+              // Warning section for abnormal results
+              if (_hasAbnormalResults(results))
+                pw.Container(
+                  padding: const pw.EdgeInsets.all(8),
+                  decoration: pw.BoxDecoration(
+                    color: PdfColors.red50,
+                    borderRadius: pw.BorderRadius.circular(8),
+                  ),
+                  child: pw.Row(
+                    children: [
+                      pw.Text(
+                        '⚠️ Some results are outside normal ranges. Please consult with your healthcare provider.',
+                        style: pw.TextStyle(color: PdfColors.red900),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    // Get the application documents directory
+    final directory = await getApplicationDocumentsDirectory();
+    final String path = '${directory.path}/test_results_${DateTime.now().millisecondsSinceEpoch}.pdf';
+
+    // Save the PDF
+    final file = File(path);
+    await file.writeAsBytes(await pdf.save());
+
+    // Open the PDF
+    await OpenFile.open(path);
+  }
+
+  pw.Widget buildPDFInfoRow(String label, String value, String normalRange, bool isAbnormal) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(vertical: 4),
+      child: pw.Row(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Expanded(
+            flex: 2,
+            child: pw.Text(label),
+          ),
+          pw.Expanded(
+            flex: 2,
+            child: pw.Text(
+              value,
+              style: pw.TextStyle(
+                color: isAbnormal ? PdfColors.red : PdfColors.black,
+                fontWeight: isAbnormal ? pw.FontWeight.bold : null,
+              ),
+            ),
+          ),
+          pw.Expanded(
+            flex: 2,
+            child: pw.Text(
+              'Normal Range: $normalRange',
+              style: const pw.TextStyle(
+                color: PdfColors.grey,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  double? _parseDouble(String value) {
+    if (value.isEmpty) return null;
+    return double.tryParse(value);
+  }
+
+  @override
+  void dispose() {
+    _controller.hemoglobinController.dispose();
+    _controller.creatinineController.dispose();
+    _controller.fastingGlucoseController.dispose();
+    _controller.ppGlucoseController.dispose();
+    _controller.hba1cController.dispose();
+    _controller.cholesterolController.dispose();
+    _controller.triglyceridesController.dispose();
+    _controller.hdlController.dispose();
+    _controller.ldlController.dispose();
+    _controller.microalbuminController.dispose();
+  }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -194,6 +437,8 @@ class _BloodcollectionState extends State<Bloodcollection> {
             SizedBox(height: 20),
             _buildPatientInfoBox(),
             SizedBox(height: 20),
+            _buildBloodCollectionFields(),
+            SizedBox(height: 20),
             _buildDateAndTimePicker(),
             SizedBox(height: 20),
             _buildBloodTestStatusDropdown(localizations),
@@ -235,6 +480,204 @@ class _BloodcollectionState extends State<Bloodcollection> {
             _buildInfoRow(
                 localizations.appointment_slot, _controller.appointmentSlot),
             _buildInfoRow(localizations.address, _controller.patientAddress),
+          ],
+        ),
+      ),
+    );
+  }
+  Widget _buildBloodCollectionFields() {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Diabetes Test Report',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            Divider(),
+            SizedBox(height: 16),
+
+            // Basic Blood Information
+            Text(
+              'Basic Blood Information',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+            ),
+            SizedBox(height: 12),
+
+            // Blood Group Dropdown
+            DropdownButtonFormField<String>(
+              decoration: InputDecoration(
+                labelText: 'Blood Group',
+                border: OutlineInputBorder(),
+              ),
+              value: _controller.bloodGroup ?? 'A+',
+              items: ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-']
+                  .map((String group) {
+                return DropdownMenuItem(
+                  value: group,
+                  child: Text(group),
+                );
+              }).toList(),
+              onChanged: (String? newValue) {
+                setState(() {
+                  _controller.bloodGroup = newValue;
+                });
+              },
+            ),
+            SizedBox(height: 16),
+
+            // Diabetes Tests Section
+            Text(
+              'Diabetes Tests',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+            ),
+            SizedBox(height: 12),
+
+            // Fasting Blood Sugar
+            TextField(
+              controller: _controller.fastingGlucoseController,
+              decoration: InputDecoration(
+                labelText: 'Fasting Blood Sugar',
+                border: OutlineInputBorder(),
+                suffixText: 'mg/dL',
+                helperText: 'Measured after 8 hours of fasting',
+              ),
+              keyboardType: TextInputType.number,
+            ),
+            SizedBox(height: 16),
+
+            // Post Prandial Blood Sugar
+            TextField(
+              controller: _controller.ppGlucoseController,
+              decoration: InputDecoration(
+                labelText: 'Post Prandial Blood Sugar',
+                border: OutlineInputBorder(),
+                suffixText: 'mg/dL',
+                helperText: 'Measured 2 hours after meal',
+              ),
+              keyboardType: TextInputType.number,
+            ),
+            SizedBox(height: 16),
+
+            // HbA1c
+            TextField(
+              controller: _controller.hba1cController,
+              decoration: InputDecoration(
+                labelText: 'HbA1c',
+                border: OutlineInputBorder(),
+                suffixText: '%',
+                helperText: 'Glycated Hemoglobin',
+              ),
+              keyboardType: TextInputType.number,
+            ),
+            SizedBox(height: 24),
+
+            // Additional Blood Tests
+            Text(
+              'Additional Blood Tests',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+            ),
+            SizedBox(height: 12),
+
+            // Hemoglobin Level
+            TextField(
+              controller: _controller.hemoglobinController,
+              decoration: InputDecoration(
+                labelText: 'Hemoglobin',
+                border: OutlineInputBorder(),
+                suffixText: 'g/dL',
+              ),
+              keyboardType: TextInputType.number,
+            ),
+            SizedBox(height: 16),
+
+            // Total Cholesterol
+            TextField(
+              controller: _controller.cholesterolController,
+              decoration: InputDecoration(
+                labelText: 'Total Cholesterol',
+                border: OutlineInputBorder(),
+                suffixText: 'mg/dL',
+              ),
+              keyboardType: TextInputType.number,
+            ),
+            SizedBox(height: 16),
+
+            // Triglycerides
+            TextField(
+              controller: _controller.triglyceridesController,
+              decoration: InputDecoration(
+                labelText: 'Triglycerides',
+                border: OutlineInputBorder(),
+                suffixText: 'mg/dL',
+              ),
+              keyboardType: TextInputType.number,
+            ),
+            SizedBox(height: 16),
+
+            // HDL Cholesterol
+            TextField(
+              controller: _controller.hdlController,
+              decoration: InputDecoration(
+                labelText: 'HDL Cholesterol',
+                border: OutlineInputBorder(),
+                suffixText: 'mg/dL',
+              ),
+              keyboardType: TextInputType.number,
+            ),
+            SizedBox(height: 16),
+
+            // LDL Cholesterol
+            TextField(
+              controller: _controller.ldlController,
+              decoration: InputDecoration(
+                labelText: 'LDL Cholesterol',
+                border: OutlineInputBorder(),
+                suffixText: 'mg/dL',
+              ),
+              keyboardType: TextInputType.number,
+            ),
+            SizedBox(height: 16),
+
+            // Creatinine Level
+            TextField(
+              controller: _controller.creatinineController,
+              decoration: InputDecoration(
+                labelText: 'Creatinine Level',
+                border: OutlineInputBorder(),
+                suffixText: 'mg/dL',
+              ),
+              keyboardType: TextInputType.number,
+            ),
+            SizedBox(height: 16),
+
+            // Urine Microalbumin
+            TextField(
+              controller: _controller.microalbuminController,
+              decoration: InputDecoration(
+                labelText: 'Urine Microalbumin',
+                border: OutlineInputBorder(),
+                suffixText: 'mg/L',
+              ),
+              keyboardType: TextInputType.number,
+            ),
+            SizedBox(height: 16),
+            Center(
+              child: ElevatedButton(
+                onPressed: _showResultsDialog,
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16), backgroundColor: Colors.blue,
+                ),
+                child: Text(
+                  'View Results',
+                  style: TextStyle(fontSize: 16),
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -375,4 +818,230 @@ class _BloodcollectionState extends State<Bloodcollection> {
       ],
     );
   }
+  Widget buildResultCard(TestResults results) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Test Results',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  'Date: ${DateTime.now().toString().split(' ')[0]}',
+                  style: TextStyle(color: Colors.grey[600]),
+                ),
+              ],
+            ),
+            Divider(),
+            SizedBox(height: 16),
+
+            // Blood Group
+            if (results.bloodGroup != null) buildInfoRow(
+              'Blood Group',
+              results.bloodGroup!,
+              normalRange: 'N/A',
+              isAbnormal: false,
+            ),
+
+            // Diabetes Tests Section
+            SizedBox(height: 16),
+            Text(
+              'Diabetes Tests',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+            SizedBox(height: 8),
+
+            // Fasting Blood Sugar
+            if (results.fastingGlucose != null) buildInfoRow(
+              'Fasting Blood Sugar',
+              '${results.fastingGlucose} mg/dL',
+              normalRange: '70-100 mg/dL',
+              isAbnormal: results.fastingGlucose! > 100,
+            ),
+
+            // Post Prandial
+            if (results.ppGlucose != null) buildInfoRow(
+              'Post Prandial Blood Sugar',
+              '${results.ppGlucose} mg/dL',
+              normalRange: '< 140 mg/dL',
+              isAbnormal: results.ppGlucose! > 140,
+            ),
+
+            // HbA1c
+            if (results.hba1c != null) buildInfoRow(
+              'HbA1c',
+              '${results.hba1c}%',
+              normalRange: '4.0-5.6%',
+              isAbnormal: results.hba1c! > 5.6,
+            ),
+
+            // Additional Tests Section
+            SizedBox(height: 16),
+            Text(
+              'Additional Blood Tests',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+            SizedBox(height: 8),
+
+            // Hemoglobin
+            if (results.hemoglobin != null) buildInfoRow(
+              'Hemoglobin',
+              '${results.hemoglobin} g/dL',
+              normalRange: '13.5-17.5 g/dL',
+              isAbnormal: results.hemoglobin! < 13.5 || results.hemoglobin! > 17.5,
+            ),
+
+            // Cholesterol Panel
+            if (results.totalCholesterol != null) buildInfoRow(
+              'Total Cholesterol',
+              '${results.totalCholesterol} mg/dL',
+              normalRange: '< 200 mg/dL',
+              isAbnormal: results.totalCholesterol! > 200,
+            ),
+
+            if (results.hdl != null) buildInfoRow(
+              'HDL Cholesterol',
+              '${results.hdl} mg/dL',
+              normalRange: '> 40 mg/dL',
+              isAbnormal: results.hdl! < 40,
+            ),
+
+            if (results.ldl != null) buildInfoRow(
+              'LDL Cholesterol',
+              '${results.ldl} mg/dL',
+              normalRange: '< 100 mg/dL',
+              isAbnormal: results.ldl! > 100,
+            ),
+
+            if (results.triglycerides != null) buildInfoRow(
+              'Triglycerides',
+              '${results.triglycerides} mg/dL',
+              normalRange: '< 150 mg/dL',
+              isAbnormal: results.triglycerides! > 150,
+            ),
+
+            // Kidney Function Tests
+            if (results.creatinine != null) buildInfoRow(
+              'Creatinine',
+              '${results.creatinine} mg/dL',
+              normalRange: '0.7-1.3 mg/dL',
+              isAbnormal: results.creatinine! < 0.7 || results.creatinine! > 1.3,
+            ),
+
+            if (results.microalbumin != null) buildInfoRow(
+              'Urine Microalbumin',
+              '${results.microalbumin} mg/L',
+              normalRange: '< 30 mg/L',
+              isAbnormal: results.microalbumin! > 30,
+            ),
+
+            // Summary Section
+            if (_hasAbnormalResults(results)) ...[
+              SizedBox(height: 16),
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.red[50],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.warning, color: Colors.red),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Some results are outside normal ranges. Please consult with your healthcare provider.',
+                        style: TextStyle(color: Colors.red[900]),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+  Widget buildInfoRow(String label, String value, {
+    required String normalRange,
+    required bool isAbnormal,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 2,
+            child: Text(label, style: TextStyle(color: Colors.grey[600])),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(
+              value,
+              style: TextStyle(
+                fontWeight: FontWeight.w500,
+                color: isAbnormal ? Colors.red : Colors.black,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(
+              normalRange,
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  bool _hasAbnormalResults(TestResults results) {
+    return (results.fastingGlucose != null && results.fastingGlucose! > 100) ||
+        (results.ppGlucose != null && results.ppGlucose! > 140) ||
+        (results.hba1c != null && results.hba1c! > 5.6) ||
+        (results.hemoglobin != null && (results.hemoglobin! < 13.5 || results.hemoglobin! > 17.5)) ||
+        (results.totalCholesterol != null && results.totalCholesterol! > 200) ||
+        (results.hdl != null && results.hdl! < 40) ||
+        (results.ldl != null && results.ldl! > 100) ||
+        (results.triglycerides != null && results.triglycerides! > 150) ||
+        (results.creatinine != null && (results.creatinine! < 0.7 || results.creatinine! > 1.3)) ||
+        (results.microalbumin != null && results.microalbumin! > 30);
+  }
+
+}
+class TestResults {
+  final String? bloodGroup;
+  final double? fastingGlucose;
+  final double? ppGlucose;
+  final double? hba1c;
+  final double? hemoglobin;
+  final double? totalCholesterol;
+  final double? hdl;
+  final double? ldl;
+  final double? triglycerides;
+  final double? creatinine;
+  final double? microalbumin;
+
+  TestResults({
+    this.bloodGroup,
+    this.fastingGlucose,
+    this.ppGlucose,
+    this.hba1c,
+    this.hemoglobin,
+    this.totalCholesterol,
+    this.hdl,
+    this.ldl,
+    this.triglycerides,
+    this.creatinine,
+    this.microalbumin,
+  });
 }
