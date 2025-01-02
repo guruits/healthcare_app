@@ -6,6 +6,7 @@ import 'package:health/presentation/screens/selectPatienttest.dart';
 import 'package:health/presentation/screens/start.dart';
 import 'package:health/presentation/widgets/dateandtimepicker.widgets.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:intl/intl.dart';
 
 import '../controller/selectPatient.controller.dart';
 import '../widgets/bluetooth.widgets.dart';
@@ -249,6 +250,9 @@ class _UrineCollectionState extends State<Urinecollection> {
             SizedBox(height: 20),
             _buildPatientInfoBox(),
             SizedBox(height: 20),
+            _buildTestFieldsSection(),
+            SizedBox(height: 20),
+            _buildActionsSection(),
             _buildDateAndTimePicker(),
             SizedBox(height: 20),
             _buildStatusDropdown(localizations),
@@ -326,7 +330,7 @@ class _UrineCollectionState extends State<Urinecollection> {
           child: TextField(
             readOnly: true,
             decoration: InputDecoration(
-              labelText: 'Generated Urine Collection Number',
+              labelText: localizations.generated_urine_collection_number,
               border: OutlineInputBorder(),
               hintText: 'Automatically generated',
             ),
@@ -344,4 +348,355 @@ class _UrineCollectionState extends State<Urinecollection> {
       ],
     );
   }
+
+
+  Widget _buildTestFieldsSection() {
+    final localizations = AppLocalizations.of(context)!;
+    return Card(
+      elevation: 4,
+      child: Padding(
+        padding: EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(localizations.urine_test_results,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 16),
+            ...controller.testResults.entries.map(
+                  (entry) => _buildTestField(entry.value,),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTestField(UrineTestResult test) {
+    final localizations = AppLocalizations.of(context);
+    if (localizations == null) return Container(); // Handle null case
+
+    // Helper function for test names
+    String getLocalizedTestName(String key) {
+      return switch (key) {
+        'test_glucose' => localizations.test_glucose,
+        'test_protein' => localizations.test_protein,
+        'test_ketones' => localizations.test_ketones,
+        'ph_level' => localizations.ph_level,
+        'specific_gravity' => localizations.specific_gravity,
+        'microalbumin' => localizations.microalbumin,
+        _ => key,
+      };
+    }
+
+    // Helper function for units
+    String getLocalizedUnit(String unit) {
+      return switch (unit) {
+        'unit_gdl' => localizations.unit_gdl,
+        'unit_mmoll' => localizations.unit_mmoll,
+        'unit_mg24h' => localizations.unit_mg24h,
+        _ => unit,
+      };
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  decoration: InputDecoration(
+                    labelText: getLocalizedTestName(test.testNameKey),
+                    suffixText: test.unit.isNotEmpty ? getLocalizedUnit(test.unit) : '',
+                    border: const OutlineInputBorder(),
+                    helperStyle: const TextStyle(fontSize: 12),
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  onChanged: (value) {
+                    controller.updateTestValue(test.testNameKey.toLowerCase(), value);
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+
+  Widget _buildActionsSection() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        ElevatedButton.icon(
+          icon: Icon(Icons.assessment),
+          label: Text('Generate Report'),
+          onPressed: () => _showReport(),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.green,
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showReport() {
+    final localizations = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20.0),
+        ),
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.9,
+          padding: EdgeInsets.all(24.0),
+          child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    localizations.test_results,
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    '${localizations.date} ${DateFormat('yyyy-MM-dd').format(controller.testDateTime ?? DateTime.now())}',
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 24),
+
+              // Blood Group Section
+              _buildTestRow(
+                localizations.blood_group,
+                controller.selectedPatient.isNotEmpty ? 'A+' : 'N/A',
+                'N/A',
+                isHeader: false,
+                showDivider: true,
+              ),
+
+              // Diabetes Tests Section
+              Text(
+                localizations.diabetes_tests,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              SizedBox(height: 16),
+              Column(
+                children: [
+                  _buildTestRow(
+                      localizations.test_glucose,
+                      '${controller.testResults['glucose']?.value ?? 0} ${controller.testResults['glucose']?.unit ?? localizations.unit_gdl}',
+                      '${controller.testResults['glucose']?.minRange ?? 0}-${controller.testResults['glucose']?.maxRange ?? 0.8} ${controller.testResults['glucose']?.unit ?? localizations.unit_gdl}'
+                  ),
+                  _buildTestRow(
+                      localizations.test_protein,
+                      '${controller.testResults['protein']?.value ?? 0} ${controller.testResults['protein']?.unit ?? localizations.unit_gdl}',
+                      '${controller.testResults['protein']?.minRange ?? 0}-${controller.testResults['protein']?.maxRange ?? 0.2} ${controller.testResults['protein']?.unit ?? localizations.unit_gdl}'
+                  ),
+                  _buildTestRow(
+                      localizations.test_ketones,
+                      '${controller.testResults['ketones']?.value ?? 0} ${controller.testResults['ketones']?.unit ?? localizations.unit_mmoll}',
+                      '${controller.testResults['ketones']?.minRange ?? 0}-${controller.testResults['ketones']?.maxRange ?? 0.5} ${controller.testResults['ketones']?.unit ?? localizations.unit_mmoll}'
+                  ),
+                ],
+              ),
+
+              SizedBox(height: 24),
+
+              // Additional Tests Section
+              Text(
+                localizations.additional_tests,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              SizedBox(height: 16),
+              Column(
+                children: [
+                  _buildTestRow(localizations.ph_level, '${controller.testResults['ph']?.value ?? 0}', '4.5-8.0'),
+                  _buildTestRow(localizations.specific_gravity,
+                      '${controller.testResults['specificGravity']?.value ?? 0}',
+                      '1.005-1.030'
+                  ),
+                  _buildTestRow(localizations.microalbumin,
+                      '${controller.testResults['microalbumin']?.value ?? 0} mg/L',
+                      '< 30 mg/L'
+                  ),
+                ],
+              ),
+
+              SizedBox(height: 24),
+
+              // Warning message for abnormal results
+              if (!controller.validateAllTests())
+                Container(
+                  padding: EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.red.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.warning_amber_rounded, color: Colors.red),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          localizations.abnormal_results_warning,
+                          style: TextStyle(
+                            color: Colors.red,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              SizedBox(height: 24),
+
+              // Action buttons
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text('Close'),
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    ),
+                  ),
+                  SizedBox(width: 12),
+                  ElevatedButton(
+                    onPressed: () {
+                      // TODO: Implement save/print functionality
+                      Navigator.pop(context);
+                    },
+                    child: Text('Save Report'),
+                    style: ElevatedButton.styleFrom(
+                      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+      ),
+    );
+  }
+
+  Widget _buildTestRow(String label, String value, String normalRange, {bool isHeader = false, bool showDivider = false}) {
+    bool isAbnormal = false;
+
+    // Check if value is outside normal range
+    if (!isHeader && normalRange != 'N/A') {
+      try {
+        double numValue = double.parse(value.replaceAll(RegExp(r'[^\d.]'), ''));
+        if (normalRange.contains('-')) {
+          List<String> range = normalRange.split('-');
+          double min = double.parse(range[0].replaceAll(RegExp(r'[^\d.]'), ''));
+          double max = double.parse(range[1].replaceAll(RegExp(r'[^\d.]'), ''));
+          isAbnormal = numValue < min || numValue > max;
+        } else if (normalRange.contains('<')) {
+          double max = double.parse(normalRange.replaceAll(RegExp(r'[^\d.]'), ''));
+          isAbnormal = numValue > max;
+        }
+      } catch (e) {
+        // Handle parsing errors
+        print('Error parsing values: $e');
+      }
+    }
+
+    return Column(
+      children: [
+        Padding(
+          padding: EdgeInsets.symmetric(vertical: 12),
+          child: Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey[700],
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 1,
+                child: Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: isAbnormal ? Colors.red : Colors.black,
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 1,
+                child: Text(
+                  normalRange,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (showDivider)
+          Divider(height: 1),
+      ],
+    );
+  }
+
+  Widget _buildReportSection(String title, List<String> items) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        SizedBox(height: 8),
+        ...items.map((item) => Padding(
+          padding: EdgeInsets.symmetric(vertical: 4),
+          child: Text(item),
+        )),
+      ],
+    );
+  }
 }
+

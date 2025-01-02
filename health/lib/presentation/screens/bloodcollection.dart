@@ -9,6 +9,7 @@ import 'package:pdf/pdf.dart';
 import '../controller/bloodcollection.controller.dart';
 import '../controller/language.controller.dart';
 import '../controller/selectPatient.controller.dart';
+import '../widgets/bluetooth.widgets.dart';
 import '../widgets/language.widgets.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -124,183 +125,6 @@ class _BloodcollectionState extends State<Bloodcollection> {
           ),
         );
       },
-    );
-  }
-  Future<void> generateAndDownloadPDF(TestResults results) async {
-    final pdf = pw.Document();
-
-    pdf.addPage(
-      pw.Page(
-        build: (context) => pw.Padding(
-          padding: const pw.EdgeInsets.all(16.0),
-          child: pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              // Header
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.Text(
-                    'Test Results',
-                    style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold),
-                  ),
-                  pw.Text(
-                    'Date: ${DateTime.now().toString().split(' ')[0]}',
-                    style: pw.TextStyle(color: PdfColors.grey),
-                  ),
-                ],
-              ),
-              pw.Divider(),
-              pw.SizedBox(height: 16),
-
-              // Blood Group
-              if (results.bloodGroup != null)
-                buildPDFInfoRow(
-                  'Blood Group',
-                  results.bloodGroup!,
-                  'N/A',
-                  false,
-                ),
-
-              // Diabetes Tests Section
-              pw.SizedBox(height: 16),
-              pw.Text(
-                'Diabetes Tests',
-                style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
-              ),
-              pw.SizedBox(height: 8),
-
-              if (results.fastingGlucose != null)
-                buildPDFInfoRow(
-                  'Fasting Blood Sugar',
-                  '${results.fastingGlucose} mg/dL',
-                  '70-100 mg/dL',
-                  results.fastingGlucose! > 100,
-                ),
-
-              if (results.ppGlucose != null)
-                buildPDFInfoRow(
-                  'Post Prandial Blood Sugar',
-                  '${results.ppGlucose} mg/dL',
-                  '< 140 mg/dL',
-                  results.ppGlucose! > 140,
-                ),
-
-              if (results.hba1c != null)
-                buildPDFInfoRow(
-                  'HbA1c',
-                  '${results.hba1c}%',
-                  '4.0-5.6%',
-                  results.hba1c! > 5.6,
-                ),
-
-              // Additional Tests Section
-              pw.SizedBox(height: 16),
-              pw.Text(
-                'Additional Blood Tests',
-                style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
-              ),
-              pw.SizedBox(height: 8),
-
-              if (results.hemoglobin != null)
-                buildPDFInfoRow(
-                  'Hemoglobin',
-                  '${results.hemoglobin} g/dL',
-                  '13.5-17.5 g/dL',
-                  results.hemoglobin! < 13.5 || results.hemoglobin! > 17.5,
-                ),
-
-              // Cholesterol Panel
-              if (results.totalCholesterol != null)
-                buildPDFInfoRow(
-                  'Total Cholesterol',
-                  '${results.totalCholesterol} mg/dL',
-                  '< 200 mg/dL',
-                  results.totalCholesterol! > 200,
-                ),
-
-              if (results.hdl != null)
-                buildPDFInfoRow(
-                  'HDL Cholesterol',
-                  '${results.hdl} mg/dL',
-                  '> 40 mg/dL',
-                  results.hdl! < 40,
-                ),
-
-              if (results.ldl != null)
-                buildPDFInfoRow(
-                  'LDL Cholesterol',
-                  '${results.ldl} mg/dL',
-                  '< 100 mg/dL',
-                  results.ldl! > 100,
-                ),
-
-              // Warning section for abnormal results
-              if (_hasAbnormalResults(results))
-                pw.Container(
-                  padding: const pw.EdgeInsets.all(8),
-                  decoration: pw.BoxDecoration(
-                    color: PdfColors.red50,
-                    borderRadius: pw.BorderRadius.circular(8),
-                  ),
-                  child: pw.Row(
-                    children: [
-                      pw.Text(
-                        '⚠️ Some results are outside normal ranges. Please consult with your healthcare provider.',
-                        style: pw.TextStyle(color: PdfColors.red900),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-
-    // Get the application documents directory
-    final directory = await getApplicationDocumentsDirectory();
-    final String path = '${directory.path}/test_results_${DateTime.now().millisecondsSinceEpoch}.pdf';
-
-    // Save the PDF
-    final file = File(path);
-    await file.writeAsBytes(await pdf.save());
-
-    // Open the PDF
-    await OpenFile.open(path);
-  }
-
-  pw.Widget buildPDFInfoRow(String label, String value, String normalRange, bool isAbnormal) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(vertical: 4),
-      child: pw.Row(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.Expanded(
-            flex: 2,
-            child: pw.Text(label),
-          ),
-          pw.Expanded(
-            flex: 2,
-            child: pw.Text(
-              value,
-              style: pw.TextStyle(
-                color: isAbnormal ? PdfColors.red : PdfColors.black,
-                fontWeight: isAbnormal ? pw.FontWeight.bold : null,
-              ),
-            ),
-          ),
-          pw.Expanded(
-            flex: 2,
-            child: pw.Text(
-              'Normal Range: $normalRange',
-              style: const pw.TextStyle(
-                color: PdfColors.grey,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -430,6 +254,14 @@ class _BloodcollectionState extends State<Bloodcollection> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            Align(
+              alignment: Alignment.topRight,
+              child: BluetoothConnectionWidget(
+                onDeviceConnected: (deviceName) {
+                  print('Connected to device: $deviceName');
+                },
+              ),
+            ),
             Center(
               child: Image.asset(
                   'assets/images/bloodcollection.png', height: 200, width: 200),
