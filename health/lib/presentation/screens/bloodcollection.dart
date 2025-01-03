@@ -318,6 +318,7 @@ class _BloodcollectionState extends State<Bloodcollection> {
     );
   }
   Widget _buildBloodCollectionFields() {
+    final localizations = AppLocalizations.of(context)!;
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -327,7 +328,7 @@ class _BloodcollectionState extends State<Bloodcollection> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Diabetes Test Report',
+              localizations.test_reports,
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             Divider(),
@@ -343,7 +344,7 @@ class _BloodcollectionState extends State<Bloodcollection> {
             // Blood Group Dropdown
             DropdownButtonFormField<String>(
               decoration: InputDecoration(
-                labelText: 'Blood Group',
+                labelText: localizations.blood_group,
                 border: OutlineInputBorder(),
               ),
               value: _controller.bloodGroup ?? 'A+',
@@ -364,7 +365,7 @@ class _BloodcollectionState extends State<Bloodcollection> {
 
             // Diabetes Tests Section
             Text(
-              'Diabetes Tests',
+             localizations.diabetes_tests,
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
             ),
             SizedBox(height: 12),
@@ -373,9 +374,9 @@ class _BloodcollectionState extends State<Bloodcollection> {
             TextField(
               controller: _controller.fastingGlucoseController,
               decoration: InputDecoration(
-                labelText: 'Fasting Blood Sugar',
+                labelText: localizations.fasting_glucose,
                 border: OutlineInputBorder(),
-                suffixText: 'mg/dL',
+                suffixText: localizations.unit_mgdl,
                 helperText: 'Measured after 8 hours of fasting',
               ),
               keyboardType: TextInputType.number,
@@ -386,7 +387,7 @@ class _BloodcollectionState extends State<Bloodcollection> {
             TextField(
               controller: _controller.ppGlucoseController,
               decoration: InputDecoration(
-                labelText: 'Post Prandial Blood Sugar',
+                labelText:localizations.pp_glucose,
                 border: OutlineInputBorder(),
                 suffixText: 'mg/dL',
                 helperText: 'Measured 2 hours after meal',
@@ -399,7 +400,7 @@ class _BloodcollectionState extends State<Bloodcollection> {
             TextField(
               controller: _controller.hba1cController,
               decoration: InputDecoration(
-                labelText: 'HbA1c',
+                labelText: localizations.hba1c,
                 border: OutlineInputBorder(),
                 suffixText: '%',
                 helperText: 'Glycated Hemoglobin',
@@ -410,7 +411,7 @@ class _BloodcollectionState extends State<Bloodcollection> {
 
             // Additional Blood Tests
             Text(
-              'Additional Blood Tests',
+              localizations.additional_tests,
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
             ),
             SizedBox(height: 12),
@@ -419,9 +420,9 @@ class _BloodcollectionState extends State<Bloodcollection> {
             TextField(
               controller: _controller.hemoglobinController,
               decoration: InputDecoration(
-                labelText: 'Hemoglobin',
+                labelText: localizations.hemoglobin,
                 border: OutlineInputBorder(),
-                suffixText: 'g/dL',
+                suffixText: localizations.unit_gdl,
               ),
               keyboardType: TextInputType.number,
             ),
@@ -431,9 +432,9 @@ class _BloodcollectionState extends State<Bloodcollection> {
             TextField(
               controller: _controller.cholesterolController,
               decoration: InputDecoration(
-                labelText: 'Total Cholesterol',
+                labelText: localizations.total_cholesterol,
                 border: OutlineInputBorder(),
-                suffixText: 'mg/dL',
+                suffixText: localizations.unit_mgdl,
               ),
               keyboardType: TextInputType.number,
             ),
@@ -443,9 +444,9 @@ class _BloodcollectionState extends State<Bloodcollection> {
             TextField(
               controller: _controller.triglyceridesController,
               decoration: InputDecoration(
-                labelText: 'Triglycerides',
+                labelText: localizations.triglycerides,
                 border: OutlineInputBorder(),
-                suffixText: 'mg/dL',
+                suffixText: localizations.unit_mgdl,
               ),
               keyboardType: TextInputType.number,
             ),
@@ -455,9 +456,9 @@ class _BloodcollectionState extends State<Bloodcollection> {
             TextField(
               controller: _controller.hdlController,
               decoration: InputDecoration(
-                labelText: 'HDL Cholesterol',
+                labelText: localizations.hdl,
                 border: OutlineInputBorder(),
-                suffixText: 'mg/dL',
+                suffixText:  localizations.unit_mgdl,
               ),
               keyboardType: TextInputType.number,
             ),
@@ -467,9 +468,9 @@ class _BloodcollectionState extends State<Bloodcollection> {
             TextField(
               controller: _controller.ldlController,
               decoration: InputDecoration(
-                labelText: 'LDL Cholesterol',
+                labelText: localizations.ldl,
                 border: OutlineInputBorder(),
-                suffixText: 'mg/dL',
+                suffixText: localizations.unit_mgdl,
               ),
               keyboardType: TextInputType.number,
             ),
@@ -479,9 +480,9 @@ class _BloodcollectionState extends State<Bloodcollection> {
             TextField(
               controller: _controller.creatinineController,
               decoration: InputDecoration(
-                labelText: 'Creatinine Level',
+                labelText: localizations.creatinine,
                 border: OutlineInputBorder(),
-                suffixText: 'mg/dL',
+                suffixText: localizations.unit_mgdl,
               ),
               keyboardType: TextInputType.number,
             ),
@@ -491,9 +492,9 @@ class _BloodcollectionState extends State<Bloodcollection> {
             TextField(
               controller: _controller.microalbuminController,
               decoration: InputDecoration(
-                labelText: 'Urine Microalbumin',
+                labelText: localizations.microalbumin,
                 border: OutlineInputBorder(),
-                suffixText: 'mg/L',
+                suffixText: localizations.unit_mgdl,
               ),
               keyboardType: TextInputType.number,
             ),
@@ -505,7 +506,7 @@ class _BloodcollectionState extends State<Bloodcollection> {
                   padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16), backgroundColor: Colors.blue,
                 ),
                 child: Text(
-                  'View Results',
+                  localizations.view_results,
                   style: TextStyle(fontSize: 16),
                 ),
               ),
@@ -651,6 +652,7 @@ class _BloodcollectionState extends State<Bloodcollection> {
     );
   }
   Widget buildResultCard(TestResults results) {
+    final localizations = AppLocalizations.of(context)!;
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -663,11 +665,11 @@ class _BloodcollectionState extends State<Bloodcollection> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Test Results',
+                  localizations.test_results,
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 Text(
-                  'Date: ${DateTime.now().toString().split(' ')[0]}',
+                  '${localizations.date}: ${DateTime.now().toString().split(' ')[0]}',
                   style: TextStyle(color: Colors.grey[600]),
                 ),
               ],
@@ -677,7 +679,7 @@ class _BloodcollectionState extends State<Bloodcollection> {
 
             // Blood Group
             if (results.bloodGroup != null) buildInfoRow(
-              'Blood Group',
+              localizations.blood_group,
               results.bloodGroup!,
               normalRange: 'N/A',
               isAbnormal: false,
@@ -686,30 +688,30 @@ class _BloodcollectionState extends State<Bloodcollection> {
             // Diabetes Tests Section
             SizedBox(height: 16),
             Text(
-              'Diabetes Tests',
+              localizations.diabetes_tests,
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),
             SizedBox(height: 8),
 
             // Fasting Blood Sugar
             if (results.fastingGlucose != null) buildInfoRow(
-              'Fasting Blood Sugar',
-              '${results.fastingGlucose} mg/dL',
+              localizations.fasting_glucose,
+              '${results.fastingGlucose} ${localizations.unit_mgdl}',
               normalRange: '70-100 mg/dL',
               isAbnormal: results.fastingGlucose! > 100,
             ),
 
             // Post Prandial
             if (results.ppGlucose != null) buildInfoRow(
-              'Post Prandial Blood Sugar',
-              '${results.ppGlucose} mg/dL',
+              localizations.pp_glucose,
+              '${results.ppGlucose} ${localizations.unit_mgdl}',
               normalRange: '< 140 mg/dL',
               isAbnormal: results.ppGlucose! > 140,
             ),
 
             // HbA1c
             if (results.hba1c != null) buildInfoRow(
-              'HbA1c',
+              localizations.hba1c,
               '${results.hba1c}%',
               normalRange: '4.0-5.6%',
               isAbnormal: results.hba1c! > 5.6,
@@ -718,14 +720,14 @@ class _BloodcollectionState extends State<Bloodcollection> {
             // Additional Tests Section
             SizedBox(height: 16),
             Text(
-              'Additional Blood Tests',
+              localizations.additional_tests,
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),
             SizedBox(height: 8),
 
             // Hemoglobin
             if (results.hemoglobin != null) buildInfoRow(
-              'Hemoglobin',
+              localizations.hemoglobin,
               '${results.hemoglobin} g/dL',
               normalRange: '13.5-17.5 g/dL',
               isAbnormal: results.hemoglobin! < 13.5 || results.hemoglobin! > 17.5,
@@ -733,44 +735,44 @@ class _BloodcollectionState extends State<Bloodcollection> {
 
             // Cholesterol Panel
             if (results.totalCholesterol != null) buildInfoRow(
-              'Total Cholesterol',
-              '${results.totalCholesterol} mg/dL',
+              localizations.total_cholesterol,
+              '${results.totalCholesterol} ${localizations.unit_mgdl}',
               normalRange: '< 200 mg/dL',
               isAbnormal: results.totalCholesterol! > 200,
             ),
 
             if (results.hdl != null) buildInfoRow(
-              'HDL Cholesterol',
-              '${results.hdl} mg/dL',
+             localizations.hdl,
+              '${results.hdl} ${localizations.unit_mgdl}',
               normalRange: '> 40 mg/dL',
               isAbnormal: results.hdl! < 40,
             ),
 
             if (results.ldl != null) buildInfoRow(
-              'LDL Cholesterol',
-              '${results.ldl} mg/dL',
+             localizations.ldl,
+              '${results.ldl} ${localizations.unit_mgdl}',
               normalRange: '< 100 mg/dL',
               isAbnormal: results.ldl! > 100,
             ),
 
             if (results.triglycerides != null) buildInfoRow(
-              'Triglycerides',
-              '${results.triglycerides} mg/dL',
+             localizations.triglycerides,
+              '${results.triglycerides} ${localizations.unit_mgdl}',
               normalRange: '< 150 mg/dL',
               isAbnormal: results.triglycerides! > 150,
             ),
 
             // Kidney Function Tests
             if (results.creatinine != null) buildInfoRow(
-              'Creatinine',
-              '${results.creatinine} mg/dL',
+              localizations.creatinine,
+              '${results.creatinine} ${localizations.unit_mgdl}',
               normalRange: '0.7-1.3 mg/dL',
               isAbnormal: results.creatinine! < 0.7 || results.creatinine! > 1.3,
             ),
 
             if (results.microalbumin != null) buildInfoRow(
-              'Urine Microalbumin',
-              '${results.microalbumin} mg/L',
+             localizations.microalbumin,
+              '${results.microalbumin} ${localizations.unit_mgdl}',
               normalRange: '< 30 mg/L',
               isAbnormal: results.microalbumin! > 30,
             ),
@@ -790,7 +792,7 @@ class _BloodcollectionState extends State<Bloodcollection> {
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Some results are outside normal ranges. Please consult with your healthcare provider.',
+                        localizations.abnormal_results_warning,
                         style: TextStyle(color: Colors.red[900]),
                       ),
                     ),
