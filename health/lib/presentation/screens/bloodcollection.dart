@@ -25,13 +25,12 @@ class _BloodcollectionState extends State<Bloodcollection> {
   final BloodCollectionController _controller = BloodCollectionController();
   final LanguageController _languageController = LanguageController();
   final SelectpatientController _selectpatientcontroller = SelectpatientController();
-  DateTime? _selectedDateTime;
-  late String TestStatus;
+
 
   @override
   void initState() {
     super.initState();
-    TestStatus = 'YET-TO-START';
+    _controller.TestStatus = 'YET-TO-START';
   }
 
   void _selectPatient(Map<String, dynamic> patient) {
@@ -43,7 +42,7 @@ class _BloodcollectionState extends State<Bloodcollection> {
           patient['appointmentSlot'] ?? '',
           patient['address'] ?? ''
       );
-      TestStatus = patient['TestStatus'] ?? 'YET-TO-START';
+      _controller.TestStatus = patient['TestStatus'] ?? 'YET-TO-START';
     });
   }
 
@@ -54,7 +53,7 @@ class _BloodcollectionState extends State<Bloodcollection> {
       'aadharNumber': _controller.patientAadharNumber,
       'appointmentSlot': _controller.appointmentSlot,
       'address': _controller.patientAddress,
-      'bloodTestStatus': TestStatus,
+      'bloodTestStatus': _controller.TestStatus,
       'testReport': _controller.getTestData(),
     };
 
@@ -70,7 +69,7 @@ class _BloodcollectionState extends State<Bloodcollection> {
               testType: 'blood_test_label',
               submittedPatientNames: [currentPatient['patientName']],
               initialSelectedPatient: currentPatient,
-              TestStatus: TestStatus, // Explicitly pass the TestStatus
+              TestStatus: _controller.TestStatus,
             ),
       ),
     );
@@ -544,7 +543,7 @@ class _BloodcollectionState extends State<Bloodcollection> {
     ];
 
     // Only add the completed status if both date and collection number are available
-    if (_selectedDateTime != null &&
+    if (_controller.selectedDateTime != null &&
         _controller.bllodcollectionAppointmentNumber.isNotEmpty) {
       dropdownItems.add(
         DropdownMenuItem(
@@ -555,8 +554,8 @@ class _BloodcollectionState extends State<Bloodcollection> {
     }
 
     // Ensure the current TestStatus is valid
-    if (!dropdownItems.any((item) => item.value == TestStatus)) {
-      TestStatus = dropdownItems.first.value!;
+    if (!dropdownItems.any((item) => item.value == _controller.TestStatus)) {
+      _controller.TestStatus = dropdownItems.first.value!;
     }
 
     return Row(
@@ -564,11 +563,11 @@ class _BloodcollectionState extends State<Bloodcollection> {
       children: [
         Expanded(
           child: DropdownButtonFormField<String>(
-            value: TestStatus,
+            value: _controller.TestStatus,
             items: dropdownItems,
             onChanged: (String? newValue) {
               setState(() {
-                TestStatus = newValue!;
+                _controller.TestStatus = newValue!;
               });
             },
             decoration: InputDecoration(
@@ -593,7 +592,7 @@ class _BloodcollectionState extends State<Bloodcollection> {
     return Dateandtimepicker(
       onDateTimeSelected: (DateTime? dateTime) {
         setState(() {
-          _selectedDateTime = dateTime;
+          _controller.selectedDateTime = dateTime;
           _selectpatientcontroller.appointmentDateTime = dateTime;
         });
       },
@@ -601,11 +600,11 @@ class _BloodcollectionState extends State<Bloodcollection> {
   }
 
   void _generateBloodCollectionNumber() {
-    if (_selectedDateTime != null) {
+    if (_controller.selectedDateTime != null) {
       // Example generation logic - adjust as needed
       _controller.bllodcollectionAppointmentNumber =
-      'BC-${_selectedDateTime!.year}${_selectedDateTime!.month.toString()
-          .padLeft(2, '0')}${_selectedDateTime!.day.toString()
+      'BC-${_controller.selectedDateTime!.year}${_controller.selectedDateTime!.month.toString()
+          .padLeft(2, '0')}${_controller.selectedDateTime!.day.toString()
           .padLeft(2, '0')}-${DateTime
           .now()
           .millisecondsSinceEpoch % 10000}';
@@ -617,7 +616,7 @@ class _BloodcollectionState extends State<Bloodcollection> {
     final localizations = AppLocalizations.of(context)!;
 
     // Generate collection number when date is selected
-    if (_selectedDateTime != null &&
+    if (_controller.selectedDateTime != null &&
         _controller.bllodcollectionAppointmentNumber.isEmpty) {
       _generateBloodCollectionNumber();
     }

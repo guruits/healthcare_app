@@ -9,7 +9,7 @@ class SplashController {
   SplashController(this.context);
 
   void startTimer() {
-    Timer(Duration(seconds: 10), () {
+    Timer(Duration(seconds: 5), () {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => Home()),
       );

@@ -60,7 +60,8 @@ class StartController {
           {'title': 'Helpdesk', 'screen': Helpdesk()},
           {'title': 'Notifications', 'screen': NotificationScreen(userRole: UserRole.admin)},
           {'title': 'Appointments', 'screen': Appointments()},
-          {'title': 'Vitals', 'screen': AudioBluetoothPage()},
+          {'title': 'Vitals', 'screen': Vitals()},
+          {'title': 'Bluetooth', 'screen': AudioBluetoothPage()},
           {'title': 'Blood Collection', 'screen': Bloodcollection()},
           {'title': 'Neuro touch', 'screen': Neurotouch()},
           {'title': 'Urine Collection', 'screen': Urinecollection()},
@@ -91,8 +92,10 @@ class StartController {
       case 'Technician':
         return [
           {'title': 'Notifications', 'screen': NotificationScreen(userRole: UserRole.admin)},
+          {'title': 'Vitals', 'screen': Vitals()},
           {'title': 'Blood Collection', 'screen': Bloodcollection()},
           {'title': 'Urine Collection', 'screen': Urinecollection()},
+          {'title': 'Neuro touch', 'screen': Neurotouch()},
           {'title': 'Helpdesk', 'screen': Helpdesk()},
           {'title': 'Vitals', 'screen': Vitals()},
           {'title': 'Arc', 'screen': Arc()},

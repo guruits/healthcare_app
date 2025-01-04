@@ -50,7 +50,6 @@ class _HomeState extends State<Home> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Sign Up Section on the Left
             Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,

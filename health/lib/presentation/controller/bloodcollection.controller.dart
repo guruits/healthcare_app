@@ -14,7 +14,8 @@ class BloodCollectionController {
   bool _isPrinting = false;
   String _statusMessage = '';
   String bllodcollectionAppointmentNumber = '';
-
+  DateTime? selectedDateTime;
+  late String TestStatus;
   String get selectedPatient => _selectedPatient;
   String get patientMobileNumber => _patientMobileNumber;
   String get patientAadharNumber => _patientAadharNumber;
