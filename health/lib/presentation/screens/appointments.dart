@@ -27,6 +27,7 @@ class Appointments extends StatefulWidget {
   State<Appointments> createState() => _AppointmentsState();
 }
 
+
 class _AppointmentsState extends State<Appointments> {
   final AppointmentsController controller = AppointmentsController();
   final TimeSlotManager timeSlotManager = TimeSlotManager();
@@ -130,8 +131,6 @@ class _AppointmentsState extends State<Appointments> {
               decoration: BoxDecoration(
                 color: isSelected
                     ? Colors.blue
-                    : isSunday
-                    ? Colors.red[200] // Mark Sunday as red
                     : Colors.grey[200],
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -141,7 +140,10 @@ class _AppointmentsState extends State<Appointments> {
                   Text(
                     DateFormat('EEE').format(date),
                     style: TextStyle(
-                      color: isSelected ? Colors.white : Colors.black,
+                      color: isSelected ?
+                      Colors.white
+                          : isSunday
+                          ? Colors.red[200]: Colors.black,
                     ),
                   ),
                   Text(

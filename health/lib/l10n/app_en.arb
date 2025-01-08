@@ -1,7 +1,7 @@
 {
   "english": "English",
   "appTitle": "My Health App",
-  "login": "Sign In",
+  "login": "Login",
   "signUp": "Sign Up",
 
   "register_success": "Register Successful",

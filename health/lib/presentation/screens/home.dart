@@ -38,8 +38,16 @@ class _HomeState extends State<Home> {
     print('Login text: ${localizations.login}');
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(localizations.appTitle),
+        title: Text(
+          localizations.appTitle,
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
+        ),
         actions: [
           LanguageToggle(),
         ],
@@ -69,6 +77,8 @@ class _HomeState extends State<Home> {
                       );
                     },
                     style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black,
+                      foregroundColor: Colors.white,
                       shadowColor: Colors.black,
                       elevation: 5,
                       shape: RoundedRectangleBorder(
@@ -114,6 +124,8 @@ class _HomeState extends State<Home> {
                       );
                     },
                     style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black,
+                      foregroundColor: Colors.white,
                       shadowColor: Colors.black,
                       elevation: 5,
                       shape: RoundedRectangleBorder(
