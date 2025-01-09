@@ -1,4 +1,7 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:flutter/cupertino.dart';
+import 'package:health/presentation/screens/admin.dart';
 import 'package:health/presentation/screens/neurotouch.dart';
 import 'package:health/presentation/screens/notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -33,22 +36,69 @@ class StartController {
 
   String userName = '';
   String userRole = '';
+  String phoneNumber = '';
+  void setPhoneNumber(String number) {
+    phoneNumber = number;
+  }
+  Future<void> updateCurrentUser(String name, String role) async {
+    userName = name;
+    userRole = role;
 
+    // Persist the data
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('userName', name);
+    await prefs.setString('userRole', role);
+  }
   bool isMuted = false;
   String selectedLanguage = 'en-US';
 
   Future<void> loadUserDetails() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    {
-      userName = prefs.getString('userName') ?? 'User';
-      userRole = prefs.getString('userRole') ?? 'Role';
-    };
+    userName = prefs.getString('userName') ?? 'User';
+    userRole = prefs.getString('userRole') ?? 'Role';
+    phoneNumber = prefs.getString('phoneNumber') ?? '';
   }
 
   Future<void> clearUserData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.remove('userName');
     await prefs.remove('userRole');
+  }
+  Future<Map<String, Map<String, String>>> fetchUserDetails(
+      String phoneNumber) async {
+    try {
+      final response = await http.get(
+          Uri.parse('http://192.168.29.36:3000/users/phone/$phoneNumber'));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final Map<String, Map<String, String>> userDetails = {};
+
+        data.forEach((user) {
+          print("user details $userDetails");
+          userDetails[user['name'] ?? 'Unknown'] = {
+            'Aadhar': user['aadhaarNumber'] ?? 'Not available',
+            'FullName': user['name'] ?? 'Not available',
+            'DOB': user['dob'] ?? 'Not available',
+            'Address': user['address'] ?? 'Not available',
+            //'Role': user['Role'] ?? 'Patient',
+            'Role': user['role'] ?? 'Admin',
+            'Password': user['confirmPassword'] ?? 'adminhcapp'
+          };
+        });
+
+
+        return userDetails;
+      } else if (response.statusCode == 404) {
+        throw Exception('No users found with the provided phone number');
+      } else {
+        throw Exception(
+            'Failed to fetch user details: ${response.reasonPhrase}');
+      }
+    } catch (e) {
+      print("error:$e");
+      throw Exception('Error fetching user details: $e');
+    }
   }
 
   // Method to get options based on user role
@@ -57,6 +107,7 @@ class StartController {
       case 'IT Admin':
       case 'Admin':
         return [
+          {'title': 'Admin', 'screen': AdminScreen()},
           {'title': 'Helpdesk', 'screen': Helpdesk()},
           {'title': 'Notifications', 'screen': NotificationScreen(userRole: UserRole.admin)},
           {'title': 'Appointments', 'screen': Appointments()},

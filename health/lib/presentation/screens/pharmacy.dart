@@ -278,6 +278,7 @@ class _PharmacyManagementPageState extends State<Pharmacy> {
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context)!;
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text(localizations.pharmacy),
         leading: IconButton(

@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -123,8 +124,8 @@ class _PhoneInputWidgetState extends State<PhoneInputWidget> {
               child: Container(
                 padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
                 decoration: BoxDecoration(
-                  color: Colors.white, // Background color
-                  borderRadius: BorderRadius.circular(30.0), // Rounded corners
+                  //color: Colors.grey, // Background color
+                  borderRadius: BorderRadius.circular(30.0),
                   border: Border.all(
                     color: Colors.black, // Border color
                   ),
@@ -132,8 +133,8 @@ class _PhoneInputWidgetState extends State<PhoneInputWidget> {
                 child: Row(
                   children: [
                     Text(
-                      selectedCountry, // Display the country code as prefix
-                      style: TextStyle(fontSize: 18, color: Colors.black), // Text color
+                      selectedCountry,
+                      style: TextStyle(fontSize: 18, color: Colors.black),
                     ),
                     SizedBox(width: 5),
                     Icon(
@@ -162,6 +163,8 @@ class _PhoneInputWidgetState extends State<PhoneInputWidget> {
                   hintStyle: TextStyle(
                     color: Colors.grey, // Hint text color
                   ),
+                  /*filled: true,
+                  fillColor: CupertinoColors.lightBackgroundGray,*/
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(30.0),
                     borderSide: BorderSide(

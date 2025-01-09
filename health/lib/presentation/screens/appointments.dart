@@ -69,8 +69,12 @@ class _AppointmentsState extends State<Appointments> {
         final isSelected = controller.selectedDoctor == doctorName;
 
         return Card(
-          elevation: isSelected ? 4 : 1,
-          margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+          elevation: isSelected ? 3 : 1,
+          color: Colors.white,
+          margin: const EdgeInsets.symmetric(vertical: 15, horizontal: 30),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
           child: ListTile(
             leading: CircleAvatar(
               radius: 30,
@@ -130,8 +134,8 @@ class _AppointmentsState extends State<Appointments> {
               margin: const EdgeInsets.symmetric(horizontal: 4),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? Colors.blue
-                    : Colors.grey[200],
+                    ? Colors.black38
+                    : Colors.black,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
@@ -141,15 +145,15 @@ class _AppointmentsState extends State<Appointments> {
                     DateFormat('EEE').format(date),
                     style: TextStyle(
                       color: isSelected ?
-                      Colors.white
+                      Colors.black
                           : isSunday
-                          ? Colors.red[200]: Colors.black,
+                          ? Colors.red[200]: Colors.white,
                     ),
                   ),
                   Text(
                     DateFormat('MMM d').format(date),
                     style: TextStyle(
-                      color: isSelected ? Colors.white : Colors.black,
+                      color: isSelected ? Colors.black : Colors.white,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -170,7 +174,7 @@ class _AppointmentsState extends State<Appointments> {
     final currentTime = DateTime.now(); // Get current time
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         const Padding(
           padding: EdgeInsets.all(16),
@@ -182,72 +186,65 @@ class _AppointmentsState extends State<Appointments> {
             ),
           ),
         ),
-        ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: availableSlots.length,
-          itemBuilder: (context, index) {
-            final slot = availableSlots.keys.elementAt(index);
-            final availableCount = availableSlots[slot] ?? 0;
-            final isSelected = controller.selectedSlot == slot;
+        SingleChildScrollView(
+          scrollDirection: Axis.vertical,
+          child: Wrap(
+            spacing: 16.0,
+            runSpacing: 8.0,
+            children: availableSlots.entries.map((entry) {
+              final slot = entry.key;
+              final availableCount = entry.value;
+              final isSelected = controller.selectedSlot == slot;
 
+              final timeFormat = DateFormat('hh:mm a');
+              final slotTime = timeFormat.parse(slot);
+              final slotDateTime = DateTime(controller.selectedDate!.year, controller.selectedDate!.month, controller.selectedDate!.day, slotTime.hour, slotTime.minute);
 
-            final timeFormat = DateFormat('hh:mm a');
-            final slotTime = timeFormat.parse(slot);
-            final slotDateTime = DateTime(controller.selectedDate!.year, controller.selectedDate!.month, controller.selectedDate!.day, slotTime.hour, slotTime.minute);
+              // Skip past slots
+              if (slotDateTime.isBefore(currentTime)) {
+                return SizedBox.shrink();
+              }
 
-            // Disable past slots
-            final isPastSlot = slotDateTime.isBefore(currentTime);
-
-            return GestureDetector(
-              onTap: isPastSlot
-                  ? null
-                  : () {
-                // Check if controller is initialized and the selectedSlot is not null
-                if (controller != null && slot != null) {
-                  setState(() {
-                    controller.setSelectedSlot(slot);
-                  });
-                } else {
-                  print('Error: controller or selectedSlot is null');
-                }
-              },
-              child: Container(
-                margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 5),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? Colors.blue
-                      : isPastSlot
-                      ? Colors.grey[400] // Past slots are greyed out
-                      : Colors.grey[200],
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    Text(
-                      slot,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: isSelected
-                            ? Colors.white
-                            : isPastSlot
-                            ? Colors.black.withOpacity(0.5)
-                            : Colors.black,
+              return GestureDetector(
+                onTap: () {
+                  if (controller != null && slot != null) {
+                    setState(() {
+                      controller.setSelectedSlot(slot);
+                    });
+                  } else {
+                    print('Error: controller or selectedSlot is null');
+                  }
+                },
+                child: Container(
+                  width: MediaQuery.of(context).size.width / 2 - 32,
+                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isSelected ? Colors.black26 : Colors.black,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    children: [
+                      Text(
+                        slot,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: isSelected ? Colors.white : Colors.white,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '($availableCount available)',
-                      style: TextStyle(
-                        color: availableCount > 0 ? Colors.green : Colors.red,
+                      const SizedBox(height: 4),
+                      Text(
+                        '($availableCount available)',
+                        style: TextStyle(
+                          color: availableCount > 0 ? Colors.green : Colors.red,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            );
-          },
+              );
+            }).toList(),
+          ),
         ),
         if (controller.selectedSlot != null)
           Padding(
@@ -256,13 +253,23 @@ class _AppointmentsState extends State<Appointments> {
               child: ElevatedButton(
                 onPressed: _confirmAppointment,
                 child: Text(AppLocalizations.of(context)?.confirm_appointment ?? 'Confirm Appointment'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black,
+                  foregroundColor: Colors.white,
+                  shadowColor: Colors.black,
+                  elevation: 5,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 32, vertical: 16),
+                ),
               ),
             ),
           ),
       ],
     );
   }
-
 
   void _confirmAppointment() {
     if (!controller.canConfirmAppointment()) return;
@@ -310,6 +317,7 @@ class _AppointmentsState extends State<Appointments> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -324,10 +332,11 @@ class _AppointmentsState extends State<Appointments> {
       ),
       body: SingleChildScrollView(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             _buildDoctorList(),
             _buildDateScroller(),
+            SizedBox(height: 50),
             _buildTimeSlots(),
           ],
         ),
