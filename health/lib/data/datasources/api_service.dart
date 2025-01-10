@@ -36,11 +36,9 @@ class UserService {
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
 
-        // Check if the response data is not null
         if (responseData != null) {
-          // Ensure the fields are not null before accessing
-          String name = responseData['name'] ?? ''; // Default to empty string if null
-          String phoneNumber = responseData['phone_number'] ?? ''; // Default to empty string if null
+          String name = responseData['name'] ?? '';
+          String phoneNumber = responseData['phone_number'] ?? '';
 
           // Standardized success response
           return {
@@ -89,6 +87,69 @@ class UserService {
       };
     }
   }
+  Future<Map<String, dynamic>> getAllUsers() async {
+    try {
+      final uri = Uri.parse('$baseUrl/users');
+      final response = await http.get(uri).timeout(
+        const Duration(seconds: 60),
+        onTimeout: () {
+          throw TimeoutException('Request timed out after 60 seconds');
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return {
+          'status': 'success',
+          'statusCode': response.statusCode,
+          'message': 'Users fetched successfully',
+          'data': json.decode(response.body)
+        };
+      } else {
+        return {
+          'status': 'error',
+          'statusCode': response.statusCode,
+          'message': 'Failed to fetch users: ${response.body}',
+          'data': null
+        };
+      }
+    } catch (e) {
+      return {
+        'status': 'error',
+        'message': 'Failed to fetch users: ${e.toString()}'
+      };
+    }
+  }
+  Future<Map<String, dynamic>> deleteUser(String phoneNumber) async {
+    try {
+      final uri = Uri.parse('$baseUrl/users/$phoneNumber');
+      final response = await http.delete(uri).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () {
+          throw TimeoutException('Request timed out after 30 seconds');
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return {
+          'status': 'success',
+          'statusCode': response.statusCode,
+          'message': 'User deleted successfully',
+        };
+      } else {
+        return {
+          'status': 'error',
+          'statusCode': response.statusCode,
+          'message': 'Failed to delete user: ${response.body}',
+        };
+      }
+    } catch (e) {
+      return {
+        'status': 'error',
+        'message': 'Failed to delete user: ${e.toString()}'
+      };
+    }
+  }
+
 
   //add user
   Future<Map<String, dynamic>> addUserhd({

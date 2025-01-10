@@ -65,12 +65,19 @@ class _LoginState extends State<Login> {
         });
         return;
       }
+      bool isPasswordMatched = false;
+      String? matchedUser;
 
-      // Select first user automatically
-      _controller.selectedUser = userData.keys.first;
-      final storedPassword = userData[_controller.selectedUser]?['Password'];
+      userData.forEach((user, details) {
+        final storedPassword = details['Password'];
+        if (storedPassword != null && storedPassword == _passwordController.text) {
+          isPasswordMatched = true;
+          matchedUser = user;
+        }
+      });
 
-      if (storedPassword != null && storedPassword == _passwordController.text) {
+      if (isPasswordMatched) {
+        _controller.selectedUser = matchedUser!;
         proceedToStart();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -95,6 +102,8 @@ class _LoginState extends State<Login> {
       );
     }
   }
+
+
 
   Future<void> handleFaceUnlock() async {
     setState(() {

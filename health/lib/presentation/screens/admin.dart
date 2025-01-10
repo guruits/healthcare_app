@@ -34,7 +34,7 @@ class _AdminScreenState extends State<AdminScreen> {
           valueListenable: _controller.selectedDrawerItem,
           builder: (context, drawerItem, _) {
             return Text(
-              drawerItem ?? 'Home',
+              drawerItem ?? 'Admin',
               style: const TextStyle(color: Colors.black),
             );
           },
@@ -64,8 +64,12 @@ class _AdminScreenState extends State<AdminScreen> {
               }
               // Return bottom nav page
               if (selectedIndex >= 0 && selectedIndex < _bottomNavItems.length) {
+                if (_bottomNavItems[selectedIndex].label == 'Home') {
+                  return _buildHomeScreen();
+                }
                 return _bottomNavItems[selectedIndex].page;
               }
+
               return _buildHomeScreen();
             },
           );
@@ -76,7 +80,7 @@ class _AdminScreenState extends State<AdminScreen> {
         builder: (context, selectedIndex, _) {
           return BottomNavigationBar(
             backgroundColor: Colors.white,
-            selectedItemColor: Colors.black,
+            selectedItemColor: Colors.red,
             unselectedItemColor: Colors.black,
             currentIndex: selectedIndex >= 0 ? selectedIndex : 0,
             type: BottomNavigationBarType.fixed,
