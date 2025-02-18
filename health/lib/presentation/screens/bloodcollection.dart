@@ -9,6 +9,7 @@ import 'package:pdf/pdf.dart';
 import '../controller/bloodcollection.controller.dart';
 import '../controller/language.controller.dart';
 import '../controller/selectPatient.controller.dart';
+//import '../widgets/bluetooth.widgets.dart';
 import '../widgets/bluetooth.widgets.dart';
 import '../widgets/language.widgets.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';

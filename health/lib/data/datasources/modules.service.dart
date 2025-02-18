@@ -1,24 +1,15 @@
-import 'package:flutter/material.dart';
+/*
+import 'package:health/utils/config/ipconfig.dart';
 import 'package:http_parser/http_parser.dart';
-import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class ModuleService {
-  static String get baseUrl {
-    if (Platform.isAndroid) {
-      return 'http://192.168.29.36:3000/api/modules';
-    } else if (Platform.isIOS) {
-      return 'http://localhost:3000/modules';
-    } else {
-      return 'http://localhost:3000/modules';
-    }
-  }
   static String? getImageUrl(String? imagePath) {
     if (imagePath == null || imagePath.isEmpty) return null;
 
-    final serverUrl = baseUrl.replaceAll('/api/modules', '');
+    final serverUrl = IpConfig.baseUrl.replaceAll('/api/modules', '');
     // Clean the path: remove 'uploads' prefix and normalize slashes
     final cleanPath = imagePath
         .replaceAll('uploads\\', '')
@@ -34,7 +25,7 @@ class ModuleService {
 
   // Fetch all modules
   static Future<List<Map<String, dynamic>>> getModules() async {
-    final response = await http.get(Uri.parse(baseUrl));
+    final response = await http.get(Uri.parse('${IpConfig.baseUrl}'));
     if (response.statusCode == 200) {
       return List<Map<String, dynamic>>.from(json.decode(response.body));
     } else {
@@ -48,7 +39,7 @@ class ModuleService {
       String description,
       bool status,
       File? imageFile) async {
-    var request = http.MultipartRequest('POST', Uri.parse(baseUrl));
+    var request = http.MultipartRequest('POST', Uri.parse('${IpConfig.baseUrl}'));
 
     // Debug print
     print('Image file details:');
@@ -100,7 +91,7 @@ class ModuleService {
 
   // Update a module
   static Future<Map<String, dynamic>> updateModule(String id, String name, String description, bool status, File? imageFile) async {
-    var request = http.MultipartRequest('PUT', Uri.parse('$baseUrl/$id'));
+    var request = http.MultipartRequest('PUT', Uri.parse('$IpConfig.baseUrl/$id'));
 
     request.fields['name'] = name;
     request.fields['description'] = description;
@@ -125,10 +116,11 @@ class ModuleService {
 
   // Delete a module
   static Future<void> deleteModule(String id) async {
-    final response = await http.delete(Uri.parse('$baseUrl/$id'));
+    final response = await http.delete(Uri.parse('$IpConfig/$id'));
     if (response.statusCode != 200) {
       throw Exception('Failed to delete module');
     }
   }
 }
 
+*/

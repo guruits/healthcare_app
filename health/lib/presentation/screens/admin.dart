@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:health/presentation/controller/admin.controller.dart';
+import 'package:health/presentation/screens/profile.dart';
 
 class AdminScreen extends StatefulWidget {
   const AdminScreen({Key? key}) : super(key: key);
@@ -29,7 +30,7 @@ class _AdminScreenState extends State<AdminScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
+      /*appBar: AppBar(
         title: ValueListenableBuilder<String?>(
           valueListenable: _controller.selectedDrawerItem,
           builder: (context, drawerItem, _) {
@@ -47,7 +48,7 @@ class _AdminScreenState extends State<AdminScreen> {
             },
           ),
         ],
-      ),
+      ),*/
       drawer: _buildDrawer(),
       body: ValueListenableBuilder<String?>(
         valueListenable: _controller.selectedDrawerItem,
@@ -65,12 +66,12 @@ class _AdminScreenState extends State<AdminScreen> {
               // Return bottom nav page
               if (selectedIndex >= 0 && selectedIndex < _bottomNavItems.length) {
                 if (_bottomNavItems[selectedIndex].label == 'Home') {
-                  return _buildHomeScreen();
+                  return Profile();
                 }
                 return _bottomNavItems[selectedIndex].page;
               }
 
-              return _buildHomeScreen();
+              return Profile();
             },
           );
         },
@@ -161,53 +162,4 @@ class _AdminScreenState extends State<AdminScreen> {
     );
   }
 
-  Widget _buildHomeScreen() {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Today\'s Appointments',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: Colors.black, // Black text
-            ),
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: ListView.builder(
-              itemCount: 4,
-              itemBuilder: (context, index) {
-                return Card(
-                  child: ListTile(
-                    leading: const CircleAvatar(
-                      child: Icon(Icons.person),
-                    ),
-                    title: Text(
-                      'Patient ${index + 1}',
-                      style: const TextStyle(color: Colors.black),
-                    ),
-                    subtitle: Text(
-                      '${index + 9}:00 AM',
-                      style: const TextStyle(color: Colors.black54),
-                    ),
-                    trailing: Chip(
-                      label: Text(
-                        index == 0 ? 'Approved' : 'Pending',
-                        style: TextStyle(
-                          color: index == 0 ? Colors.green : Colors.orange,
-                        ),
-                      ),
-                      backgroundColor:
-                      index == 0 ? Colors.green[100] : Colors.orange[100],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
   }
-}

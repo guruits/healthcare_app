@@ -1,3 +1,4 @@
+/*
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
@@ -192,133 +193,130 @@ class _ModulesState extends State<Modules> {
             child: StatefulBuilder(
               builder: (context, setDialogState) {
                 return SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Dialog Title
-                      Text(
-                        _editingModuleId != null ? 'Edit Module' : 'Add Module',
-                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Name Field
-                      TextFormField(
-                        controller: _nameController,
-                        decoration: InputDecoration(
-                          labelText: 'Name',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(33.6),
-                          ),
+                  child: Form(  // Added Form widget here
+                    key: _formKey,  // Assigned the form key
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _editingModuleId != null ? 'Edit Module' : 'Add Module',
+                          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                         ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter a name';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 20),
+                        const SizedBox(height: 20),
 
-                      // Description Field
-                      TextFormField(
-                        controller: _descriptionController,
-                        maxLines: null,
-                        keyboardType: TextInputType.multiline,
-                        decoration: InputDecoration(
-                          labelText: 'Description',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(33.6),
+                        TextFormField(
+                          controller: _nameController,
+                          decoration: InputDecoration(
+                            labelText: 'Name',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(33.6),
+                            ),
                           ),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter a description';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Image Picker Section
-                      Center(
-                        child: ElevatedButton(
-                          onPressed: () async {
-                            await _pickImage();
-                            setDialogState(() {});
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter a name';
+                            }
+                            return null;
                           },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.black,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                          ),
-                          child: const Text('Pick Image'),
                         ),
-                      ),
-                      const SizedBox(height: 10),
-                      if (_selectedImage != null)
+                        const SizedBox(height: 20),
+
+                        TextFormField(
+                          controller: _descriptionController,
+                          maxLines: null,
+                          keyboardType: TextInputType.multiline,
+                          decoration: InputDecoration(
+                            labelText: 'Description',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(33.6),
+                            ),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter a description';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 20),
+
                         Center(
-                          child: Image.file(
-                            _selectedImage!,
-                            height: 100,
-                            width: 100,
-                            fit: BoxFit.cover,
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              await _pickImage();
+                              setDialogState(() {});
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.black,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                            ),
+                            child: const Text('Pick Image'),
                           ),
                         ),
-                      const SizedBox(height: 20),
-
-                      // Status Section
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text('Status'),
-                          Switch(
-                            value: _isOn,
-                            onChanged: (value) {
-                              setDialogState(() {
-                                _isOn = value;
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Dialog Actions
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          ElevatedButton(
-                            onPressed: () => Navigator.pop(context),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.black,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 16),
+                        const SizedBox(height: 10),
+                        if (_selectedImage != null)
+                          Center(
+                            child: Image.file(
+                              _selectedImage!,
+                              height: 100,
+                              width: 100,
+                              fit: BoxFit.cover,
                             ),
-                            child: const Text('Cancel'),
                           ),
-                          ElevatedButton(
-                            onPressed: _saveOrUpdateModule,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.black,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 16),
+                        const SizedBox(height: 20),
+
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Status'),
+                            Switch(
+                              value: _isOn,
+                              onChanged: (value) {
+                                setDialogState(() {
+                                  _isOn = value;
+                                });
+                              },
                             ),
-                            child: const Text('Save'),
-                          ),
-                        ],
-                      ),
-                    ],
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            ElevatedButton(
+                              onPressed: () => Navigator.pop(context),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.black,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                              ),
+                              child: const Text('Cancel'),
+                            ),
+                            ElevatedButton(
+                              onPressed: _saveOrUpdateModule,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.black,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                              ),
+                              child: const Text('Save'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 );
               },
@@ -421,4 +419,4 @@ Widget build(BuildContext context) {
     ),
   );
 }
-}
+}*/

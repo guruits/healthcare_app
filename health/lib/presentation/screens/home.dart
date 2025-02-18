@@ -117,7 +117,7 @@ class _HomeState extends State<Home> {
                   SizedBox(height: 20),
                   ElevatedButton(
                     onPressed: () async {
-                      await _languageController.speakText(localizations.login);
+                      //await _languageController.speakText(localizations.login);
                       await Future.delayed(Duration(milliseconds: 1200));
                       Navigator.of(context).pushReplacement(
                         MaterialPageRoute(builder: (_) => Login()),

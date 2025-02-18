@@ -9,7 +9,6 @@ import 'package:health/presentation/screens/start.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
-//import 'package:url_launcher/url_launcher.dart';
 
 import '../../data/datasources/api_service.dart';
 import '../widgets/language.widgets.dart';
@@ -155,6 +154,7 @@ class _HelpdeskState extends State<Helpdesk> with SingleTickerProviderStateMixin
           ],
         ),
       ),
+      backgroundColor: Colors.white,
       body: TabBarView(
         controller: _tabController,
         children: [

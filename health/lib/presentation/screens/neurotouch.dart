@@ -8,6 +8,7 @@ import 'package:health/presentation/widgets/dateandtimepicker.widgets.dart';
 import 'package:image_picker/image_picker.dart';
 import '../controller/language.controller.dart';
 import '../controller/selectPatient.controller.dart';
+import '../widgets/bluetooth.widgets.dart';
 import '../widgets/language.widgets.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
@@ -100,6 +101,7 @@ class _NeurotouchState extends State<Neurotouch> {
           LanguageToggle(),
         ],
       ),
+      backgroundColor: Colors.white,
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: _controller.isPatientSelected
@@ -153,12 +155,12 @@ class _NeurotouchState extends State<Neurotouch> {
                 horizontal: screenWidth * 0.1,
                 vertical: screenHeight * 0.02,
               ),
-              backgroundColor: Colors.purpleAccent,
+              backgroundColor: Colors.black,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(30),
               ),
               elevation: 10,
-              shadowColor: Colors.purple.withOpacity(0.5),
+              shadowColor: Colors.green.withOpacity(0.5),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -188,7 +190,15 @@ class _NeurotouchState extends State<Neurotouch> {
       child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
+          children: [Align(
+            alignment: Alignment.topRight,
+            child: BluetoothConnectionWidget(
+              onDeviceConnected: (deviceName) {
+                print('Connected to device: $deviceName');
+              },
+            ),
+          ),
+
             Center(
               child: Image.asset(
                   'assets/images/neurotouch.png', height: 200, width: 200),
@@ -209,6 +219,9 @@ class _NeurotouchState extends State<Neurotouch> {
                 _languageController.speakText(localizations.submit);
                 _submit();
               },
+              style: ElevatedButton.styleFrom(
+                foregroundColor: Colors.white, backgroundColor: Colors.black,
+              ),
               child: Text(localizations.submit),
             ),
           ],
@@ -220,6 +233,7 @@ class _NeurotouchState extends State<Neurotouch> {
   Widget _buildPatientInfoBox() {
     final localizations = AppLocalizations.of(context)!;
     return Card(
+      color: Colors.white70,
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       child: Padding(
@@ -369,6 +383,9 @@ class _NeurotouchState extends State<Neurotouch> {
           onPressed: () {
 
           },
+          style: ElevatedButton.styleFrom(
+            foregroundColor: Colors.white, backgroundColor: Colors.black,
+          ),
           child: _controller.isPrinting
               ? CircularProgressIndicator()
               : Text("Get Details"),
@@ -382,6 +399,7 @@ class _NeurotouchState extends State<Neurotouch> {
     final localizations = AppLocalizations.of(context)!;
 
     return Card(
+      color: Colors.white70,
       elevation: 4,
       margin: EdgeInsets.all(16),
       child: Column(
@@ -528,7 +546,7 @@ class _NeurotouchEditScreenState extends State<NeurotouchEditScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Edit Neurotouch Test'),
+        title: Text('Neurotouch Test'),
         actions: [
           TextButton(
             onPressed: () {
@@ -542,6 +560,7 @@ class _NeurotouchEditScreenState extends State<NeurotouchEditScreen> {
           ),
         ],
       ),
+      backgroundColor: Colors.white,
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -563,6 +582,9 @@ class _NeurotouchEditScreenState extends State<NeurotouchEditScreen> {
               ElevatedButton(
                 onPressed: () {
                 },
+                style: ElevatedButton.styleFrom(
+                  foregroundColor: Colors.white, backgroundColor: Colors.black,
+                ),
                 child: Text("submit"),
               ),
             ],
@@ -856,11 +878,17 @@ class _NeurotouchEditScreenState extends State<NeurotouchEditScreen> {
               onPressed: _captureImage,
               icon: Icon(Icons.camera_alt),
               label: Text("Capture Image"),
+              style: ElevatedButton.styleFrom(
+                foregroundColor: Colors.white, backgroundColor: Colors.black,
+              ),
             ),
             ElevatedButton.icon(
               onPressed: _pickImageFromGallery,
               icon: Icon(Icons.photo_library),
               label: Text("Pick Image"),
+                style: ElevatedButton.styleFrom(
+                  foregroundColor: Colors.white, backgroundColor: Colors.black,
+                )
             ),
           ],
         ),

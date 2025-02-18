@@ -187,6 +187,8 @@ class _PhoneInputWidgetState extends State<PhoneInputWidget> {
                     borderRadius: BorderRadius.circular(30.0),
                     borderSide: BorderSide(color: Colors.red),
                   ),
+                  filled: true, // Enable fill color
+                  fillColor: Colors.grey[200],
                   helperText: isPhoneValid ? null : 'Invalid phone number format',
                   helperStyle: TextStyle(color: Colors.red),
                 ),

@@ -4,45 +4,7 @@ class SelectpatientController {
   static const String STATUS_YET_TO_START = 'status_yet_to_start';
   DateTime? appointmentDateTime;
 
-  final List<String> tamilNames = [
-    'Anbu',
-    'Bharathi',
-    'Chithra',
-    'Devan',
-    'Ezhilarasan',
-    'Fathima',
-    'Gopal',
-    'Hariharan',
-    'Indira',
-    'Jeyaraman',
-    'Kumar',
-    'Lakshmi',
-    'Muthu',
-    'Nalini',
-    'Oviya',
-    'Pavithra',
-    'Rajendran',
-    'Saravanan',
-    'Thiru',
-    'Uma',
-    'Vasanth',
-    'Yamini',
-    'Zahir',
-    'Radha',
-    'Shanthi',
-  ];
 
-  final List<String> testKeys = [
-    'blood_test_label',
-    'urine_test_label',
-    'arc_test_label',
-    'dentist_test_label',
-    'xray_label',
-    'dexa_scan_label',
-    'echo_test_label',
-    'ultrasound_label',
-    'consultation_label'
-  ];
 
   final List<String> statusKeys = [
     STATUS_IN_PROGRESS,
@@ -65,7 +27,6 @@ class SelectpatientController {
     patients = List.generate(25, (index) {
       return {
         'serialNumber': index + 1,
-        'patientName': tamilNames[index % tamilNames.length],
         'bloodTestStatus': STATUS_YET_TO_START,
         'urineTestStatus': STATUS_YET_TO_START,
         'arcTestStatus': STATUS_YET_TO_START,

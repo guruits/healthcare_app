@@ -46,61 +46,44 @@ class _LoginState extends State<Login> {
   }
 
   Future<void> handleLogin() async {
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
-      final userData = await _controller.fetchUserDetails(_controller.phoneController.text);
+      final userData = await _controller.fetchUserDetails(
+          _controller.phoneController.text,
+          _passwordController.text,
+          context
+      );
 
       if (userData.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)?.choose_user ?? 'No user found'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        setState(() {
-          _isLoading = false;
-        });
+        _showErrorSnackBar(AppLocalizations.of(context)?.choose_user ?? 'Login failed');
         return;
       }
-      bool isPasswordMatched = false;
-      String? matchedUser;
 
-      userData.forEach((user, details) {
-        final storedPassword = details['Password'];
-        if (storedPassword != null && storedPassword == _passwordController.text) {
-          isPasswordMatched = true;
-          matchedUser = user;
-        }
-      });
-
-      if (isPasswordMatched) {
-        _controller.selectedUser = matchedUser!;
-        proceedToStart();
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Invalid credentials'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
+      _controller.selectedUser = userData.keys.first;
+      Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => Start())
       );
+    } catch (e, stackTrace) {
+      // Print the error and stack trace for debugging purposes
+      print('Login failed: ${e.toString()}');
+      print('StackTrace: $stackTrace');
+
+      _showErrorSnackBar('Login failed: ${e.toString()}');
+    } finally {
+      setState(() => _isLoading = false);
     }
+  }
+
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
 
 
@@ -111,36 +94,32 @@ class _LoginState extends State<Login> {
     });
 
     try {
-      final userData = await _controller.fetchUserDetails(_controller.phoneController.text);
-      if (userData.isEmpty) {
-        throw Exception('No user found');
-      }
-
-      // Select first user automatically
-      _controller.selectedUser = userData.keys.first;
-
-      // Simulate face unlock
-      await Future.delayed(Duration(seconds: 1));
-      proceedToStart();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Face unlock not implemented'),
+          backgroundColor: Colors.orange,
+        ),
+      );
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Face unlock failed: ${e.toString()}'),
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
-  void proceedToStart() {
+  /*void proceedToStart() {
     _controller.saveUserDetails(
       _controller.selectedUser,
       _controller.userData[_controller.selectedUser]?['Role'] ?? '',
     ).then((_) => navigateToScreen(Start()));
-  }
+  }*/
 
   @override
   Widget build(BuildContext context) {
@@ -187,6 +166,9 @@ class _LoginState extends State<Login> {
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(33.6)
                         ),
+                        filled: true, // Enable fill color
+                        fillColor: Colors.grey[200],
+
                         suffixIcon: IconButton(
                           icon: Icon(_isPasswordVisible ? Icons.visibility : Icons.visibility_off),
                           onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),

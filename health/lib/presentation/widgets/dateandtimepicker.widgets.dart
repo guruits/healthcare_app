@@ -63,6 +63,9 @@ class _DateandtimepickerState extends State<Dateandtimepicker> {
                 }
               }
             },
+            style: ElevatedButton.styleFrom(
+              foregroundColor: Colors.white, backgroundColor: Colors.black,
+            ),
             child: Text(controller.appointmentDateTime == null
                 ? localizations.pick_date_time
                 : '${localizations.date_time_label}: ${controller.appointmentDateTime!.toLocal()}'),

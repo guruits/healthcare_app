@@ -70,6 +70,7 @@ class _VitalsState extends State<Vitals> {
           LanguageToggle(),
         ],
       ),
+      backgroundColor: Colors.white,
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: _controller.isPatientSelected
@@ -113,6 +114,9 @@ class _VitalsState extends State<Vitals> {
                 _languageController.speakText(localizations.submit);
                 //_submit();
               },
+              style: ElevatedButton.styleFrom(
+                foregroundColor: Colors.white, backgroundColor: Colors.black,
+              ),
               child: Text(localizations.submit),
             ),
           ],
@@ -320,7 +324,7 @@ class _VitalsState extends State<Vitals> {
                 horizontal: screenWidth * 0.1,
                 vertical: screenHeight * 0.02,
               ),
-              backgroundColor: Colors.purpleAccent,
+              backgroundColor: Colors.black,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(30),
               ),
@@ -473,6 +477,7 @@ class _VitalsState extends State<Vitals> {
           icon: Icon(Icons.assessment),
           label: Text(localizations.generate_report),
           style: ElevatedButton.styleFrom(
+            foregroundColor: Colors.white, backgroundColor: Colors.black,
             padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
           ),
           onPressed: () => _showReportPopup(),
