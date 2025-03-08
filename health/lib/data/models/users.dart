@@ -6,8 +6,8 @@ class Users {
   final String phoneNumber;
   final String address;
   final String roleId;
-  final String? currentPassword; // Add these new fields
-  final String? newPassword;     // Add these new fields
+  final String? currentPassword;
+  final String? newPassword;
 
   Users({
     required this.id,

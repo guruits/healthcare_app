@@ -1,11 +1,16 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../data/datasources/user.service.dart';
+import '../../data/models/realm/faceimage_realm_model.dart';
 import '../../data/models/user.dart';
 import '../../data/datasources/role.service.dart';
 import '../../data/models/role.dart';
+import '../../data/services/realm_service.dart';
+import '../../data/services/userImage_service.dart';
 class UsersScreen extends StatefulWidget {
   const UsersScreen({super.key});
 
@@ -14,8 +19,8 @@ class UsersScreen extends StatefulWidget {
 }
 
 class _UsersScreenState extends State<UsersScreen> with SingleTickerProviderStateMixin {
-  final TextEditingController _searchController = TextEditingController();
-  String _searchQuery = '';
+  late TextEditingController _searchController = TextEditingController();
+  late String _searchQuery = '';
   late final TabController _tabController = TabController(
     length: 2,
     vsync: this,
@@ -28,8 +33,8 @@ class _UsersScreenState extends State<UsersScreen> with SingleTickerProviderStat
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
   DateTime? _selectedDate;
-  final UserManageService _userService = UserManageService();
-  final UserImageService _imageService = UserImageService();
+  //final UserManageService _userService = UserManageService();
+  late MongoRealmUserService? _userService = MongoRealmUserService();
 
   final RoleService _roleService = RoleService();
   bool _isLoading = false;
@@ -38,6 +43,7 @@ class _UsersScreenState extends State<UsersScreen> with SingleTickerProviderStat
   bool _showActiveUsers = true;
   //changes
   Map<String, String> _roleIdToName = {};
+  late ImageServices _imageServices;
 
 
 
@@ -50,16 +56,31 @@ class _UsersScreenState extends State<UsersScreen> with SingleTickerProviderStat
         _searchQuery = _searchController.text.toLowerCase();
       });
     });
+    _imageServices = ImageServices();
+    _initializeImageService();
   }
+  Future<void> _initializeImageService() async {
+    try {
+      await _imageServices.initialize();
+    } catch (e) {
+      print('Error initializing ImageServices: $e');
+      if (mounted) {
+        _showErrorSnackBar('Error initializing image service: $e');
+      }
+    }
+  }
+
 
   @override
   void dispose() {
+    //_userService.dispose();
     _tabController.dispose();
     _nameController.dispose();
     _aadhaarController.dispose();
     _phoneController.dispose();
     _addressController.dispose();
     _searchController.dispose();
+    _imageServices.dispose();
     super.dispose();
   }
 
@@ -92,6 +113,7 @@ class _UsersScreenState extends State<UsersScreen> with SingleTickerProviderStat
   Future<void> _loadInitialData() async {
     setState(() => _isLoading = true);
     try {
+      await _userService!.initialize();
       await Future.wait([
         _loadUsers(),
         _loadRoles(),
@@ -127,13 +149,16 @@ class _UsersScreenState extends State<UsersScreen> with SingleTickerProviderStat
 
   Future<void> _loadUsers() async {
     try {
-      final users = await _userService.getAllUsers();
+      final users = await _userService!.getAllUsers();
       setState(() {
         _users.clear();
         _users.addAll(users);
       });
     } catch (e) {
-      _showErrorSnackBar('Error loading users: $e');
+      print("Error loading users: $e");
+      if (mounted) {
+        _showErrorSnackBar('Error loading users: $e');
+      }
     }
   }
 
@@ -582,7 +607,7 @@ class _UsersScreenState extends State<UsersScreen> with SingleTickerProviderStat
                   Navigator.of(dialogContext).pop(); // Use dialogContext
                   setState(() => _isLoading = true);
 
-                  await _userService.deactivateUser(user.id);
+                  await _userService!.deactivateUser(user.id);
                   await _loadUsers();
 
                   if (mounted) {
@@ -613,24 +638,53 @@ class _UsersScreenState extends State<UsersScreen> with SingleTickerProviderStat
   }
 
   Widget _buildProfilePicture(User user) {
-    return FutureBuilder<bool>(
-      future: _imageService.checkImageExists(user.id),
+    return FutureBuilder<ImageRealm?>(
+      future: _loadUserImage(user.id),
       builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return CircleAvatar(
+            radius: 40,
+            backgroundColor: Colors.grey[200],
+            child: const CircularProgressIndicator(
+              strokeWidth: 2,
+              color: Colors.black,
+            ),
+          );
+        }
+
+        final imageData = snapshot.data;
         return CircleAvatar(
           radius: 40,
           backgroundColor: Colors.grey[200],
-          backgroundImage: snapshot.hasData && snapshot.data == true
-              ? NetworkImage(_imageService.getUserImageUrl(user.id))
+          backgroundImage: imageData != null
+              ? MemoryImage(base64Decode(imageData.base64Image))
               : null,
-          child: snapshot.hasData && snapshot.data == true
-              ? null
-              : Text(
+          child: imageData == null
+              ? Text(
             user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-            style: const TextStyle(color: Colors.white, fontSize: 22),
-          ),
+            style: const TextStyle(color: Colors.black, fontSize: 22),
+          )
+              : null,
         );
       },
     );
+  }
+
+  Future<ImageRealm?> _loadUserImage(String userId) async {
+    try {
+      // First try to get from local storage
+      ImageRealm? image = _imageServices.getUserImage(userId);
+
+      // If not found locally, try to get from MongoDB
+      if (image == null) {
+        image = await _imageServices.getUserImageWithMongoBackup(userId);
+      }
+
+      return image;
+    } catch (e) {
+      print('Error loading user image: $e');
+      return null;
+    }
   }
 
   Widget _buildInfoRow(IconData icon, String text) {
@@ -722,12 +776,13 @@ class _UsersScreenState extends State<UsersScreen> with SingleTickerProviderStat
           phoneNumber: _phoneController.text,
           address: _addressController.text,
           roles: _selectedRoles,
+          password: '',
         );
 
         if (_editingUserId != null) {
-          await _userService.updateUser(_editingUserId!, user);
+          await _userService!.updateUser(_editingUserId!, user);
         } else {
-          await _userService.createUser(user);
+          await _userService!.createUser(user);
         }
 
         await _loadUsers();

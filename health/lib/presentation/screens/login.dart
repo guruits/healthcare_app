@@ -5,6 +5,7 @@ import 'package:health/presentation/controller/login.controller.dart';
 import 'package:health/presentation/screens/register.dart';
 import 'package:health/presentation/screens/start.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/language.widgets.dart';
 import '../widgets/phonenumber.widgets.dart';
@@ -46,30 +47,35 @@ class _LoginState extends State<Login> {
   }
 
   Future<void> handleLogin() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
+      // Get the auth provider
+      //final authProvider = Provider.of<AuthLogin>(context, listen: false);
+
       final userData = await _controller.fetchUserDetails(
-          _controller.phoneController.text,
-          _passwordController.text,
-          context
+        _controller.phoneController.text,
+        _passwordController.text,
+        //context,
       );
 
       if (userData.isEmpty) {
-        _showErrorSnackBar(AppLocalizations.of(context)?.choose_user ?? 'Login failed');
+        _showErrorSnackBar('Login failed . Invalid credentials ');
         return;
       }
 
-      _controller.selectedUser = userData.keys.first;
+      // Login successful, navigate to Start screen
       Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => Start())
       );
     } catch (e, stackTrace) {
-      // Print the error and stack trace for debugging purposes
       print('Login failed: ${e.toString()}');
       print('StackTrace: $stackTrace');
-
       _showErrorSnackBar('Login failed: ${e.toString()}');
     } finally {
       setState(() => _isLoading = false);

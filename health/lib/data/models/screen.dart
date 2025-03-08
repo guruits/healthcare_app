@@ -1,12 +1,12 @@
 class Screen {
-  final String id;
+   final  String id;
   final String name;
   final String description;
   final bool isActive;
   final int v;
 
   const Screen({
-    required this.id,
+     required this.id,
     required this.name,
     required this.description,
     this.isActive = true,

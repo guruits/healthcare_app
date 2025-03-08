@@ -1,5 +1,6 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:health/data/models/realm/ruser.dart';
 import 'package:health/presentation/controller/register.controller.dart';
 import 'package:health/presentation/screens/login.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -399,12 +400,14 @@ class _RegisterState extends State<Register> {
               ],
             ),
             SizedBox(height: 16),
-            // Back side section
+            // Back side section - always show this section
             Column(
               children: [
-                if (_controller.backImagePath == null && _controller.frontImagePath != null)
+                if (_controller.backImagePath == null)
                   ElevatedButton.icon(
-                    onPressed: () => _handleImageCapture('back', localizations),
+                    // Remove the condition that checks if frontImagePath is not null
+                    onPressed: _controller.frontImagePath != null ?
+                        () => _handleImageCapture('back', localizations) : null,
                     icon: Icon(Icons.camera_rear, color: Colors.white),
                     label: Text(
                       localizations.scan_aadhar_back,
@@ -412,6 +415,8 @@ class _RegisterState extends State<Register> {
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.black,
+                      // Disable the button if front image is not captured yet
+                      disabledBackgroundColor: Colors.grey,
                       padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                     ),
                   ),
@@ -484,6 +489,13 @@ class _RegisterState extends State<Register> {
           _controller.frontImagePath = _controller.aadhaarController.frontImage?.path;
           _controller.frontImage = _controller.aadhaarController.frontImage;
         });
+
+        // Automatically trigger back side camera capture after front is captured
+        if (_controller.frontImagePath != null) {
+          // Add a small delay for better UX
+          await Future.delayed(Duration(milliseconds: 500));
+          _handleImageCapture('back', localizations);
+        }
       } else {
         await _controller.aadhaarController.captureBack();
         setState(() {
@@ -509,6 +521,7 @@ class _RegisterState extends State<Register> {
       print('Error capturing image: $e');
     }
   }
+
 
 
   Widget _buildRegistrationForm(AppLocalizations localizations) {
@@ -677,6 +690,7 @@ class _RegisterState extends State<Register> {
     );
   }
 
+
   Future<void> _handleRegistration(AppLocalizations localizations) async {
     try {
       if (!_controller.formKey.currentState!.validate()) {
@@ -710,39 +724,38 @@ class _RegisterState extends State<Register> {
 
       if (mounted) setState(() => _isLoading = true);
 
-      final response = await _userService.addUser(
+      final response = await UserServiceLocal.addUserLocal(
         imageFile: _controller.imageFile!,
         phoneNumber: _controller.phone.text.trim(),
         aadhaarNumber: _controller.aadharnumber.text.trim(),
         name: _controller.name.text.trim(),
         dob: _controller.dateofbirth.text.trim(),
         address: _controller.addresss.text.trim(),
-        newPassword: _controller.newpassword.text,
-        confirmPassword: _controller.confirmpassword.text,
+        password: _controller.newpassword.text,
       );
-
-      print('Registration response: $response');
 
       if (mounted) setState(() => _isLoading = false);
 
       if (response['status'] == 'success') {
         if (mounted) {
-          // Close password dialog first
+          // Close password dialog
           Navigator.of(context).pop();
 
-          // Show success message
+          // Show appropriate message based on sync status
+          final message = response['data']?['localOnly'] == true
+              ? localizations.errorOccurred
+              : localizations.register_success;
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(localizations.register_success),
+              content: Text(message),
               backgroundColor: Colors.green,
               duration: Duration(seconds: 2),
             ),
           );
 
-          // Wait briefly for the snackbar to be visible
-          await Future.delayed(Duration(milliseconds: 500));
-
           // Navigate to login screen
+          await Future.delayed(Duration(milliseconds: 500));
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(builder: (_) => Login()),
                 (route) => false,
@@ -750,10 +763,7 @@ class _RegisterState extends State<Register> {
         }
       } else {
         if (mounted) {
-          // Close password dialog
           Navigator.of(context).pop();
-
-          // Show error message
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(response['message'] ?? 'Registration failed'),
@@ -764,15 +774,10 @@ class _RegisterState extends State<Register> {
         }
       }
     } catch (e) {
-      print('Registration error: $e'); // Debug print
-
+      print('Registration error: $e');
       if (mounted) {
         setState(() => _isLoading = false);
-
-        // Close password dialog
         Navigator.of(context).pop();
-
-        // Show error message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: ${e.toString().replaceAll('Exception: ', '')}'),
@@ -783,6 +788,8 @@ class _RegisterState extends State<Register> {
       }
     }
   }
+
+
   Widget _buildLoadingOverlay({required Widget child}) {
     return Stack(
       children: [
@@ -797,6 +804,7 @@ class _RegisterState extends State<Register> {
       ],
     );
   }
+
 
 
 

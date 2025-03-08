@@ -1,10 +1,11 @@
 class User {
-  final String id;
+  late final String id;
   final String aadhaarNumber;
   final String name;
   final DateTime?  dob;
   final String phoneNumber;
   final String address;
+  final String password;
   final List<String> roles;
   final bool isActive;
 
@@ -15,6 +16,7 @@ class User {
     this.dob,
     required this.phoneNumber,
     required this.address,
+    required this.password,
     this.roles = const[],
     this.isActive = true,
   });
@@ -27,6 +29,7 @@ class User {
       dob: json['dob'] != null ? DateTime.parse(json['dob']) : null,
       phoneNumber: json['phone_number'] ?? '',
       address: json['address'] ?? '',
+      password: json['password']?? '',
       roles: List<String>.from(json['roles'] ?? []),
       isActive: json['isActive'] ?? true,
     );

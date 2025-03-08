@@ -1,11 +1,13 @@
 class Permission {
-  final String screen;
+  String? id;
+   String screen;
   bool create;
   bool read;
   bool update;
   bool delete;
 
   Permission({
+    this.id,
     required this.screen,
     this.create = false,
     this.read = false,
@@ -30,6 +32,8 @@ class Permission {
       delete: json['delete'] ?? false,
     );
   }
+
+  //get id => null;
 
   Permission copyWith({
     String? screen,

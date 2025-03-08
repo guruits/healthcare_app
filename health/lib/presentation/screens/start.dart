@@ -64,9 +64,37 @@ class _StartScreenState extends State<Start> {
               icon: Icon(Icons.logout),
               tooltip: l10n.logout,
               onPressed: () async {
-                await _controller.clearUserData();
-                navigateToScreen(Home());
+                // Show confirmation dialog
+                bool? confirmLogout = await showDialog<bool>(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return AlertDialog(
+                      title: Text('Confirm Logout'),
+                      content: Text('Are you sure you want to log out?'),
+                      actions: <Widget>[
+                        TextButton(
+                          onPressed: () {
+                            Navigator.of(context).pop(false);
+                          },
+                          child: Text('Cancel'),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.of(context).pop(true);
+                          },
+                          child: Text('Logout'),
+                        ),
+                      ],
+                    );
+                  },
+                );
+
+                if (confirmLogout == true) {
+                  await _controller.clearUserData();
+                  navigateToScreen(Home());
+                }
               },
+
             ),
             actions: [
               LanguageToggle(),

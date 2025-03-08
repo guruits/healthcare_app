@@ -282,6 +282,8 @@ class UserService {
   String extension(String path) {
     return path.substring(path.lastIndexOf('.'));
   }
+
+
   Future<Map<String, dynamic>> addUser({  
     required File imageFile,
     required String phoneNumber,

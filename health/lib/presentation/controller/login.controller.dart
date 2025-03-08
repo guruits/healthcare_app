@@ -37,23 +37,32 @@ class LoginController {
   void toggleMute() {
     isMuted = !isMuted;
   }
+
   // Save user details in SharedPreferences
   Future<void> saveUserDetails(Map<String, dynamic> responseBody) async {
     final prefs = await SharedPreferences.getInstance();
-    List<dynamic> permissions = responseBody['user']['role']['permissions'] ?? [];
 
+    List<dynamic> permissions = [];
+    if (responseBody['user']['role'] != null && responseBody['user']['role']['permissions'] != null) {
+      permissions = List<dynamic>.from(responseBody['user']['role']['permissions']);
+    }
+
+
+    // Ensure permissions are properly structured for easier retrieval
     // Structured user details saving
     final userDetails = {
       'id': responseBody['user']['id'],
       'name': responseBody['user']['name'],
       'phone_number': responseBody['user']['phone_number'],
-
       'role': {
         'id': responseBody['user']['role']['id'],
         'rolename': responseBody['user']['role']['name'],
-        'Permissions': permissions,
+        'permissions': responseBody['user']['role']['permissions'] ?? [],
       }
     };
+
+    // Debug log to verify permissions are being saved
+    print("Saving permissions: $permissions");
 
     await prefs.setString('userDetails', json.encode(userDetails));
     print("saved user details sf:$userDetails");
@@ -63,12 +72,22 @@ class LoginController {
   Future<Map<String, dynamic>?> getUserDetails() async {
     final prefs = await SharedPreferences.getInstance();
     final userJson = prefs.getString('userDetails');
-    return userJson != null ? json.decode(userJson) : null;
+
+    if (userJson != null) {
+      final userMap = json.decode(userJson);
+      print("Retrieved user details: $userMap");
+      return userMap;
+    }
+    return null;
   }
 
-  /*Future<Map<String, Map<String, dynamic>>> fetchUserDetails(
-      String phoneNumber, String password) async {
+  Future<Map<String, Map<String, dynamic>>> fetchUserDetails(
+      String phoneNumber,
+      String password,
+      ) async {
     try {
+      print('Attempting login with phone: $phoneNumber');
+
       final response = await http.post(
         Uri.parse('${IpConfig.baseUrl}/api/auth/login'),
         headers: {'Content-Type': 'application/json'},
@@ -78,77 +97,40 @@ class LoginController {
         }),
       );
 
+      //print('Response status: ${response.statusCode}');
+      //print('Response body: ${response.body}');
+
       final responseBody = json.decode(response.body);
 
       if (response.statusCode == 200) {
+        // Explicitly debug permissions before saving
+        print('API permissions: ${responseBody['user']['role']['permissions']}');
+
         await saveUserDetails(responseBody);
 
-        print("saved user details fetch: $responseBody");
-        final authService = Provider.of<AuthLogin>(navigatorKey.currentContext!, listen: false);
-
-        // Login using AuthService
-        await authService.login(responseBody['user'], responseBody['token']);
+        // Verify permissions after saving
+        final savedDetails = await getUserDetails();
+        print('Saved permissions: ${savedDetails?['role']?['Permissions']}');
 
         return {
           responseBody['user']['name']: {
             'FullName': responseBody['user']['name'] ?? 'Not available',
             'Phone': responseBody['user']['phone_number'] ?? 'Not available',
-            'Role': responseBody['user']['role']['rolename'] ?? 'Patient',
+            'Role': responseBody['user']['role']['name'] ?? 'Patient',
             'Token': responseBody['token'] ?? '',
-            'Permissions': responseBody['user']['permissions'] ?? [],
+            'Permissions': responseBody['user']['role']['permissions'] ?? [],
           }
         };
       } else {
         throw Exception(responseBody['message'] ?? 'Login failed');
       }
     } catch (e) {
-      debugPrint('Error fetching user details: $e');
-      rethrow;
+      print('Error fetching user details: $e');
+      return {};
     }
   }
-}*/
+}
 
-Future<Map<String, Map<String, dynamic>>> fetchUserDetails(
-    String phoneNumber,
-    String password,
-    BuildContext context) async {
-  try {
-    final response = await http.post(
-      Uri.parse('${IpConfig.baseUrl}/api/auth/login'),
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode({
-        'phone_number': phoneNumber,
-        'password': password,
-      }),
-    );
-
-    final responseBody = json.decode(response.body);
-
-    if (response.statusCode == 200) {
-      await saveUserDetails(responseBody);
-      // Get the AuthLogin instance
-      //final authLogin = Provider.of<AuthLogin>(context, listen: false);
-
-      // Login using AuthLogin
-     // await authLogin.login(responseBody['user'], responseBody['token']);
-
-      return {
-        responseBody['user']['name']: {
-          'FullName': responseBody['user']['name'] ?? 'Not available',
-          'Phone': responseBody['user']['phone_number'] ?? 'Not available',
-          'Role': responseBody['user']['role']['rolename'] ?? 'Patient',
-          'Token': responseBody['token'] ?? '',
-          'Permissions': responseBody['user']['permissions'] ?? [],
-        }
-      };
-    } else {
-      throw Exception(responseBody['message'] ?? 'Login failed');
-    }
-  } catch (e) {
-    debugPrint('Error fetching user details: $e');
-    rethrow;
-  }
-}}
 
 class AuthLogin extends ChangeNotifier {
   bool _isAuthenticated = false;
@@ -166,16 +148,33 @@ class AuthLogin extends ChangeNotifier {
     final storedToken = prefs.getString('userToken');
 
     if (userJson != null && storedToken != null) {
+      // Load the user details first
       _currentUser = json.decode(userJson);
-      _token = storedToken;
-      _isAuthenticated = true;
-      notifyListeners();
+
+      // Debug the permissions
+     // print("Initializing from storage - User data: $_currentUser");
+      //print("Permissions: ${_currentUser?['role']?['Permissions']}");
+
+      // Don't automatically set authenticated - validate the token first
+      bool isValid = await validateToken(storedToken);
+
+      if (isValid) {
+        _token = storedToken;
+        _isAuthenticated = true;
+        notifyListeners();
+      } else {
+        // Clear invalid session data
+        await logout();
+      }
     }
   }
 
   // Login
   Future<void> login(Map<String, dynamic> userData, String token) async {
     final prefs = await SharedPreferences.getInstance();
+
+    // Ensure we have the complete user data with all necessary fields
+    //print("Login permissions: ${userData['role']?['Permissions']}");
 
     await prefs.setString('userDetails', json.encode(userData));
     await prefs.setString('userToken', token);
@@ -199,6 +198,44 @@ class AuthLogin extends ChangeNotifier {
     notifyListeners();
   }
 
+  // Send a request to validate the token with the backend
+  Future<bool> validateToken(String token) async {
+    try {
+      final response = await http.post(
+        Uri.parse('${IpConfig.baseUrl}/api/auth/authenticate'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      final responseBody = json.decode(response.body);
+
+      if (response.statusCode == 200 && responseBody['status'] == 'success') {
+        // Update user details with the latest from server
+        final prefs = await SharedPreferences.getInstance();
+
+        // Ensure we preserve the permission structure
+        Map<String, dynamic> updatedUser = responseBody['user'];
+        if (updatedUser.containsKey('role') && updatedUser['role'].containsKey('permissions')) {
+         // print("Token validation - found permissions: ${updatedUser['role']['permissions']}");
+        } else {
+          //print("Token validation - permissions not found in response");
+        }
+
+        await prefs.setString('userDetails', json.encode(updatedUser));
+        _currentUser = updatedUser;
+        return true;
+      }
+
+      print('Token validation failed: ${responseBody['message']}');
+      return false;
+    } catch (e) {
+      print('Error validating token: $e');
+      return false;
+    }
+  }
+
   // Check if token exists and is valid
   Future<bool> validateSession() async {
     final prefs = await SharedPreferences.getInstance();
@@ -206,6 +243,14 @@ class AuthLogin extends ChangeNotifier {
 
     if (storedToken == null) {
       await logout();
+      return false;
+    }
+
+    // Actually validate the token with the backend
+    bool isValid = await validateToken(storedToken);
+
+    if (!isValid) {
+      await logout();  // Clear invalid session data
       return false;
     }
 

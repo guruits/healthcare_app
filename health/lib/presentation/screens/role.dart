@@ -27,6 +27,7 @@ class _RolesScreenState extends State<RolesScreen> {
     super.initState();
     loadInitialData();
   }
+
   Future<void> loadInitialData() async {
     try {
       setState(() {
@@ -45,7 +46,16 @@ class _RolesScreenState extends State<RolesScreen> {
         availableScreens = results[1] as List<Screen>;
         isLoading = false;
       });
+
+      print("Loaded ${roles.length} roles and ${availableScreens.length} screens");
+      if (roles.isNotEmpty) {
+        print("First role has ${roles[0].permissions.length} permissions");
+        for (var perm in roles[0].permissions) {
+          print("Permission: ${perm.screen} -> C:${perm.create}, R:${perm.read}, U:${perm.update}, D:${perm.delete}");
+        }
+      }
     } catch (e) {
+      print("Error in loadInitialData: $e");
       setState(() {
         error = e.toString();
         isLoading = false;
@@ -85,22 +95,35 @@ class _RolesScreenState extends State<RolesScreen> {
   }
 
   Future<void> _showEditPermissionsDialog(Role role) async {
-    Map<String, String> screenIdToName = {};
-    Map<String, String> screenNameToId = {};
+    print("Role permissions count: ${role.permissions.length}");
+    for (var perm in role.permissions) {
+      print("Permission: screen=${perm.screen}, create=${perm.create}, read=${perm.read}");
+    }
+
+    print("Available screens count: ${availableScreens.length}");
     for (var screen in availableScreens) {
-      screenIdToName[screen.id] = screen.name;
-      screenNameToId[screen.name] = screen.id;
+      print("Screen: id=${screen.id}, name=${screen.name}");
     }
     List<Permission> editedPermissions = role.permissions.map((p) {
       return Permission(
-        screen: screenIdToName[p.screen] ?? p.screen,
+        screen: p.screen,
         create: p.create,
         read: p.read,
         update: p.update,
         delete: p.delete,
       );
     }).toList();
+
+    print("Initial Role Permissions for ${role.name}:");
+    for (var perm in editedPermissions) {
+      print("${perm.screen} -> C: ${perm.create}, R: ${perm.read}, U: ${perm.update}, D: ${perm.delete}");
+    }
+
     Set<String> currentScreenNames = editedPermissions.map((p) => p.screen).toSet();
+
+    print("Available Screens: $availableScreens");
+
+    // Add missing screens with default permissions
     for (var screen in availableScreens) {
       if (!currentScreenNames.contains(screen.name)) {
         editedPermissions.add(Permission(
@@ -113,14 +136,19 @@ class _RolesScreenState extends State<RolesScreen> {
       }
     }
 
+    print("Final Permissions List Before Dialog Opens:");
+    for (var perm in editedPermissions) {
+      print("${perm.screen} -> C: ${perm.create}, R: ${perm.read}, U: ${perm.update}, D: ${perm.delete}");
+    }
+
     await showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
           title: Text('Edit ${role.name} Permissions'),
           content: Container(
-            width: MediaQuery.of(context).size.width * 0.9,  // 90% of screen width
-            height: MediaQuery.of(context).size.height * 0.7,  // 70% of screen height
+            width: MediaQuery.of(context).size.width * 0.9,
+            height: MediaQuery.of(context).size.height * 0.7,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -155,6 +183,7 @@ class _RolesScreenState extends State<RolesScreen> {
                                     setState(() {
                                       permission.create = value ?? false;
                                     });
+                                    print("Updated ${permission.screen} -> C: ${permission.create}");
                                   },
                                 ),
                               ),
@@ -166,6 +195,7 @@ class _RolesScreenState extends State<RolesScreen> {
                                     setState(() {
                                       permission.read = value ?? false;
                                     });
+                                    print("Updated ${permission.screen} -> R: ${permission.read}");
                                   },
                                 ),
                               ),
@@ -177,6 +207,7 @@ class _RolesScreenState extends State<RolesScreen> {
                                     setState(() {
                                       permission.update = value ?? false;
                                     });
+                                    print("Updated ${permission.screen} -> U: ${permission.update}");
                                   },
                                 ),
                               ),
@@ -188,6 +219,7 @@ class _RolesScreenState extends State<RolesScreen> {
                                     setState(() {
                                       permission.delete = value ?? false;
                                     });
+                                    print("Updated ${permission.screen} -> D: ${permission.delete}");
                                   },
                                 ),
                               ),
@@ -217,6 +249,11 @@ class _RolesScreenState extends State<RolesScreen> {
               ),
               child: const Text('Save'),
               onPressed: () async {
+                print("Saving Updated Permissions:");
+                for (var perm in editedPermissions) {
+                  print("${perm.screen} -> C: ${perm.create}, R: ${perm.read}, U: ${perm.update}, D: ${perm.delete}");
+                }
+
                 try {
                   await roleService.updateRolePermissions(
                     role.id!,
@@ -244,6 +281,7 @@ class _RolesScreenState extends State<RolesScreen> {
       ),
     );
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -368,6 +406,11 @@ class _RolesScreenState extends State<RolesScreen> {
     final sortedPermissions = List<Permission>.from(permissions)
       ..sort((a, b) => a.screen.compareTo(b.screen));
 
+   Map<String, String> screenIdToName = {};
+    for (var screen in availableScreens) {
+      screenIdToName[screen.id] = screen.name;
+    }
+
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: DataTable(
@@ -404,14 +447,9 @@ class _RolesScreenState extends State<RolesScreen> {
           ),
         ],
         rows: sortedPermissions.map((permission) {
-          // Find the corresponding screen from availableScreens
-          final screen = availableScreens.firstWhere(
-                (s) => s.id == permission.screen,
-            orElse: () => Screen(id: permission.screen, name: permission.screen, description: ''),
-          );
-
+          String screenName =  screenIdToName[permission.screen] ?? permission.screen;
           return DataRow(cells: [
-            DataCell(Text(screen.name)), // Display screen name instead of ID
+            DataCell(Text(screenName)),
             DataCell(Icon(
               permission.create ? Icons.check : Icons.close,
               color: permission.create ? Colors.black : Colors.red,

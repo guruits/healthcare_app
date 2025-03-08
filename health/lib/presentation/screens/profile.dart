@@ -1,13 +1,17 @@
+import 'dart:convert';
 import 'dart:io';
-
-import 'package:cached_network_image/cached_network_image.dart';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:health/presentation/screens/start.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:realm/realm.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../data/datasources/user.service.dart';
+import '../../data/models/realm/faceimage_realm_model.dart';
 import '../../data/models/users.dart';
+import '../../data/services/realm_service.dart';
+import '../../data/services/userImage_service.dart';
 
 class Profile extends StatefulWidget {
   const Profile({super.key});
@@ -17,12 +21,10 @@ class Profile extends StatefulWidget {
 }
 
 class _ProfileState extends State<Profile> {
-  final UserManageService _userService = UserManageService();
-  final UserImageService _imageService = UserImageService();
+  final MongoRealmUserService _userrealmService = MongoRealmUserService();
   final _formKey = GlobalKey<FormState>();
-
-  Users? _users;
   bool _isLoading = true;
+  Users? _users;
   bool _isEditing = false;
 
   final TextEditingController _nameController = TextEditingController();
@@ -38,11 +40,44 @@ class _ProfileState extends State<Profile> {
   bool _isConfirmPasswordVisible = false;
   bool _showPasswordFields = false;
   DateTime? _selectedDate;
+  String? _profileImage;
+  final Realm _realm;
+  late final ImageServices _imageServices;
+  final UserManageService _userService = UserManageService();
+  final imageServices = ImageServices();
+
+  _ProfileState() : _realm = Realm(Configuration.local(
+    [ImageRealm.schema],
+    schemaVersion: 6,
+    migrationCallback: (migration, oldSchemaVersion) {
+      if (oldSchemaVersion < 6) {
+        print('Migrating from schema version $oldSchemaVersion to 6');
+      }
+    },
+  )) {
+    _imageServices = ImageServices();
+  }
 
   @override
   void initState() {
     super.initState();
-    _loadUserProfile();
+    _initializeServicesAndLoadProfile();
+  }
+
+  Future<void> _initializeServicesAndLoadProfile() async {
+    try {
+      // Initialize Realm service first
+      await _userrealmService.initialize();
+
+      // Initialize image services next
+      await _imageServices.initialize();
+
+      // Then load the user profile
+      await _loadUserProfile();
+    } catch (e) {
+      print("Initialization error: $e");
+      _showErrorSnackBar('Error initializing: $e');
+    }
   }
 
   @override
@@ -55,8 +90,10 @@ class _ProfileState extends State<Profile> {
     _currentPasswordController.dispose();
     _newPasswordController.dispose();
     _confirmPasswordController.dispose();
+    _realm.close();
     super.dispose();
   }
+
   void navigateToScreen(Widget screen) {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => screen),
@@ -65,15 +102,58 @@ class _ProfileState extends State<Profile> {
 
   Future<void> _loadUserProfile() async {
     try {
-      final users = await _userService.getUserDetails();
-      setState(() {
-        _users = users;
-        _populateControllers();
-        _isLoading = false;
-      });
+      // Make sure services are initialized
+      if (!_userrealmService.isInitialized) {
+        await _userrealmService.initialize();
+      }
+
+      // Use the getCurrentUserDetails method which handles getting the ID and fetching the user
+      final userData = await _userrealmService.getCurrentUserDetails();
+
+      if (userData == null) {
+        throw Exception('User not found');
+      }
+
+      // Convert the User model returned from service to Users model needed by the UI
+      final usersData = Users(
+        id: userData.id,
+        name: userData.name,
+        aadhaarNumber: userData.aadhaarNumber,
+        phoneNumber: userData.phoneNumber,
+        address: userData.address,
+        dob: userData.dob,
+        roleId: userData.roles.isNotEmpty ? userData.roles[0] : '',
+        // No need to set passwords here
+      );
+
+      // First try to get the image from Realm
+      ImageRealm? imageRealm = _imageServices.getUserImage(userData.id);
+
+      // If not found in Realm, try to get it from MongoDB
+      if (imageRealm == null) {
+        print("Image not found in Realm, trying MongoDB backup for user: ${userData.id}");
+        imageRealm = await _imageServices.getUserImageWithMongoBackup(userData.id);
+      }
+
+      if (mounted) {
+        setState(() {
+          _users = usersData;
+          _populateControllers();
+
+          // Set profile image if found in either Realm or MongoDB
+          if (imageRealm != null) {
+            _profileImage = imageRealm.base64Image;
+            print("Profile image loaded successfully for user: ${userData.id}");
+          } else {
+            print("No profile image found for user: ${userData.id} in either Realm or MongoDB");
+          }
+        });
+      }
     } catch (e) {
-      print("Error:$e");
-      _showErrorSnackBar('Error loading profile: $e');
+      print("Error loading profile: $e");
+      if (mounted) {
+        _showErrorSnackBar('Error loading profile: $e');
+      }
     }
   }
 
@@ -114,10 +194,8 @@ class _ProfileState extends State<Profile> {
         ],
       ),
       backgroundColor: Colors.white,
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Colors.red))
-          : _users == null
-          ? const Center(child: Text('Failed to load profile'))
+      body: _users == null
+          ? _buildEmptyProfileView() // Show placeholder when data is not yet loaded
           : SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -131,43 +209,58 @@ class _ProfileState extends State<Profile> {
     );
   }
 
+  // Placeholder view when profile is not yet loaded
+  Widget _buildEmptyProfileView() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            'Loading profile information...',
+            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+          ),
+          SizedBox(height: 16),
+          OutlinedButton(
+            onPressed: _loadUserProfile,
+            child: Text('Refresh'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildProfileHeader() {
     return Stack(
       alignment: Alignment.center,
       children: [
         Column(
           children: [
-            FutureBuilder<bool>(
-              future: _imageService.checkImageExists(_users!.id),
-              builder: (context, snapshot) {
-                return Stack(
-                  alignment: Alignment.bottomRight,
-                  children: [
-                    CircleAvatar(
-                      radius: 60,
-                      backgroundColor: Colors.grey[200],
-                      backgroundImage: snapshot.hasData && snapshot.data == true
-                          ? NetworkImage(_imageService.getUserImageUrl(_users!.id))
-                          : null,
-                      child: snapshot.hasData && snapshot.data == true
-                          ? null
-                          : Text(
-                        _users!.name.isNotEmpty ? _users!.name[0].toUpperCase() : '?',
-                        style: const TextStyle(fontSize: 40, color: Colors.white),
-                      ),
+            Stack(
+              alignment: Alignment.bottomRight,
+              children: [
+                CircleAvatar(
+                  radius: 60,
+                  backgroundColor: Colors.grey[200],
+                  backgroundImage: _profileImage != null
+                      ? MemoryImage(_safelyDecodeBase64(_profileImage!))
+                      : null,
+                  child: _profileImage == null
+                      ? Text(
+                    _users!.name.isNotEmpty ? _users!.name[0].toUpperCase() : '?',
+                    style: const TextStyle(fontSize: 40, color: Colors.black54),
+                  )
+                      : null,
+                ),
+                if (_isEditing)
+                  CircleAvatar(
+                    backgroundColor: Colors.black,
+                    radius: 20,
+                    child: IconButton(
+                      icon: const Icon(Icons.camera_alt, color: Colors.white, size: 18),
+                      onPressed: _updateProfilePicture,
                     ),
-                    if (_isEditing)
-                      CircleAvatar(
-                        backgroundColor: Colors.black,
-                        radius: 20,
-                        child: IconButton(
-                          icon: const Icon(Icons.camera_alt, color: Colors.white, size: 18),
-                          onPressed: _updateProfilePicture,
-                        ),
-                      ),
-                  ],
-                );
-              },
+                  ),
+              ],
             ),
             const SizedBox(height: 16),
             Text(
@@ -179,75 +272,18 @@ class _ProfileState extends State<Profile> {
       ],
     );
   }
-  /*Widget _buildProfileHeader() {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        Column(
-          children: [
-            FutureBuilder<bool>(
-              future: _imageService.checkImageExists(_users!.id),
-              builder: (context, snapshot) {
-                return Stack(
-                  alignment: Alignment.bottomRight,
-                  children: [
-                    Container(
-                      width: 120,
-                      height: 120,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.grey[200],
-                      ),
-                      child: snapshot.hasData && snapshot.data == true
-                          ? ClipOval(
-                        child: CachedNetworkImage(
-                          imageUrl: _imageService.getUserImageUrl(_users!.id),
-                          placeholder: (context, url) => const Center(
-                            child: CircularProgressIndicator(
-                              color: Colors.black,
-                              strokeWidth: 2,
-                            ),
-                          ),
-                          errorWidget: (context, url, error) => Center(
-                            child: Text(
-                              _users!.name.isNotEmpty ? _users!.name[0].toUpperCase() : '?',
-                              style: const TextStyle(fontSize: 40, color: Colors.black54),
-                            ),
-                          ),
-                          fit: BoxFit.cover,
-                        ),
-                      )
-                          : Center(
-                        child: Text(
-                          _users!.name.isNotEmpty ? _users!.name[0].toUpperCase() : '?',
-                          style: const TextStyle(fontSize: 40, color: Colors.black54),
-                        ),
-                      ),
-                    ),
-                    if (_isEditing)
-                      CircleAvatar(
-                        backgroundColor: Colors.black,
-                        radius: 20,
-                        child: IconButton(
-                          icon: const Icon(Icons.camera_alt, color: Colors.white, size: 18),
-                          onPressed: _updateProfilePicture,
-                        ),
-                      ),
-                  ],
-                );
-              },
-            ),
-            const SizedBox(height: 16),
-            Text(
-              _users!.name,
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-      ],
-    );
+
+  // Add this helper method to safely decode base64
+  Uint8List _safelyDecodeBase64(String base64String) {
+    try {
+      return base64Decode(base64String);
+    } catch (e) {
+      print("Error decoding base64: $e");
+      // Return a 1x1 transparent pixel as fallback
+      return Uint8List.fromList([0, 0, 0, 0]);
+    }
   }
-*/
+
   Widget _buildProfileInfo() {
     return Card(
       color: Colors.white,
@@ -259,7 +295,6 @@ class _ProfileState extends State<Profile> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            //_buildProfileHeader(),
             const SizedBox(height: 12),
             _buildInfoRow(Icons.credit_card, 'Aadhaar Number', _users!.aadhaarNumber),
             const SizedBox(height: 12),
@@ -274,8 +309,6 @@ class _ProfileState extends State<Profile> {
       ),
     );
   }
-
-
 
   Widget _buildEditForm() {
     return Form(
@@ -306,7 +339,6 @@ class _ProfileState extends State<Profile> {
                   _showPasswordFields ? 'Hide Password Fields' : 'Change Password',
                   style: const TextStyle(fontSize: 16),
                 ),
-                //Icon(_showPasswordFields ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down),
               ],
             ),
           ),
@@ -368,6 +400,7 @@ class _ProfileState extends State<Profile> {
       ),
     );
   }
+
   Future<void> _selectDate() async {
     DateTime? pickedDate = await showDatePicker(
       context: context,
@@ -427,97 +460,98 @@ class _ProfileState extends State<Profile> {
       ],
     );
   }
+
   Widget _buildPasswordFields() {
-      return Column(
-        children: [
-          const SizedBox(height: 16),
-          const Divider(),
-          const SizedBox(height: 16),
-          const Text(
-            'Change Password',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _currentPasswordController,
-            obscureText: !_isCurrentPasswordVisible,
-            decoration: InputDecoration(
-              labelText: 'Current Password',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-              suffixIcon: IconButton(
-                icon: Icon(
-                  _isCurrentPasswordVisible
-                      ? Icons.visibility
-                      : Icons.visibility_off,
-                ),
-                onPressed: () {
-                  setState(() {
-                    _isCurrentPasswordVisible = !_isCurrentPasswordVisible;
-                  });
-                },
+    return Column(
+      children: [
+        const SizedBox(height: 16),
+        const Divider(),
+        const SizedBox(height: 16),
+        const Text(
+          'Change Password',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 16),
+        TextFormField(
+          controller: _currentPasswordController,
+          obscureText: !_isCurrentPasswordVisible,
+          decoration: InputDecoration(
+            labelText: 'Current Password',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            suffixIcon: IconButton(
+              icon: Icon(
+                _isCurrentPasswordVisible
+                    ? Icons.visibility
+                    : Icons.visibility_off,
               ),
+              onPressed: () {
+                setState(() {
+                  _isCurrentPasswordVisible = !_isCurrentPasswordVisible;
+                });
+              },
             ),
           ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _newPasswordController,
-            obscureText: !_isNewPasswordVisible,
-            decoration: InputDecoration(
-              labelText: 'New Password',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-              suffixIcon: IconButton(
-                icon: Icon(
-                  _isNewPasswordVisible
-                      ? Icons.visibility
-                      : Icons.visibility_off,
-                ),
-                onPressed: () {
-                  setState(() {
-                    _isNewPasswordVisible = !_isNewPasswordVisible;
-                  });
-                },
+        ),
+        const SizedBox(height: 16),
+        TextFormField(
+          controller: _newPasswordController,
+          obscureText: !_isNewPasswordVisible,
+          decoration: InputDecoration(
+            labelText: 'New Password',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            suffixIcon: IconButton(
+              icon: Icon(
+                _isNewPasswordVisible
+                    ? Icons.visibility
+                    : Icons.visibility_off,
               ),
+              onPressed: () {
+                setState(() {
+                  _isNewPasswordVisible = !_isNewPasswordVisible;
+                });
+              },
             ),
-            validator: (value) {
-              if (value?.isNotEmpty ?? false) {
-                if (value!.length < 6) {
-                  return 'Password must be at least 6 characters';
-                }
+          ),
+          validator: (value) {
+            if (value?.isNotEmpty ?? false) {
+              if (value!.length < 6) {
+                return 'Password must be at least 6 characters';
               }
-              return null;
-            },
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _confirmPasswordController,
-            obscureText: !_isConfirmPasswordVisible,
-            decoration: InputDecoration(
-              labelText: 'Confirm New Password',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-              suffixIcon: IconButton(
-                icon: Icon(
-                  _isConfirmPasswordVisible
-                      ? Icons.visibility
-                      : Icons.visibility_off,
-                ),
-                onPressed: () {
-                  setState(() {
-                    _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
-                  });
-                },
+            }
+            return null;
+          },
+        ),
+        const SizedBox(height: 16),
+        TextFormField(
+          controller: _confirmPasswordController,
+          obscureText: !_isConfirmPasswordVisible,
+          decoration: InputDecoration(
+            labelText: 'Confirm New Password',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            suffixIcon: IconButton(
+              icon: Icon(
+                _isConfirmPasswordVisible
+                    ? Icons.visibility
+                    : Icons.visibility_off,
               ),
+              onPressed: () {
+                setState(() {
+                  _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
+                });
+              },
             ),
-            validator: (value) {
-              if (_newPasswordController.text.isNotEmpty &&
-                  value != _newPasswordController.text) {
-                return 'Passwords do not match';
-              }
-              return null;
-            },
           ),
-        ],
-      );
-    }
+          validator: (value) {
+            if (_newPasswordController.text.isNotEmpty &&
+                value != _newPasswordController.text) {
+              return 'Passwords do not match';
+            }
+            return null;
+          },
+        ),
+      ],
+    );
+  }
 
   Widget _buildPhoneNumberRow() {
     return Row(
@@ -630,7 +664,6 @@ class _ProfileState extends State<Profile> {
       }
     }
   }
-
 
   void _showErrorSnackBar(String message) {
     if (!mounted) return;

@@ -2,12 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:health/presentation/screens/appointments.dart';
 import 'package:health/presentation/screens/pharmacy.dart';
 
-import '../screens/modules.dart';
 import '../screens/role.dart';
 import '../screens/screen.dart';
 import '../screens/user.dart';
-import '../widgets/patientsmange.widgets.dart';
-import '../widgets/staffmanage.widgets.dart';
 
 class AdminController {
   final ValueNotifier<int> _selectedIndex = ValueNotifier(0);
@@ -24,7 +21,7 @@ class AdminController {
       NavigationItem(icon: Icons.home, label: 'Home', page: Container()),
       NavigationItem(icon: Icons.people, label: 'User', page: UsersScreen()),
       NavigationItem(icon: Icons.calendar_today, label: 'Appointments', page: Appointments()),
-      //NavigationItem(icon: Icons.view_module, label: 'Modules', page: Modules()),
+      //NavigationItem(icon: Icons.storage, label: 'LocalDB', page: LocalDBViewer()),
       NavigationItem(icon: Icons.admin_panel_settings_outlined, label: 'Role', page: RolesScreen()),
       NavigationItem(icon: Icons.screenshot_monitor_sharp, label: 'Screen', page: ScreensScreen()),
       //NavigationItem(icon: Icons.person, label: 'Profile', page: Container()),
