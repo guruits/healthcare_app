@@ -13,10 +13,12 @@ class LanguageController {
       _isSpeaking = true;
       print("TTS has started speaking.");
     });
+
     flutterTts.setCompletionHandler(() {
       _isSpeaking = false;
       print("TTS has completed speaking.");
     });
+
     flutterTts.setErrorHandler((msg) {
       _isSpeaking = false;
       print("TTS encountered an error: $msg");

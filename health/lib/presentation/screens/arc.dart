@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:health/presentation/controller/language.controller.dart';
 import 'package:health/presentation/widgets/dateandtimepicker.widgets.dart';
 import 'package:health/presentation/widgets/language.widgets.dart';
-import 'package:health/presentation/screens/selectPatient.dart';
+import 'package:health/presentation/screens/selectPatienttest.dart';
 import 'package:health/presentation/screens/start.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../controller/arc.controller.dart';
+import '../controller/selectPatient.controller.dart';
 import '../widgets/bluetooth.widgets.dart';
 
 class Arc extends StatefulWidget {
@@ -18,7 +19,60 @@ class Arc extends StatefulWidget {
 class _ArcState extends State<Arc> {
   final ArcController controller = ArcController();
   final LanguageController _languageController = LanguageController();
-  String _arcTestStatus = 'STATUS_YET_TO_START'; // Default stat
+  final SelectpatientController _selectpatientcontroller = SelectpatientController();
+  DateTime? _selectedDateTime;
+  late String TestStatus;
+
+  @override
+  void initState() {
+    super.initState();
+    TestStatus = 'YET-TO-START';
+  }
+  void _selectPatient(Map<String, dynamic> patient) {
+    setState(() {
+      controller.selectPatient(
+          patient['patientName'],
+          patient['mobileNumber'] ?? '',
+          patient['aadharNumber'] ?? '',
+          patient['appointmentSlot'] ?? '',
+          patient['address'] ?? ''
+      );
+      TestStatus = patient['TestStatus'] ?? 'YET-TO-START';
+    });
+  }
+
+  void _submit() {
+    Map<String, dynamic> currentPatient = {
+      'patientName': controller.selectedPatient,
+      'mobileNumber': controller.patientMobileNumber,
+      'aadharNumber': controller.patientAadharNumber,
+      'appointmentSlot': controller.appointmentSlot,
+      'address': controller.patientAddress,
+      'bloodTestStatus': TestStatus,
+    };
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            SelectPatienttest(
+              onSelect: (patient) {
+                print(
+                    '${patient['patientName']} state: ${patient['ArcTestStatus']}');
+              },
+              testType: 'arc_test_label',
+              submittedPatientNames: [currentPatient['patientName']],
+              initialSelectedPatient: currentPatient,
+              TestStatus: TestStatus, // Explicitly pass the TestStatus
+            ),
+      ),
+    );
+  }
+  void _printLabel() {
+    setState(() {
+      controller.printLabel();
+    });
+  }
 
   // Function to handle navigation
   void navigateToScreen(Widget screen) {
@@ -26,6 +80,7 @@ class _ArcState extends State<Arc> {
       MaterialPageRoute(builder: (_) => screen),
     );
   }
+
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context)!;
@@ -72,26 +127,22 @@ class _ArcState extends State<Arc> {
               await Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => SelectPatient(
-                    onSelect: (patientName) {
-                      setState(() {
-                        controller.selectPatient(
-                          patientName,
-                          '9876543210',
-                          '1234-5678-9123',
-                          '10:00 AM - 10:30 AM',
-                          '123, Example Street, City, Country',
-                        );
-                      });
-                    },
-                  ),
+                    builder: (context) =>
+                        SelectPatienttest(
+                          onSelect: (patient) {
+                            _selectPatient(patient);
+                          },
+                          testType: 'arc_test_label',
+                          submittedPatientNames: [controller.selectedPatient],
+                        )
                 ),
               );
             },
             style: ElevatedButton.styleFrom(
               padding: EdgeInsets.symmetric(
                 horizontal: screenWidth * 0.1,
-                vertical: screenHeight * 0.02,),
+                vertical: screenHeight * 0.02,
+              ),
               backgroundColor: Colors.purpleAccent,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(30),
@@ -121,37 +172,31 @@ class _ArcState extends State<Arc> {
       ),
     );
   }
-  Widget _buildArcStatusDropdown(AppLocalizations localizations) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-            localizations.arc_test_label,
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)
-        ),
-        DropdownButton<String>(
-          value: _arcTestStatus,
-          items: [
-            DropdownMenuItem(
-                value: 'STATUS_YET_TO_START',
-                child: Text(localizations.status_yet_to_start)
-            ),
-            DropdownMenuItem(
-                value: 'STATUS_IN_PROGRESS',
-                child: Text(localizations.status_in_progress)
-            ),
-            DropdownMenuItem(
-                value: 'STATUS_COMPLETED',
-                child: Text(localizations.status_completed)
-            ),
+  Widget _buildPatientInfoBox() {
+    final localizations = AppLocalizations.of(context)!;
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(localizations.selected_patient_info,
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Divider(),
+            _buildInfoRow(
+                localizations.patient_name, controller.selectedPatient),
+            _buildInfoRow(
+                localizations.mobile_number, controller.patientMobileNumber),
+            _buildInfoRow(
+                localizations.aadhar_number, controller.patientAadharNumber),
+            _buildInfoRow(
+                localizations.appointment_slot, controller.appointmentSlot),
+            _buildInfoRow(localizations.address, controller.patientAddress),
           ],
-          onChanged: (String? newValue) {
-            setState(() {
-              _arcTestStatus = newValue!;
-            });
-          },
         ),
-      ],
+      ),
     );
   }
 
@@ -176,16 +221,16 @@ class _ArcState extends State<Arc> {
             SizedBox(height: 20),
             _buildPatientInfoBox(),
             SizedBox(height: 20),
-            Dateandtimepicker(),
+            _buildDateAndTimePicker(),
             SizedBox(height: 20),
-            _buildArcStatusDropdown(localizations),
+            _buildStatusDropdown(localizations),
             SizedBox(height: 20),
             _buildArcTestNumberAndLabel(),
             SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
                 _languageController.speakText(localizations.submit);
-                controller.submit();
+                _submit();
               },
               child: Text(localizations.submit),
             ),
@@ -195,28 +240,6 @@ class _ArcState extends State<Arc> {
     );
   }
 
-  Widget _buildPatientInfoBox() {
-    final localizations = AppLocalizations.of(context)!;
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(localizations.selected_patient_info, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            Divider(),
-            _buildInfoRow(localizations.patient_name, controller.selectedPatient),
-            _buildInfoRow(localizations.mobile_number, controller.patientMobileNumber),
-            _buildInfoRow(localizations.aadhar_number, controller.patientAadharNumber),
-            _buildInfoRow(localizations.appointment_slot, controller.appointmentSlot),
-            _buildInfoRow(localizations.address, controller.patientAddress),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _buildInfoRow(String label, String value) {
     return Padding(
@@ -233,35 +256,119 @@ class _ArcState extends State<Arc> {
     );
   }
 
+  Widget _buildStatusDropdown(AppLocalizations localizations) {
+    final List<DropdownMenuItem<String>> dropdownItems = [
+      DropdownMenuItem(
+          value: 'STATUS_YET_TO_START',
+          child: Text(localizations.status_yet_to_start)),
+      DropdownMenuItem(
+          value: 'STATUS_IN_PROGRESS',
+          child: Text(localizations.status_in_progress)),
+    ];
 
-  Widget _buildArcTestNumberAndLabel() {
-    final localizations = AppLocalizations.of(context)!;
+    // Only add the completed status if both date and collection number are available
+    if (_selectedDateTime != null &&
+        controller.arcTestAppointmentNumber.isNotEmpty) {
+      dropdownItems.add(
+        DropdownMenuItem(
+          value: 'STATUS_COMPLETED',
+          child: Text(localizations.status_completed),
+        ),
+      );
+    }
+
+    // Ensure the current TestStatus is valid
+    if (!dropdownItems.any((item) => item.value == TestStatus)) {
+      TestStatus = dropdownItems.first.value!;
+    }
+
     return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Expanded(
-          child: TextField(
-            readOnly: true,
+          child: DropdownButtonFormField<String>(
+            value: TestStatus,
+            items: dropdownItems,
+            onChanged: (String? newValue) {
+              setState(() {
+                TestStatus = newValue!;
+              });
+            },
             decoration: InputDecoration(
-              labelText: localizations.generated_arc_test_number,
-              border: OutlineInputBorder(),
+              contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              labelText: localizations.arc_test_label,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8.0),
+                borderSide: BorderSide(
+                  color: Colors.grey,
+                  width: 1.5,
+                ),
+              ),
             ),
-            controller: TextEditingController(text: controller.arcTestNumber),
           ),
-        ),
-        SizedBox(width: 10),
-        ElevatedButton(
-          onPressed: () async {
-            _languageController.speakText(localizations.print_label);
-            await controller.printLabel();
-            setState(() {}); // Update status message
-          },
-          child: Text(localizations.print_label),
         ),
       ],
     );
   }
-}
 
-// _languageController.speakText(localizations.print_label);
-// _languageController.speakText(localizations.select_patient);
+  Widget _buildDateAndTimePicker() {
+    return Dateandtimepicker(
+      onDateTimeSelected: (DateTime? dateTime) {
+        setState(() {
+          _selectedDateTime = dateTime;
+          _selectpatientcontroller.appointmentDateTime = dateTime;
+        });
+      },
+    );
+  }
 
+  void _generateArctestNumber() {
+    if (_selectedDateTime != null) {
+      controller.arcTestAppointmentNumber =
+      'BC-${_selectedDateTime!.year}${_selectedDateTime!.month.toString()
+          .padLeft(2, '0')}${_selectedDateTime!.day.toString()
+          .padLeft(2, '0')}-${DateTime
+          .now()
+          .millisecondsSinceEpoch % 10000}';
+    }
+  }
+
+      Widget _buildArcTestNumberAndLabel() {
+        final localizations = AppLocalizations.of(context)!;
+
+        // Generate collection number when date is selected
+        if (_selectedDateTime != null &&
+            controller.arcTestAppointmentNumber.isEmpty) {
+          _generateArctestNumber();
+        }
+
+        return Row(
+          children: [
+            Expanded(
+              child: TextField(
+                readOnly: true,
+                decoration: InputDecoration(
+                  labelText: localizations.generated_arc_test_number,
+                  border: OutlineInputBorder(),
+                  hintText: 'Automatically generated',
+                ),
+                controller: TextEditingController(
+                    text: controller.arcTestAppointmentNumber),
+              ),
+            ),
+            SizedBox(width: 10),
+            ElevatedButton(
+              onPressed: () {
+                _languageController.speakText(localizations.print_label);
+                _printLabel();
+              },
+              child: controller.isPrinting
+                  ? CircularProgressIndicator()
+                  : Text(localizations.print_label),
+            ),
+            if (controller.statusMessage.isNotEmpty) Text(
+                controller.statusMessage),
+          ],
+        );
+      }
+    }

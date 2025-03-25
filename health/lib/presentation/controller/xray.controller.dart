@@ -10,17 +10,27 @@ class XrayController{
   String xrayAppointmentNumber = '';
   bool isPatientSelected = false;
   bool isPrinting = false;
+  String _statusMessage = '';
+
+
 
   void selectPatient(String patientName, String mobileNumber, String aadharNumber, String appointmentSlot, String address) {
-    {
-      selectedPatient = patientName;
-      patientMobileNumber = mobileNumber;
-      patientAadharNumber = aadharNumber;
-      appointmentSlot = appointmentSlot;
-      patientAddress = address;
-      xrayAppointmentNumber = _generateXRayAppointmentNumber(); // Generate the number when a patient is selected
-      isPatientSelected = true; // Set flag to true when a patient is selected
-    };
+    selectedPatient = patientName;
+    patientMobileNumber = mobileNumber;
+    patientAadharNumber = aadharNumber;
+    appointmentSlot = appointmentSlot;
+    patientAddress = address;
+    xrayAppointmentNumber = _generateXRayAppointmentNumber();
+    isPatientSelected = true;
+  }
+
+  void printLabel() {
+    isPrinting = true;
+    _statusMessage = 'Label is printing...';
+    Future.delayed(Duration(seconds: 2), () {
+      isPrinting = false;
+      _statusMessage = 'Label printing done';
+    });
   }
 
   String _generateXRayAppointmentNumber() {

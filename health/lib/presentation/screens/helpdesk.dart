@@ -6,15 +6,11 @@ import 'package:health/presentation/controller/helpdesk.controller.dart';
 import 'package:health/presentation/controller/language.controller.dart';
 import 'package:health/presentation/screens/appointments.dart';
 import 'package:health/presentation/screens/start.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
-//import 'package:url_launcher/url_launcher.dart';
-
 import '../../data/datasources/api_service.dart';
+import '../controller/appointments.controller.dart';
 import '../widgets/language.widgets.dart';
-import '../widgets/phonenumber.widgets.dart';
-import 'login.dart';
 
 class Helpdesk extends StatefulWidget {
   const Helpdesk({super.key});
@@ -25,22 +21,25 @@ class Helpdesk extends StatefulWidget {
 
 class _HelpdeskState extends State<Helpdesk> with SingleTickerProviderStateMixin {
   final HelpdeskController _controller = HelpdeskController();
-  final LanguageController _languageController = LanguageController();
   late TabController _tabController;
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _messageController = TextEditingController();
+  final AppointmentsController _appointmentsController = AppointmentsController();
   final _formKey = GlobalKey<FormState>();
   Future<void>? _initializeControllerFuture;
   bool _isLoading = false;
-  final UserService _userService = UserService();
   CameraController? _cameraController;
+  List<Map<String, dynamic>> _appointments = [];
+  String? _selectedStatus;
+  DateTime? _selectedDate;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 5, vsync: this);
     _initializeCamera();
+    _loadAppointmentsData();
   }
 
   @override
@@ -77,23 +76,6 @@ class _HelpdeskState extends State<Helpdesk> with SingleTickerProviderStateMixin
     }
   }
 
-  Future<void> _takePicture() async {
-    try {
-      await _initializeControllerFuture;
-      final image = await _cameraController?.takePicture();
-
-      if (image != null) {
-        setState(() {
-          _controller.imageFile = File(image.path);
-        });
-      }
-    } catch (e) {
-      print('Error taking picture: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to take picture')),
-      );
-    }
-  }
 
   void navigateToScreen(Widget screen) {
     Navigator.of(context).pushReplacement(
@@ -155,11 +137,12 @@ class _HelpdeskState extends State<Helpdesk> with SingleTickerProviderStateMixin
           ],
         ),
       ),
+      backgroundColor: Colors.white,
       body: TabBarView(
         controller: _tabController,
         children: [
           // Patient Registration
-          _buildPatientRegistration(localizations, textScaleFactor),
+          _loadAppointments(),
 
           // Hospital Details
           _buildHospitalDetails(localizations),
@@ -178,8 +161,181 @@ class _HelpdeskState extends State<Helpdesk> with SingleTickerProviderStateMixin
   }
 
 
+  //show appointments
 
-  // Hospital Details Widget
+  Widget _loadAppointments() {
+    return StatefulBuilder(
+      builder: (context, setState) {
+        return Column(
+          children: [
+            // Filter section
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      decoration: InputDecoration(
+                        labelText: 'Filter by Status',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: [
+                        'All',
+                        'Pending',
+                        'Confirmed',
+                        'Cancelled',
+                        'Completed'
+                      ].map((status) {
+                        return DropdownMenuItem(
+                          value: status == 'All' ? null : status,
+                          child: Text(status),
+                        );
+                      }).toList(),
+                      onChanged: (selectedStatus) {
+                        setState(() {
+                          _selectedStatus = selectedStatus;
+                          _loadAppointmentsData();
+                        });
+                      },
+                    ),
+                  ),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        final pickedDate = await showDatePicker(
+                          context: context,
+                          initialDate: DateTime.now(),
+                          firstDate: DateTime(2023),
+                          lastDate: DateTime(2026),
+                        );
+                        if (pickedDate != null) {
+                          setState(() {
+                            _selectedDate = pickedDate;
+                            _loadAppointmentsData();
+                          });
+                        }
+                      },
+                      child: Text(_selectedDate == null
+                          ? 'Select Date'
+                          : DateFormat('MMM dd, yyyy').format(_selectedDate!)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Loading indicator
+            if (_isLoading)
+              CircularProgressIndicator(),
+
+            // Appointments list
+            Expanded(
+              child: _appointments.isEmpty && !_isLoading
+                  ? Center(child: Text('No appointments found'))
+                  : ListView.builder(
+                itemCount: _appointments.length,
+                itemBuilder: (context, index) {
+                  final appointment = _appointments[index];
+                  return Card(
+                    margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                    child: ListTile(
+                      title: Text(
+                        appointment['patientName'] ?? 'Unknown Patient',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Doctor: ${appointment['doctorName'] ?? 'N/A'}'),
+                          Text('Date: ${_formatDate(appointment['date'])}'),
+                          Text('Time: ${appointment['timeSlot'] ?? 'N/A'}'),
+                        ],
+                      ),
+                      trailing: _buildStatusChip(appointment['status']),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+// Helper method to format date
+  String _formatDate(String? dateString) {
+    if (dateString == null) return 'N/A';
+    try {
+      final DateTime date = DateTime.parse(dateString);
+      return DateFormat('MMM dd, yyyy').format(date);
+    } catch (e) {
+      return 'Invalid Date';
+    }
+  }
+
+// Helper method to create status chip
+  Widget _buildStatusChip(String? status) {
+    if (status == null) return SizedBox.shrink();
+
+    Color chipColor;
+    switch (status.toLowerCase()) {
+      case 'confirmed':
+        chipColor = Colors.green;
+        break;
+      case 'pending':
+        chipColor = Colors.orange;
+        break;
+      case 'cancelled':
+        chipColor = Colors.red;
+        break;
+      case 'completed':
+        chipColor = Colors.blue;
+        break;
+      default:
+        chipColor = Colors.grey;
+    }
+
+    return Chip(
+      label: Text(
+        status,
+        style: TextStyle(color: Colors.white),
+      ),
+      backgroundColor: chipColor,
+    );
+  }
+
+// Method to load appointments data
+  Future<void> _loadAppointmentsData() async {
+    setState(() => _isLoading = true);
+    try {
+      final List<Appointment> result = await _appointmentsController.getAppointments(
+        status: _selectedStatus,
+        date: _selectedDate,
+      );
+
+      setState(() {
+        _appointments = result.map((appointment) => {
+          'id': appointment.id,
+          'patientName': appointment.patientName,
+          'doctorName': appointment.doctorName,
+          'date': appointment.date.toIso8601String(),
+          'timeSlot': appointment.timeSlot,
+          'status': appointment.status,
+          'patientContact': appointment.patientContact,
+          'createdAt': appointment.createdAt.toIso8601String(),
+        }).toList();
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error loading appointments: $e')),
+      );
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
   Widget _buildHospitalDetails(AppLocalizations localizations) {
     return ListView(
       padding: const EdgeInsets.all(16.0),
@@ -319,770 +475,4 @@ class _HelpdeskState extends State<Helpdesk> with SingleTickerProviderStateMixin
   }
 // Patient Registration Widget
 
-  Widget _buildPatientRegistration(AppLocalizations localizations, double textScaleFactor) {
-    return ListView(
-      padding: const EdgeInsets.all(16.0),
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            Expanded(
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueAccent,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                onPressed: () {
-                  setState(() {
-                    _languageController.speakText(localizations.existing_patient);
-                    _controller.isExistingPatient = true;
-                    _controller.isNewPatient = false;
-                  });
-                },
-                child: Text(
-                  localizations.existing_patient,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14 * textScaleFactor,
-                  ),
-                ),
-              ),
-            ),
-            SizedBox(width: 20),
-            Expanded(
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.greenAccent,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                onPressed: () {
-                  setState(() {
-                    _languageController.speakText(localizations.new_patient);
-                    _controller.isNewPatient = true;
-                    _controller.isExistingPatient = false;
-                  });
-                },
-                child: Text(
-                  localizations.new_patient,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14 * textScaleFactor,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 20),
-        if (_controller.isExistingPatient) ...[
-          Form(
-            key: _formKey,
-            child: Column(
-              children: [
-                PhoneInputWidget(
-                  onPhoneValidated: (bool isValid, String phoneNumber) async {
-                    setState(() {
-                      _controller.isPhoneEntered = isValid;
-                      _controller.showContinueButton = isValid;
-                    });
-
-                    if (isValid) {
-                      _controller.phoneController.text = phoneNumber;
-                      final userData = await _controller.fetchUserDetails(phoneNumber);
-                      setState(() {
-                        _controller.userData = userData;
-                        _controller.showUserDropdown = userData.isNotEmpty;
-                      });
-                    }
-                  },
-                ),
-                SizedBox(height: 20),
-                if (_controller.showUserDropdown)
-                  Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.symmetric(horizontal: 12),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey),
-                      borderRadius: BorderRadius.circular(5),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        isExpanded: true,
-                        hint: Text(localizations.choose_user),
-                        value: _controller.selectedUser.isNotEmpty ? _controller.selectedUser : null,
-                        items: _controller.userData.keys.map((String user) {
-                          return DropdownMenuItem<String>(
-                            value: user,
-                            child: Text(user),
-                          );
-                        }).toList(),
-                        onChanged: (String? newUser) {
-                          setState(() {
-                            _controller.selectedUser = newUser ?? '';
-                            if (newUser != null) {
-                              Appointments();
-                            }
-                          });
-                        },
-                      ),
-                    ),
-                  ),
-                SizedBox(height: 20),
-                if (_controller.selectedUser.isNotEmpty)
-                  Card(
-                    elevation: 3,
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            localizations.user_information,
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                          ),
-                          SizedBox(height: 10),
-                          Text('${localizations.aadhar}: ${_controller.userData[_controller.selectedUser]?['Aadhar'] ?? ''}'),
-                          Text('${localizations.full_name}: ${_controller.userData[_controller.selectedUser]?['FullName'] ?? ''}'),
-                          Text('${localizations.dob}: ${_controller.userData[_controller.selectedUser]?['DOB'] ?? ''}'),
-                          Text('${localizations.address}: ${_controller.userData[_controller.selectedUser]?['Address'] ?? ''}'),
-                          Text('${localizations.role}: ${_controller.userData[_controller.selectedUser]?['Role'] ?? ''}'),
-                        ],
-                      ),
-                    ),
-                  ),
-                if (_controller.showContinueButton)
-                  ElevatedButton(
-                    onPressed: () async {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(builder: (context) => Appointments()),
-                      );
-                    },
-                    child: Text(localizations.continueButton),
-                  ),
-              ],
-            ),
-          ),
-        ],
-
-        if (_controller.isNewPatient) ...[
-          Form(
-            key: _controller.formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                PhoneInputWidget(
-                  onPhoneValidated: (bool isValid, String phoneNumber) {
-                    setState(() {
-                      _controller.isPhoneEntered = isValid;
-                      if (isValid) {
-                        _controller.phone.text = phoneNumber;
-                        _controller.showContinueButton = true;
-                      } else {
-                        _controller.showContinueButton = false;
-                      }
-                    });
-                  },
-                ),
-                if (_controller.isPhoneEntered) ...[
-                  SizedBox(height: 20),
-                  _buildScanOptions(localizations),
-                  if (_controller.showQrScanner || _controller.showCameraOptions)
-                    SizedBox(height: 20),
-                  if (_controller.showQrScanner)
-                    _buildQrScanner(localizations),
-                  if (_controller.showCameraOptions)
-                    _buildCameraOptions(localizations),
-                  /*if (_controller.showPreview)
-                    _buildPreview(localizations),*/
-                  if (_controller.showSignupButton)
-                    _buildRegistrationForm(localizations),
-                ],
-              ],
-            ),
-          ),
-        ]
-
-      ],
-
-    );
-  }
-  Widget _buildScanOptions(AppLocalizations localizations) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          ElevatedButton.icon(
-            onPressed: () {
-              setState(() {
-                _controller.showQrScanner = true;
-                _controller.showCameraOptions = false;
-              });
-              _controller.speakText(localizations.scan_aadhar_qr);
-            },
-            icon: Icon(Icons.qr_code_scanner),
-            label: Text(localizations.scan_aadhar_qr),
-          ),
-          SizedBox(width: 10),
-          ElevatedButton.icon(
-            onPressed: () {
-              setState(() {
-                _controller.showCameraOptions = true;
-                _controller.showQrScanner = false;
-              });
-              _controller.speakText(localizations.scan_aadhar_front_back);
-            },
-            icon: Icon(Icons.document_scanner),
-            label: Text(localizations.scan_aadhar_front_back),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQrScanner(AppLocalizations localizations) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Icon(Icons.qr_code_scanner, size: 48),
-            SizedBox(height: 16),
-            Text(localizations.scan_aadhar_qr),
-            SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: () async {
-                try {
-                  await _controller.scanQrCode();
-                  setState(() {});
-                } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(e.toString())),
-                  );
-                }
-              },
-              icon: Icon(Icons.qr_code),
-              label: Text(localizations.scan_aadhar_front_back),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCameraOptions(AppLocalizations localizations) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal ,child: Column(
-          children: [
-            Text(localizations.scan_aadhar_front_back,
-                style: Theme.of(context).textTheme.titleMedium),
-            SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                ElevatedButton.icon(
-                  onPressed: () =>
-                      _handleImageCapture('front', localizations),
-                  icon: Icon(Icons.camera_front),
-                  label: Text(localizations.scan_aadhar_front),
-                ),
-                ElevatedButton.icon(
-                  onPressed: () =>
-                      _handleImageCapture('back', localizations),
-                  icon: Icon(Icons.camera_rear),
-                  label: Text(localizations.scan_aadhar_back),
-                ),
-              ],
-            ),
-          ],
-        ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _handleImageCapture(String side, AppLocalizations localizations) async {
-    try {
-      await _controller.pickImage(side);
-      setState(() {
-        if (_controller.frontImagePath != null && _controller.backImagePath != null) {
-          _controller.showPreview = true;
-          _controller.showSignupButton = true;
-        }
-      });
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(localizations.capture_aadhar_back_side)),
-      );
-    }
-  }
-
-  Widget _buildPreview(AppLocalizations localizations) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(localizations.preview_scanned_images,
-                style: Theme.of(context).textTheme.titleMedium),
-            SizedBox(height: 16),
-            if (_controller.frontImagePath != null)
-              Image.file(File(_controller.frontImagePath!), height: 100),
-            SizedBox(height: 10),
-            if (_controller.backImagePath != null)
-              Image.file(File(_controller.backImagePath!), height: 100),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRegistrationForm(AppLocalizations localizations) {
-    return Column(
-      children: [
-        SizedBox(height: 20),
-        TextFormField(
-          controller: _controller.aadharnumber,
-          validator: _controller.validateAadhar,
-          decoration: InputDecoration(
-            labelText: localizations.aadhar_number,
-            border: OutlineInputBorder(),
-          ),
-        ),
-        SizedBox(height: 16),
-        TextFormField(
-          controller: _controller.name,
-          validator: _controller.validateName,
-          decoration: InputDecoration(
-            labelText: localizations.full_name,
-            border: OutlineInputBorder(),
-          ),
-        ),
-        SizedBox(height: 16),
-        TextFormField(
-          controller: _controller.dateofbirth,
-          readOnly: true,
-          validator: _controller.validateDOB,
-          decoration: InputDecoration(
-            labelText: localizations.dob,
-            border: OutlineInputBorder(),
-            suffixIcon: IconButton(
-              icon: Icon(Icons.calendar_today),
-              onPressed: () async {
-                DateTime? pickedDate = await showDatePicker(
-                  context: context,
-                  initialDate: DateTime.now(),
-                  firstDate: DateTime(1900),
-                  lastDate: DateTime.now(),
-                );
-                if (pickedDate != null) {
-                  _controller.dateofbirth.text = DateFormat('dd-MM-yyyy').format(pickedDate);
-                }
-              },
-            ),
-          ),
-        ),
-        SizedBox(height: 16),
-        TextFormField(
-          controller: _controller.addresss,
-          validator: _controller.validateAddress,
-          maxLines: 3,
-          decoration: InputDecoration(
-            labelText: localizations.address,
-            border: OutlineInputBorder(),
-          ),
-        ),
-        SizedBox(height: 20),
-        _buildProfilePictureSection(localizations),
-        SizedBox(height: 20),
-        ElevatedButton.icon(
-          onPressed: () => showConfirmationPopup(localizations),
-          icon: Icon(Icons.person_add),
-          label: Text(localizations.add_user),
-          style: ElevatedButton.styleFrom(
-            minimumSize: Size(double.infinity, 48),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildProfilePictureSection(AppLocalizations localizations) {
-    final MediaQueryData mediaQuery = MediaQuery.of(context);
-    final Orientation orientation = mediaQuery.orientation;
-    final bool isPortrait = orientation == Orientation.portrait;
-
-    final double containerHeight = isPortrait
-        ? mediaQuery.size.height * 0.4
-        : mediaQuery.size.height * 0.6;
-
-    return Card(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Title
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(
-              localizations.capture_face,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-          ),
-
-          // Camera Preview Container
-          Container(
-            width: double.infinity,
-            height: containerHeight,
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey, width: 1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: _buildCameraPreview(orientation),
-          ),
-
-          // Capture/Retake Button
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Center(
-              child: ElevatedButton.icon(
-                onPressed: _controller.imageFile == null
-                    ? _takePictureWithOrientation
-                    : () {
-                  setState(() {
-                    _controller.imageFile = null;
-                  });
-                },
-                icon: Icon(_controller.imageFile == null
-                    ? Icons.camera_alt
-                    : Icons.refresh),
-                label: Text(_controller.imageFile == null
-                    ? localizations.capture_face
-                    : localizations.retake),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCameraPreview(Orientation orientation) {
-    if (_controller.imageFile != null) {
-      return Image.file(
-        _controller.imageFile!,
-        width: double.infinity,
-        height: double.infinity,
-      );
-    }
-
-    // If no image, show camera preview
-    return FutureBuilder<void>(
-      future: _initializeControllerFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.done) {
-          // Rotate camera preview based on device orientation
-          return Center(
-            child: _cameraController != null
-                ? _transformCameraPreview(orientation)
-                : Text("errror"),
-          );
-        }
-        return const Center(child: CircularProgressIndicator());
-      },
-    );
-  }
-
-  Widget _transformCameraPreview(Orientation orientation) {
-    int quarterTurns = 3;
-    if (orientation == Orientation.portrait) {
-      quarterTurns = 1;
-    } else {
-      quarterTurns = 3;
-    }
-
-    return RotatedBox(
-      quarterTurns: quarterTurns,
-      child: AspectRatio(
-        aspectRatio: _cameraController!.value.aspectRatio,
-        child: CameraPreview(_cameraController!),
-      ),
-    );
-  }
-
-  Future<void> _takePictureWithOrientation() async {
-    try {
-      await _initializeControllerFuture;
-
-      final Orientation orientation = MediaQuery.of(context).orientation;
-
-      final XFile imageFile = await _cameraController!.takePicture();
-
-      // Load the image
-      File capturedImage = File(imageFile.path);
-      setState(() {
-        _controller.imageFile = capturedImage;
-      });
-    } catch (e) {
-      print('Error taking picture: $e');
-      // Handle error appropriately
-    }
-  }
-
-  void showConfirmationPopup(AppLocalizations localizations) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(localizations.confirmation),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(localizations.cancel),
-            ),
-            ElevatedButton(
-              onPressed: () => _handleRegistration(localizations),
-              child: Text(localizations.submit),
-            ),
-          ],
-        );
-      },
-    );
-  }
-  Future<void> _handleRegistration(AppLocalizations localizations) async {
-    try {
-      print('Image file path: ${_controller.imageFile?.path}');
-      print('Image file exists: ${_controller.imageFile?.existsSync()}');
-      if (!_controller.formKey.currentState!.validate()) {
-        if (mounted) Navigator.of(context).pop();
-        return;
-      }
-
-      if (_controller.imageFile == null) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Please capture profile picture'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-        return;
-      }
-
-      if (mounted) setState(() => _isLoading = true);
-
-      final response = await _userService.addUserhd(
-        imageFile: _controller.imageFile!,
-        phoneNumber: _controller.phone.text.trim(),
-        aadhaarNumber: _controller.aadharnumber.text.trim(),
-        name: _controller.name.text.trim(),
-        dob: _controller.dateofbirth.text.trim(),
-        address: _controller.addresss.text.trim(),
-      );
-
-      print('Registration response: $response');
-
-      if (mounted) setState(() => _isLoading = false);
-
-      if (response['status'] == 'success') {
-        if (mounted) {
-          // Close password dialog first
-          Navigator.of(context).pop();
-
-          // Show success message
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(localizations.register_success),
-              backgroundColor: Colors.green,
-              duration: Duration(seconds: 2),
-            ),
-          );
-
-          // Wait briefly for the snackbar to be visible
-          await Future.delayed(Duration(milliseconds: 500));
-
-          // Navigate to login screen
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (_) => Helpdesk()),
-                (route) => false,
-          );
-        }
-      } else {
-        if (mounted) {
-          // Close password dialog
-          Navigator.of(context).pop();
-
-          // Show error message
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(response['message'] ?? 'Registration failed'),
-              backgroundColor: Colors.red,
-              duration: Duration(seconds: 3),
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      print('Registration error: $e'); // Debug print
-
-      if (mounted) {
-        setState(() => _isLoading = false);
-
-        // Close password dialog
-        Navigator.of(context).pop();
-
-        // Show error message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString().replaceAll('Exception: ', '')}'),
-            backgroundColor: Colors.red,
-            duration: Duration(seconds: 3),
-          ),
-        );
-      }
-    }
-  }
-
-
-
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Initialize localizations or load any required dependencies
-    final localizations = AppLocalizations.of(context)!;
-  }
-
-  // Handle back button press
-  Future<bool> _onWillPop() async {
-    if (_controller.showQrScanner || _controller.showCameraOptions) {
-      setState(() {
-        _controller.showQrScanner = false;
-        _controller.showCameraOptions = false;
-      });
-      return false;
-    }
-    return true;
-  }
-
-  // Clean up resources
-  void _cleanupResources() {
-    _cameraController?.dispose();
-    _controller.dispose();
-  }
-
-  // Handle app lifecycle changes
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (_cameraController == null || !_cameraController!.value.isInitialized) {
-      return;
-    }
-
-    if (state == AppLifecycleState.inactive) {
-      _cameraController?.dispose();
-    } else if (state == AppLifecycleState.resumed) {
-      _initializeCamera();
-    }
-  }
-}
-
-// Extension for input validation
-extension ValidationExtension on String {
-  bool get isValidPhone => length == 10 && RegExp(r'^[0-9]+$').hasMatch(this);
-
-  bool get isValidAadhar => length == 12 && RegExp(r'^[0-9]+$').hasMatch(this);
-
-  bool get isValidName => length >= 2 && RegExp(r'^[a-zA-Z\s]+$').hasMatch(this);
-
-  bool get isValidDOB {
-    try {
-      final parts = split('-');
-      if (parts.length != 3) return false;
-      final date = DateTime(
-        int.parse(parts[2]),
-        int.parse(parts[1]),
-        int.parse(parts[0]),
-      );
-      return date.isBefore(DateTime.now());
-    } catch (e) {
-      return false;
-    }
-  }
-}
-
-// Custom exception for registration errors
-class RegistrationException implements Exception {
-  final String message;
-  RegistrationException(this.message);
-
-  @override
-  String toString() => message;
-}
-
-// Custom widget for loading indicator
-class LoadingOverlay extends StatelessWidget {
-  final Widget child;
-  final bool isLoading;
-
-  const LoadingOverlay({
-    required this.child,
-    required this.isLoading,
-    Key? key,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        child,
-        if (isLoading)
-          Container(
-            color: Colors.black54,
-            child: Center(
-              child: CircularProgressIndicator(),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-// Theme extension for consistent styling
-extension ThemeExtension on ThemeData {
-  InputDecoration get defaultInputDecoration => InputDecoration(
-    border: OutlineInputBorder(),
-    filled: true,
-    fillColor: Colors.white,
-    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-    errorMaxLines: 2,
-  );
-}
-
-// Constants for registration
-class RegistrationConstants {
-  static const Duration cameraCooldown = Duration(seconds: 2);
-  static const Duration registrationTimeout = Duration(seconds: 30);
-  static const int maxRetries = 3;
-  static const double maxImageSize = 5 * 1024 * 1024; // 5MB
-
-  static const List<String> supportedImageTypes = ['jpg', 'jpeg', 'png'];
-
-  static bool isValidImageSize(File file) {
-    return file.lengthSync() <= maxImageSize;
-  }
-
-  static bool isValidImageType(String path) {
-    final extension = path.split('.').last.toLowerCase();
-    return supportedImageTypes.contains(extension);
-  }
-}
+ }

@@ -6,18 +6,29 @@ import 'package:flutter_tts/flutter_tts.dart';
 
 class ArcController {
   final FlutterTts flutterTts = FlutterTts();
-  String selectedPatient = '';
-  String patientMobileNumber = '';
-  String patientAadharNumber = '';
-  String appointmentSlot = '';
-  String patientAddress = '';
-  DateTime? appointmentDateTime;
-  String arcTestNumber = '';
-  bool isPatientSelected = false;
-  bool isPrinting = false;
-  String statusMessage = '';
+  String _selectedPatient = '';
+  String _patientMobileNumber = '';
+  String _patientAadharNumber = '';
+  String _appointmentSlot = '';
+  String _patientAddress = '';
+  DateTime? _collectionDateTime;
+  String _collectionNumber = '';
+  bool _isPatientSelected = false;
+  bool _isPrinting = false;
+  String _statusMessage = '';
+  String arcTestAppointmentNumber = '';
   bool isMuted = false;
   String selectedLanguage = 'en-US';
+
+  String get selectedPatient => _selectedPatient;
+  String get patientMobileNumber => _patientMobileNumber;
+  String get patientAadharNumber => _patientAadharNumber;
+  String get appointmentSlot => _appointmentSlot;
+  String get patientAddress => _patientAddress;
+  DateTime? get collectionDateTime => _collectionDateTime;
+  bool get isPatientSelected => _isPatientSelected;
+  bool get isPrinting => _isPrinting;
+  String get statusMessage => _statusMessage;
 
   // Generate a unique Arc Test Number
   String generateArcTestNumber() {
@@ -28,14 +39,16 @@ class ArcController {
 
   // Select patient and generate Arc Test Number
   void selectPatient(String patientName, String mobileNumber, String aadharNumber, String appointmentSlot, String address) {
-    selectedPatient = patientName;
-    patientMobileNumber = mobileNumber;
-    patientAadharNumber = aadharNumber;
-    this.appointmentSlot = appointmentSlot;
-    patientAddress = address;
-    arcTestNumber = generateArcTestNumber();
-    isPatientSelected = true;
+    _selectedPatient = patientName;
+    _patientMobileNumber = mobileNumber;
+    _patientAadharNumber = aadharNumber;
+    _appointmentSlot = appointmentSlot;
+    _patientAddress = address;
+    arcTestAppointmentNumber = generateArcTestNumber();
+    _isPatientSelected = true;
   }
+
+
 
   // Change the language for TTS
   Future<void> changeLanguage(String langCode) async {
@@ -50,27 +63,27 @@ class ArcController {
   }
 
   // Start label printing and update the status message
-  Future<void> printLabel() async {
-    isPrinting = true;
-    statusMessage = 'Label is printing...';
-
-    // Simulate label printing delay
-    await Future.delayed(Duration(seconds: 2));
-    isPrinting = false;
-    statusMessage = 'Label printing done';
+  void printLabel() {
+    _isPrinting = true;
+    _statusMessage = 'Label is printing...';
+    Future.delayed(Duration(seconds: 2), () {
+      _isPrinting = false;
+      _statusMessage = 'Label printing done';
+    });
   }
 
   // Submit the form logic
   void submit() {
-    print('Submitting Eye Arc Test for $selectedPatient');
-    print('Appointment DateTime: $appointmentDateTime');
-    print('Arc Test Number: $arcTestNumber');
-    resetPatientSelection();
+    print('Submitting Eye Arc Test for $_selectedPatient');
+    print('Collection DateTime: $_collectionDateTime');
+    print('Arc Test Number: $arcTestAppointmentNumber');
   }
 
-  // Reset the patient selection
-  void resetPatientSelection() {
-    selectedPatient = '';
-    isPatientSelected = false;
+  void updateCollectionDateTime(DateTime dateTime) {
+    _collectionDateTime = dateTime;
   }
 }
+
+  // Reset the patient selection
+
+

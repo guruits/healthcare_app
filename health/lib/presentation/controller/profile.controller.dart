@@ -19,10 +19,10 @@ class ProfileController {
   // Controllers for text fields
   final TextEditingController fullNameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
-  final TextEditingController phoneNumberController = TextEditingController();
+  final TextEditingController phoneController = TextEditingController();
   final TextEditingController roleController = TextEditingController();
-  final TextEditingController aadharNumberController = TextEditingController();
-  final TextEditingController dobController = TextEditingController();
+  final TextEditingController aadhaarController = TextEditingController();
+  final TextEditingController dateOfBirthController = TextEditingController();
   final TextEditingController addressController = TextEditingController();
 
   // Function to load user data from SharedPreferences
@@ -40,10 +40,10 @@ class ProfileController {
       // Set the controllers with loaded data
       fullNameController.text = fullName;
       emailController.text = email;
-      phoneNumberController.text = phoneNumber;
+      phoneController.text = phoneNumber;
       roleController.text = role;
-      aadharNumberController.text = aadharNumber;
-      dobController.text = dob;
+      aadhaarController.text = aadharNumber;
+      dateOfBirthController.text = dob;
       addressController.text = address;
     };
   }

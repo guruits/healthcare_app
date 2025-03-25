@@ -18,6 +18,8 @@ class RegisterController {
   bool showSignupButton = false;
   XFile? frontImage;
   XFile? backImage;
+  String? frontImagePath;
+  String? backImagePath;
 
   // Language and TTS variables
   bool isMuted = false;
@@ -64,10 +66,12 @@ class RegisterController {
       }
     });
   }
+/*
 
   get frontImagePath => null;
 
   get backImagePath => null;
+*/
 
 
   void updatePreviewState() {
@@ -226,6 +230,8 @@ class RegisterController {
   void dispose() {
     phone.dispose();
     name.dispose();
+    frontImagePath = null;
+    backImagePath = null;
     aadharnumber.dispose();
     dateofbirth.dispose();
     addresss.dispose();

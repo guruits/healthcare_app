@@ -253,7 +253,7 @@ class HelpdeskController{
       String phoneNumber) async {
     try {
       final response = await http.get(
-          Uri.parse('http://192.168.29.36:3000/users/phone/$phoneNumber'));
+          Uri.parse('http://192.168.1.21:3000/users/phone/$phoneNumber'));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);

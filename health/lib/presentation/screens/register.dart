@@ -1,11 +1,14 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:health/data/services/ruser.dart';
 import 'package:health/presentation/controller/register.controller.dart';
 import 'package:health/presentation/screens/login.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'dart:io';
 import '../../data/datasources/api_service.dart';
+import '../widgets/facedetection.dart';
 import '../widgets/language.widgets.dart';
 import '../widgets/phonenumber.widgets.dart';
 import 'home.dart';
@@ -26,6 +29,7 @@ class _RegisterState extends State<Register> {
   final UserService _userService = UserService();
   Future<void>? _initializeControllerFuture;
   bool _isLoading = false;
+
 
 
   @override
@@ -51,7 +55,7 @@ class _RegisterState extends State<Register> {
 
       _cameraController = CameraController(
         firstCamera,
-        ResolutionPreset.medium,
+        ResolutionPreset.ultraHigh,
       );
 
       _initializeControllerFuture = _cameraController?.initialize();
@@ -83,8 +87,13 @@ class _RegisterState extends State<Register> {
   }
 
   void navigateToScreen(Widget screen) {
+    if (!mounted) return;
+
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => screen),
+      MaterialPageRoute(
+        builder: (_) => screen,
+        maintainState: true,
+      ),
     );
   }
 
@@ -93,22 +102,22 @@ class _RegisterState extends State<Register> {
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context)!;
     double screenWidth = MediaQuery.of(context).size.width;
-    bool isLargeScreen = screenWidth > 600;
+    bool isLargeScreen = screenWidth > 900;
+    bool isMediumScreen = screenWidth > 600 && screenWidth <= 900;
+    bool isSmallScreen = screenWidth <= 600;
 
     return _buildLoadingOverlay(
       child: Scaffold(
         appBar: _buildAppBar(localizations),
+        backgroundColor: Colors.white,
         body: LayoutBuilder(
           builder: (context, constraints) {
             if (isLargeScreen) {
               return _buildLargeScreenLayout();
+            } else if (isMediumScreen) {
+              return _buildMediumScreenLayout();
             } else {
-              return SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: _buildSmallScreenLayout(),
-                ),
-              );
+              return _buildSmallScreenLayout();
             }
           },
         ),
@@ -118,6 +127,7 @@ class _RegisterState extends State<Register> {
 
   PreferredSizeWidget _buildAppBar(AppLocalizations localizations) {
     return AppBar(
+      backgroundColor: Colors.white,
       title: Text(localizations.sign_up),
       leading: IconButton(
         icon: Icon(Icons.arrow_back),
@@ -147,17 +157,43 @@ class _RegisterState extends State<Register> {
     );
   }
 
-  Widget _buildSmallScreenLayout() {
+  Widget _buildMediumScreenLayout() {
     return Column(
       children: [
         Image.asset(
           'assets/images/register.png',
-          height: 150,
+          height: 300, // Adjust height for medium screens
           fit: BoxFit.contain,
         ),
         SizedBox(height: 20),
-        _buildFormFields(),
+        Expanded(
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: _buildFormFields(),
+            ),
+          ),
+        ),
       ],
+    );
+  }
+
+  Widget _buildSmallScreenLayout() {
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          Image.asset(
+            'assets/images/register.png',
+            height: 150, // Adjust height for small screens
+            fit: BoxFit.contain,
+          ),
+          SizedBox(height: 20),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: _buildFormFields(),
+          ),
+        ],
+      ),
     );
   }
 
@@ -166,75 +202,93 @@ class _RegisterState extends State<Register> {
     return Form(
       key: _controller.formKey,
       child: SingleChildScrollView(
-        child: Padding(
-        padding: const EdgeInsets.all(16.0),
-    child:Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          PhoneInputWidget(
-            onPhoneValidated: (bool isValid, String phoneNumber) {
-              setState(() {
-                _controller.isPhoneEntered = isValid;
-                if (isValid) {
-                  _controller.phone.text = phoneNumber;
-                  _controller.showContinueButton = true;
-                } else {
-                  _controller.showContinueButton = false;
-                }
-              });
-            },
+        child: Center(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 600),
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                PhoneInputWidget(
+                  onPhoneValidated: (bool isValid, String phoneNumber) {
+                    setState(() {
+                      _controller.isPhoneEntered = isValid;
+                      if (isValid) {
+                        _controller.phone.text = phoneNumber;
+                        _controller.showContinueButton = true;
+                      } else {
+                        _controller.showContinueButton = false;
+                      }
+                    });
+                  },
+                ),
+                if (_controller.isPhoneEntered) ...[
+                  SizedBox(height: 20),
+                  _buildScanOptions(localizations),
+                  if (_controller.showQrScanner || _controller.showCameraOptions)
+                    SizedBox(height: 20),
+                  if (_controller.showQrScanner)
+                    _buildQrScanner(localizations),
+                  if (_controller.showCameraOptions)
+                    _buildCameraOptions(localizations),
+                  /*if (_controller.showPreview)
+                    _buildPreview(localizations),*/
+                  if (_controller.showSignupButton)
+                    _buildRegistrationForm(localizations),
+                ],
+              ],
+            ),
           ),
-          if (_controller.isPhoneEntered) ...[
-            SizedBox(height: 20),
-            _buildScanOptions(localizations),
-            if (_controller.showQrScanner || _controller.showCameraOptions)
-              SizedBox(height: 20),
-            if (_controller.showQrScanner)
-              _buildQrScanner(localizations),
-            if (_controller.showCameraOptions)
-              _buildCameraOptions(localizations),
-            if (_controller.showPreview)
-              _buildPreview(localizations),
-            if (_controller.showSignupButton)
-              _buildRegistrationForm(localizations),
-          ],
-        ],
+        ),
       ),
-      ),
-      )
     );
   }
+
 
   Widget _buildScanOptions(AppLocalizations localizations) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          ElevatedButton.icon(
-            onPressed: () {
-              setState(() {
-                _controller.showQrScanner = true;
-                _controller.showCameraOptions = false;
-              });
-              _controller.speakText(localizations.scan_aadhar_qr);
-            },
-            icon: Icon(Icons.qr_code_scanner),
-            label: Text(localizations.scan_aadhar_qr),
-          ),
-          SizedBox(width: 10),
-          ElevatedButton.icon(
-            onPressed: () {
-              setState(() {
-                _controller.showCameraOptions = true;
-                _controller.showQrScanner = false;
-              });
-              _controller.speakText(localizations.scan_aadhar_front_back);
-            },
-            icon: Icon(Icons.document_scanner),
-            label: Text(localizations.scan_aadhar_front_back),
-          ),
-        ],
+      child: Center(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ElevatedButton.icon(
+              onPressed: () {
+                setState(() {
+                  _controller.showQrScanner = true;
+                  _controller.showCameraOptions = false;
+                });
+                _controller.speakText(localizations.scan_aadhar_qr);
+              },
+              icon: Icon(Icons.qr_code_scanner),
+              label: Text(
+                localizations.scan_aadhar_qr,
+                style: TextStyle(color: Colors.white),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.black,
+              ),
+            ),
+            SizedBox(width: 10),
+            ElevatedButton.icon(
+              onPressed: () {
+                setState(() {
+                  _controller.showCameraOptions = true;
+                  _controller.showQrScanner = false;
+                });
+                _controller.speakText(localizations.scan_aadhar_front_back);
+              },
+              icon: Icon(Icons.document_scanner),
+              label: Text(
+                localizations.scan_aadhar_front_back,
+                style: TextStyle(color: Colors.white), // White text color
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.black, // Black button color
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -247,7 +301,10 @@ class _RegisterState extends State<Register> {
           children: [
             Icon(Icons.qr_code_scanner, size: 48),
             SizedBox(height: 16),
-            Text(localizations.scan_aadhar_qr),
+            Text(
+              localizations.scan_aadhar_qr,
+              style: TextStyle(color: Colors.white), // White text color
+            ),
             SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: () async {
@@ -261,79 +318,211 @@ class _RegisterState extends State<Register> {
                 }
               },
               icon: Icon(Icons.qr_code),
-              label: Text(localizations.scan_aadhar_front_back),
+              label: Text(
+                localizations.scan_aadhar_front_back,
+                style: TextStyle(color: Colors.white), // White text color
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.black, // Black button color
+              ),
             ),
           ],
         ),
       ),
     );
   }
+
 
   Widget _buildCameraOptions(AppLocalizations localizations) {
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal ,child: Column(
-          children: [
-            Text(localizations.scan_aadhar_front_back,
-                style: Theme.of(context).textTheme.titleMedium),
-            SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                ElevatedButton.icon(
-                  onPressed: () =>
-                      _handleImageCapture('front', localizations),
-                  icon: Icon(Icons.camera_front),
-                  label: Text(localizations.scan_aadhar_front),
-                ),
-                ElevatedButton.icon(
-                  onPressed: () =>
-                      _handleImageCapture('back', localizations),
-                  icon: Icon(Icons.camera_rear),
-                  label: Text(localizations.scan_aadhar_back),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-      ),
-    );
-  }
-
-  Future<void> _handleImageCapture(String side, AppLocalizations localizations) async {
-    try {
-      await _controller.pickImage(side);
-      setState(() {});
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(localizations.capture_aadhar_back_side)),
-      );
-    }
-  }
-
-  Widget _buildPreview(AppLocalizations localizations) {
-    return Card(
+      color: Colors.white,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Text(localizations.preview_scanned_images,
-                style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              localizations.scan_aadhar_front_back,
+              style: Theme.of(context).textTheme.titleMedium,
+              textAlign: TextAlign.center,
+            ),
             SizedBox(height: 16),
-            if (_controller.frontImagePath != null)
-              Image.file(File(_controller.frontImagePath!), height: 100),
-            SizedBox(height: 10),
-            if (_controller.backImagePath != null)
-              Image.file(File(_controller.backImagePath!), height: 100),
+            // Front side section
+            Column(
+              children: [
+                if (_controller.frontImagePath == null)
+                  ElevatedButton.icon(
+                    onPressed: () => _handleImageCapture('front', localizations),
+                    icon: Icon(Icons.camera_front, color: Colors.white),
+                    label: Text(
+                      localizations.scan_aadhar_front,
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black,
+                      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    ),
+                  ),
+                if (_controller.frontImagePath != null) ...[
+                  Container(
+                    width: 300,
+                    height: 180,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.file(
+                        File(_controller.frontImagePath!),
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _controller.frontImagePath = null;
+                      });
+                    },
+                    icon: Icon(Icons.refresh, color: Colors.white),
+                    label: Text(
+                      localizations.retake,
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black,
+                      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            SizedBox(height: 16),
+            // Back side section - always show this section
+            Column(
+              children: [
+                if (_controller.backImagePath == null)
+                  ElevatedButton.icon(
+                    // Remove the condition that checks if frontImagePath is not null
+                    onPressed: _controller.frontImagePath != null ?
+                        () => _handleImageCapture('back', localizations) : null,
+                    icon: Icon(Icons.camera_rear, color: Colors.white),
+                    label: Text(
+                      localizations.scan_aadhar_back,
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black,
+                      // Disable the button if front image is not captured yet
+                      disabledBackgroundColor: Colors.grey,
+                      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    ),
+                  ),
+                if (_controller.backImagePath != null) ...[
+                  Container(
+                    width: 300,
+                    height: 180,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.file(
+                        File(_controller.backImagePath!),
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _controller.backImagePath = null;
+                      });
+                    },
+                    icon: Icon(Icons.refresh, color: Colors.white),
+                    label: Text(
+                      localizations.retake,
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black,
+                      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            if (_controller.frontImagePath != null && _controller.backImagePath != null) ...[
+              SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: () {
+                  setState(() {
+                    _controller.showSignupButton = true;
+                  });
+                },
+                icon: Icon(Icons.check_circle, color: Colors.white),
+                label: Text("continue",
+                  style: TextStyle(color: Colors.white),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black,
+                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                ),
+              ),
+            ],
           ],
         ),
       ),
     );
   }
+
+
+  Future<void> _handleImageCapture(String side, AppLocalizations localizations) async {
+    try {
+      if (side == 'front') {
+        await _controller.aadhaarController.captureFront();
+        setState(() {
+          _controller.frontImagePath = _controller.aadhaarController.frontImage?.path;
+          _controller.frontImage = _controller.aadhaarController.frontImage;
+        });
+
+        // Automatically trigger back side camera capture after front is captured
+        if (_controller.frontImagePath != null) {
+          // Add a small delay for better UX
+          await Future.delayed(Duration(milliseconds: 500));
+          _handleImageCapture('back', localizations);
+        }
+      } else {
+        await _controller.aadhaarController.captureBack();
+        setState(() {
+          _controller.backImagePath = _controller.aadhaarController.backImage?.path;
+          _controller.backImage = _controller.aadhaarController.backImage;
+        });
+      }
+
+      // Update preview state after capturing image
+      _controller.updatePreviewState();
+
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            side == 'front'
+                ? localizations.capture_aadhar_front_side
+                : localizations.capture_aadhar_back_side,
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      print('Error capturing image: $e');
+    }
+  }
+
+
 
   Widget _buildRegistrationForm(AppLocalizations localizations) {
     return Column(
@@ -344,7 +533,9 @@ class _RegisterState extends State<Register> {
           validator: _controller.validateAadhar,
           decoration: InputDecoration(
             labelText: localizations.aadhar_number,
-            border: OutlineInputBorder(),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         ),
         SizedBox(height: 16),
@@ -353,7 +544,7 @@ class _RegisterState extends State<Register> {
           validator: _controller.validateName,
           decoration: InputDecoration(
             labelText: localizations.full_name,
-            border: OutlineInputBorder(),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12),),
           ),
         ),
         SizedBox(height: 16),
@@ -363,7 +554,7 @@ class _RegisterState extends State<Register> {
           validator: _controller.validateDOB,
           decoration: InputDecoration(
             labelText: localizations.dob,
-            border: OutlineInputBorder(),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12),),
             suffixIcon: IconButton(
               icon: Icon(Icons.calendar_today),
               onPressed: () async {
@@ -392,82 +583,31 @@ class _RegisterState extends State<Register> {
           ),
         ),
         SizedBox(height: 20),
-        _buildProfilePictureSection(localizations),
+        //_buildProfilePictureSection(localizations),
+        SizedBox(height: 20),
+    FaceDetectionWidget(
+    onImageCaptured: (File imageFile) {
+    setState(() {
+    _controller.imageFile = imageFile;
+    });
+    },
+    ),
         SizedBox(height: 20),
         ElevatedButton.icon(
           onPressed: () => showPasswordPopup(localizations),
           icon: Icon(Icons.person_add),
-          label: Text(localizations.sign_up),
+          label: Text(
+            localizations.sign_up,
+            style: TextStyle(color: Colors.white),
+          )
+          ,
           style: ElevatedButton.styleFrom(
             minimumSize: Size(double.infinity, 48),
+            backgroundColor: Colors.black,
+            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildProfilePictureSection(AppLocalizations localizations) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(localizations.capture_face, style: Theme.of(context).textTheme.titleMedium),
-            SizedBox(height: 6),
-            AspectRatio(
-              aspectRatio: 1 / 1,
-              child: Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: _controller.imageFile != null
-                    ? Image.file(
-                  _controller.imageFile!,
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  height: double.infinity,
-                )
-                    : FutureBuilder<void>(
-                  future: _initializeControllerFuture,
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.done) {
-                      return _cameraController != null
-                          ? Center(
-                        child: RotatedBox(
-                          quarterTurns: 1,
-                          child: AspectRatio(
-                            aspectRatio: 1 / 1,
-                            child: CameraPreview(_cameraController!),
-                          ),
-                        ),
-                      )
-                          : Center(child: Text(localizations.errorOccurred));
-                    }
-                    return Center(child: CircularProgressIndicator());
-                  },
-                ),
-              ),
-            ),
-            SizedBox(height: 16),
-            Center(
-              child: ElevatedButton.icon(
-                onPressed: _controller.imageFile == null ? _takePicture : () {
-                  setState(() {
-                    _controller.imageFile = null;
-                  });
-                },
-                icon: Icon(_controller.imageFile == null ? Icons.camera : Icons.refresh),
-                label: Text(_controller.imageFile == null
-                    ? localizations.capture_face
-                    : localizations.retake),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -477,46 +617,80 @@ class _RegisterState extends State<Register> {
       context: context,
       barrierDismissible: false,
       builder: (context) {
-        return AlertDialog(
-          title: Text(localizations.set_password),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: _controller.newpassword,
-                validator: _controller.validatePassword,
-                obscureText: true,
-                decoration: InputDecoration(
-                  labelText: localizations.new_password,
-                  border: OutlineInputBorder(),
-                ),
+        bool _isNewPasswordVisible = false;
+        bool _isConfirmPasswordVisible = false;
+
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text(localizations.set_password),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: _controller.newpassword,
+                    validator: _controller.validatePassword,
+                    obscureText: !_isNewPasswordVisible,
+                    decoration: InputDecoration(
+                      labelText: localizations.new_password,
+                      border: OutlineInputBorder(),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _isNewPasswordVisible
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _isNewPasswordVisible = !_isNewPasswordVisible;
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  TextFormField(
+                    controller: _controller.confirmpassword,
+                    validator: _controller.validateConfirmPassword,
+                    obscureText: !_isConfirmPasswordVisible,
+                    decoration: InputDecoration(
+                      labelText: localizations.confirm_password,
+                      border: OutlineInputBorder(),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _isConfirmPasswordVisible
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _isConfirmPasswordVisible =
+                            !_isConfirmPasswordVisible;
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              SizedBox(height: 16),
-              TextFormField(
-                controller: _controller.confirmpassword,
-                validator: _controller.validateConfirmPassword,
-                obscureText: true,
-                decoration: InputDecoration(
-                  labelText: localizations.confirm_password,
-                  border: OutlineInputBorder(),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(localizations.cancel),
                 ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(localizations.cancel),
-            ),
-            ElevatedButton(
-              onPressed: () => _handleRegistration(localizations),
-              child: Text(localizations.submit),
-            ),
-          ],
+                ElevatedButton(
+                  onPressed: () => _handleRegistration(localizations),
+                  child: Text(localizations.submit),
+                ),
+              ],
+            );
+          },
         );
       },
     );
   }
+
+
   Future<void> _handleRegistration(AppLocalizations localizations) async {
     try {
       if (!_controller.formKey.currentState!.validate()) {
@@ -550,39 +724,38 @@ class _RegisterState extends State<Register> {
 
       if (mounted) setState(() => _isLoading = true);
 
-      final response = await _userService.addUser(
+      final response = await UserServiceLocal.addUserLocal(
         imageFile: _controller.imageFile!,
         phoneNumber: _controller.phone.text.trim(),
         aadhaarNumber: _controller.aadharnumber.text.trim(),
         name: _controller.name.text.trim(),
         dob: _controller.dateofbirth.text.trim(),
         address: _controller.addresss.text.trim(),
-        newPassword: _controller.newpassword.text,
-        confirmPassword: _controller.confirmpassword.text,
+        password: _controller.newpassword.text,
       );
-
-      print('Registration response: $response');
 
       if (mounted) setState(() => _isLoading = false);
 
       if (response['status'] == 'success') {
         if (mounted) {
-          // Close password dialog first
+          // Close password dialog
           Navigator.of(context).pop();
 
-          // Show success message
+          // Show appropriate message based on sync status
+          final message = response['data']?['localOnly'] == true
+              ? localizations.errorOccurred
+              : localizations.register_success;
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(localizations.register_success),
+              content:  Text(response['message'] ?? 'Registration Sucess'),
               backgroundColor: Colors.green,
               duration: Duration(seconds: 2),
             ),
           );
 
-          // Wait briefly for the snackbar to be visible
-          await Future.delayed(Duration(milliseconds: 500));
-
           // Navigate to login screen
+          await Future.delayed(Duration(milliseconds: 500));
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(builder: (_) => Login()),
                 (route) => false,
@@ -590,29 +763,21 @@ class _RegisterState extends State<Register> {
         }
       } else {
         if (mounted) {
-          // Close password dialog
           Navigator.of(context).pop();
-
-          // Show error message
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(response['message'] ?? 'Registration failed'),
               backgroundColor: Colors.red,
-              duration: Duration(seconds: 3),
+              duration: Duration(seconds: 2),
             ),
           );
         }
       }
     } catch (e) {
-      print('Registration error: $e'); // Debug print
-
+      print('Registration error: $e');
       if (mounted) {
         setState(() => _isLoading = false);
-
-        // Close password dialog
         Navigator.of(context).pop();
-
-        // Show error message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: ${e.toString().replaceAll('Exception: ', '')}'),
@@ -623,6 +788,8 @@ class _RegisterState extends State<Register> {
       }
     }
   }
+
+
   Widget _buildLoadingOverlay({required Widget child}) {
     return Stack(
       children: [
@@ -637,6 +804,7 @@ class _RegisterState extends State<Register> {
       ],
     );
   }
+
 
 
 
@@ -737,35 +905,5 @@ class LoadingOverlay extends StatelessWidget {
           ),
       ],
     );
-  }
-}
-
-// Theme extension for consistent styling
-extension ThemeExtension on ThemeData {
-  InputDecoration get defaultInputDecoration => InputDecoration(
-    border: OutlineInputBorder(),
-    filled: true,
-    fillColor: Colors.white,
-    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-    errorMaxLines: 2,
-  );
-}
-
-// Constants for registration
-class RegistrationConstants {
-  static const Duration cameraCooldown = Duration(seconds: 2);
-  static const Duration registrationTimeout = Duration(seconds: 30);
-  static const int maxRetries = 3;
-  static const double maxImageSize = 5 * 1024 * 1024; // 5MB
-
-  static const List<String> supportedImageTypes = ['jpg', 'jpeg', 'png'];
-
-  static bool isValidImageSize(File file) {
-    return file.lengthSync() <= maxImageSize;
-  }
-
-  static bool isValidImageType(String path) {
-    final extension = path.split('.').last.toLowerCase();
-    return supportedImageTypes.contains(extension);
   }
 }

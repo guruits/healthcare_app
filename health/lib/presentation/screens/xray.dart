@@ -2,11 +2,12 @@ import 'dart:math'; // Import this to generate random numbers
 import 'package:flutter/material.dart';
 import 'package:health/presentation/controller/language.controller.dart';
 import 'package:health/presentation/controller/xray.controller.dart';
-import 'package:health/presentation/screens/selectPatient.dart';
+import 'package:health/presentation/screens/selectPatienttest.dart';
 import 'package:health/presentation/screens/start.dart';
 import 'package:health/presentation/widgets/dateandtimepicker.widgets.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../controller/selectPatient.controller.dart';
 import '../widgets/bluetooth.widgets.dart';
 import '../widgets/language.widgets.dart';
 
@@ -18,39 +19,60 @@ class XRay extends StatefulWidget {
 }
 
 class _XRayState extends State<XRay> {
-  final XrayController _controller = XrayController();
+  final XrayController controller = XrayController();
   final LanguageController _languageController = LanguageController();
-  String _xrayTestStatus = 'STATUS_YET_TO_START';
+  final SelectpatientController _selectpatientcontroller = SelectpatientController();
+  DateTime? _selectedDateTime;
+  late String TestStatus;
+
+  @override
+  void initState() {
+    super.initState();
+    TestStatus = 'YET-TO-START';
+  }
+  void _selectPatient(Map<String, dynamic> patient) {
+    setState(() {
+      controller.selectPatient(
+          patient['patientName'],
+          patient['mobileNumber'] ?? '',
+          patient['aadharNumber'] ?? '',
+          patient['appointmentSlot'] ?? '',
+          patient['address'] ?? ''
+      );
+      TestStatus = patient['TestStatus'] ?? 'YET-TO-START';
+    });
+  }
 
   void _submit() {
-    // Add your submission logic here
-    print('Submitting X-Ray Appointment for $_controller.selectedPatient');
-    print('Appointment DateTime: $_controller.xrayAppointmentDateTime');
-    print('X-Ray Appointment Number: $_controller.xrayAppointmentNumber');
+    Map<String, dynamic> currentPatient = {
+      'patientName': controller.selectedPatient,
+      'mobileNumber': controller.patientMobileNumber,
+      'aadharNumber': controller.patientAadharNumber,
+      'appointmentSlot': controller.appointmentSlot,
+      'address': controller.patientAddress,
+      'bloodTestStatus': TestStatus,
+    };
 
-    // Reset the selected patient and navigate back to SelectPatient screen
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (context) => SelectPatient(
-          onSelect: (patientName) {
-            print('$patientName state: completed');
-          },
-        ),
+        builder: (context) =>
+            SelectPatienttest(
+              onSelect: (patient) {
+                print(
+                    '${patient['patientName']} state: ${patient['XrayTestStatus']}');
+              },
+              testType: 'xray_label',
+              submittedPatientNames: [currentPatient['patientName']],
+              initialSelectedPatient: currentPatient,
+              TestStatus: TestStatus, // Explicitly pass the TestStatus
+            ),
       ),
     );
   }
-
   void _printLabel() {
     setState(() {
-      _controller.isPrinting = true; // Show that the label is printing
-    });
-
-    // Simulate label printing delay
-    Future.delayed(Duration(seconds: 2), () {
-      setState(() {
-        _controller.isPrinting = false; // Hide the "printing" state
-      });
+      controller.printLabel();
     });
   }
 
@@ -79,7 +101,7 @@ class _XRayState extends State<XRay> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: _controller.isPatientSelected ? _buildXRayAppointmentForm() : _buildSelectPatientButton(),
+        child: controller.isPatientSelected ? _buildXRayAppointmentForm() : _buildSelectPatientButton(),
       ),
     );
   }
@@ -103,18 +125,13 @@ class _XRayState extends State<XRay> {
               await Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => SelectPatient(
-                    onSelect: (patientName) {
-                      _controller.selectPatient(
-                        patientName,
-                        '9876543210',
-                        '1234-5678-9123',
-                        '10:00 AM - 10:30 AM',
-                        '123, Example Street, City, Country',
-                      );
-                      setState(() {});
+                  builder: (context) =>SelectPatienttest(
+                    onSelect: (patient) {
+                      _selectPatient(patient);
                     },
-                  ),
+                    testType: 'arc_test_label',
+                    submittedPatientNames: [controller.selectedPatient],
+                  )
                 ),
               );
             },
@@ -150,37 +167,68 @@ class _XRayState extends State<XRay> {
       ),
     );
   }
-  Widget _buildXrayStatusDropdown(AppLocalizations localizations) {
+  Widget _buildStatusDropdown(AppLocalizations localizations) {
+    final List<DropdownMenuItem<String>> dropdownItems = [
+      DropdownMenuItem(
+          value: 'STATUS_YET_TO_START',
+          child: Text(localizations.status_yet_to_start)),
+      DropdownMenuItem(
+          value: 'STATUS_IN_PROGRESS',
+          child: Text(localizations.status_in_progress)),
+    ];
+
+    // Only add the completed status if both date and collection number are available
+    if (_selectedDateTime != null &&
+        controller.xrayAppointmentNumber.isNotEmpty) {
+      dropdownItems.add(
+        DropdownMenuItem(
+          value: 'STATUS_COMPLETED',
+          child: Text(localizations.status_completed),
+        ),
+      );
+    }
+
+    // Ensure the current TestStatus is valid
+    if (!dropdownItems.any((item) => item.value == TestStatus)) {
+      TestStatus = dropdownItems.first.value!;
+    }
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-            localizations.xray_label,
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)
-        ),
-        DropdownButton<String>(
-          value: _xrayTestStatus,
-          items: [
-            DropdownMenuItem(
-                value: 'STATUS_YET_TO_START',
-                child: Text(localizations.status_yet_to_start)
+        Expanded(
+          child: DropdownButtonFormField<String>(
+            value: TestStatus,
+            items: dropdownItems,
+            onChanged: (String? newValue) {
+              setState(() {
+                TestStatus = newValue!;
+              });
+            },
+            decoration: InputDecoration(
+              contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              labelText: localizations.xray_label,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8.0),
+                borderSide: BorderSide(
+                  color: Colors.grey,
+                  width: 1.5,
+                ),
+              ),
             ),
-            DropdownMenuItem(
-                value: 'STATUS_IN_PROGRESS',
-                child: Text(localizations.status_in_progress)
-            ),
-            DropdownMenuItem(
-                value: 'STATUS_COMPLETED',
-                child: Text(localizations.status_completed)
-            ),
-          ],
-          onChanged: (String? newValue) {
-            setState(() {
-              _xrayTestStatus = newValue!;
-            });
-          },
+          ),
         ),
       ],
+    );
+  }
+  Widget _buildDateAndTimePicker() {
+    return Dateandtimepicker(
+      onDateTimeSelected: (DateTime? dateTime) {
+        setState(() {
+          _selectedDateTime = dateTime;
+          _selectpatientcontroller.appointmentDateTime = dateTime;
+        });
+      },
     );
   }
 
@@ -206,9 +254,9 @@ class _XRayState extends State<XRay> {
             SizedBox(height: 20),
             _buildPatientInfoBox(),
             SizedBox(height: 20),
-            Dateandtimepicker(),
+            _buildDateAndTimePicker(),
             SizedBox(height: 20),
-            _buildXrayStatusDropdown(localizations),
+            _buildStatusDropdown(localizations),
             SizedBox(height: 20),
             _buildXRayAppointmentNumberAndLabel(),
             SizedBox(height: 20),
@@ -237,11 +285,11 @@ class _XRayState extends State<XRay> {
           children: [
             Text(localizations.selected_patient_info, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             Divider(),
-            _buildInfoRow(localizations.patient_name,_controller.selectedPatient),
-            _buildInfoRow(localizations.mobile_number, _controller.patientMobileNumber),
-            _buildInfoRow(localizations.aadhar_number, _controller.patientAadharNumber),
-            _buildInfoRow(localizations.appointment_slot, _controller.appointmentSlot),
-            _buildInfoRow(localizations.address, _controller.patientAddress),
+            _buildInfoRow(localizations.patient_name,controller.selectedPatient),
+            _buildInfoRow(localizations.mobile_number, controller.patientMobileNumber),
+            _buildInfoRow(localizations.aadhar_number, controller.patientAadharNumber),
+            _buildInfoRow(localizations.appointment_slot, controller.appointmentSlot),
+            _buildInfoRow(localizations.address, controller.patientAddress),
           ],
         ),
       ),
@@ -277,14 +325,14 @@ class _XRayState extends State<XRay> {
               border: OutlineInputBorder(),
               hintText: 'Automatically generated',
             ),
-            controller: TextEditingController(text: _controller.xrayAppointmentNumber),
+            controller: TextEditingController(text: controller.xrayAppointmentNumber),
           ),
         ),
         SizedBox(width: 10),
         ElevatedButton(
           onPressed: (){
             _languageController.speakText(localizations.print_label);
-            _controller.isPrinting ? null : _printLabel();
+            controller.isPrinting ? null : _printLabel();
                   },
           child: Text(localizations.print_label),
         ),

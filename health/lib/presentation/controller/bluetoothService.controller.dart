@@ -72,6 +72,19 @@ class BluetoothService {
     }
   }
 
+  Future<int?> getBatteryLevel(String deviceAddress) async {
+    try {
+      final int? batteryLevel = await platform.invokeMethod('getBatteryLevel', {
+        'deviceAddress': deviceAddress
+      });
+      return batteryLevel;
+    } on PlatformException catch (e) {
+      print('Failed to get battery level: ${e.message}');
+      return null;
+    }
+  }
+
+
   Future<bool> sendData(String address, String data) async {
     try {
       final bool result = await platform.invokeMethod('sendData', {"address": address, "data": data});
