@@ -259,7 +259,6 @@ class MainActivity: FlutterActivity() {
         } ?: callback(false)
     }
 
-
     private fun connectClassic(device: BluetoothDevice, callback: (Boolean) -> Unit) {
         Thread {
             try {
@@ -808,7 +807,6 @@ class MainActivity: FlutterActivity() {
     }
 
 
-
     private fun disconnect() {
         try {
             classicSocket?.close()
@@ -852,7 +850,7 @@ class MainActivity: FlutterActivity() {
         }
     }
 
-    private fun requestBluetoothPermissions() {
+    private fun requestBluetoothPermissions()  {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             ActivityCompat.requestPermissions(
                 this,

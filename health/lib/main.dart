@@ -11,7 +11,6 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'data/services/realm_service.dart';
-
 const kColorWhiteCardBg = Colors.white;
 const kColorBlack = Colors.black;
 const kColorBlack05 = Color(0xFFE5E5E5);

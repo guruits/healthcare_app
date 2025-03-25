@@ -195,7 +195,7 @@ class _ProfileState extends State<Profile> {
       ),
       backgroundColor: Colors.white,
       body: _users == null
-          ? _buildEmptyProfileView() // Show placeholder when data is not yet loaded
+          ? Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -205,26 +205,6 @@ class _ProfileState extends State<Profile> {
             _isEditing ? _buildEditForm() : _buildProfileInfo(),
           ],
         ),
-      ),
-    );
-  }
-
-  // Placeholder view when profile is not yet loaded
-  Widget _buildEmptyProfileView() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            'Loading profile information...',
-            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-          ),
-          SizedBox(height: 16),
-          OutlinedButton(
-            onPressed: _loadUserProfile,
-            child: Text('Refresh'),
-          ),
-        ],
       ),
     );
   }

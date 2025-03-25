@@ -1,6 +1,6 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:health/data/models/realm/ruser.dart';
+import 'package:health/data/services/ruser.dart';
 import 'package:health/presentation/controller/register.controller.dart';
 import 'package:health/presentation/screens/login.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -748,7 +748,7 @@ class _RegisterState extends State<Register> {
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(message),
+              content:  Text(response['message'] ?? 'Registration Sucess'),
               backgroundColor: Colors.green,
               duration: Duration(seconds: 2),
             ),

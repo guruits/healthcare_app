@@ -18,6 +18,7 @@ import '../screens/echo.dart';
 import '../screens/helpdesk.dart';
 import '../screens/neurotouch.dart';
 import '../screens/notifications.dart';
+import '../screens/pharmacy.dart';
 import '../screens/urinecollection.dart';
 import '../screens/vitals.dart';
 import '../screens/xray.dart';
@@ -61,9 +62,10 @@ class StartController {
     'Arc': {'screen': Arc(), 'title': 'Arc', 'imageTitle': 'arc',},
     'Dentist': {'screen': Dentist(), 'title': 'Dentist', 'imageTitle': 'dentist',},
     'X-ray': {'screen': XRay(), 'title': 'X-ray', 'imageTitle': 'xray',},
-    'Dexa Scan': {'screen': DexaScan(), 'title': 'Dexa Scan', 'imageTitle': 'dexa_scan',},
+    'Dexa Scan': {'screen': DexaScan(), 'title': 'Dexa Scan', 'imageTitle': 'dexascan',},
     'Echo': {'screen': Echo(), 'title': 'Echo', 'imageTitle': 'echo',},
     'Profile': {'screen': Profile(), 'title': 'Profile', 'imageTitle': 'Profile',},
+    'Pharmacy': {'screen': Pharmacy(), 'title': 'Pharmacy', 'imageTitle': 'pharmacy',},
   };
 
   // Get allowed options based on user permissions

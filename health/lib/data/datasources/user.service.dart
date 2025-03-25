@@ -3,11 +3,8 @@ import 'dart:io';
 import 'dart:math';
 import 'package:health/utils/config/ipconfig.dart';
 import 'package:http/http.dart' as http;
-import 'package:mongo_dart/mongo_dart.dart' as mongo;
-import 'package:realm/realm.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../models/realm/faceimage_realm_model.dart';
 import '../models/users.dart';
 
 import '../models/user.dart';

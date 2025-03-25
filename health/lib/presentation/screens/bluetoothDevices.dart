@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:file_picker/file_picker.dart';
+//import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:health/presentation/screens/start.dart';
@@ -206,7 +206,7 @@ class _AudioBluetoothPageState extends State<AudioBluetoothPage> {
     return monitorDir;
   }
 
-  Future<void> _pickImage() async {
+  /*Future<void> _pickImage() async {
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.image,
@@ -225,7 +225,7 @@ class _AudioBluetoothPageState extends State<AudioBluetoothPage> {
       print('Error picking image: $e');
       _showSnackBar('Error selecting image: $e');
     }
-  }
+  }*/
 
   Future<void> _sendSelectedImage() async {
     if (_selectedImagePath == null) {
@@ -411,11 +411,11 @@ class _AudioBluetoothPageState extends State<AudioBluetoothPage> {
                     label: Text('Scan'),
                   ),
                   SizedBox(width: 8),
-                  ElevatedButton.icon(
-                    onPressed: _isImageTransferring ? null : _pickImage,
-                    icon: Icon(Icons.photo_library),
-                    label: Text('Select'),
-                  ),
+                  // ElevatedButton.icon(
+                  //   onPressed: _isImageTransferring ? null : _pickImage,
+                  //   icon: Icon(Icons.photo_library),
+                  //   label: Text('Select'),
+                  // ),
                 ],
               ),
             ),
@@ -524,6 +524,7 @@ class BluetoothAudioService {
       return false;
     }
   }
+
   Future<bool> stopReceiving() async {
     try {
       return await platform.invokeMethod('stopReceiving');

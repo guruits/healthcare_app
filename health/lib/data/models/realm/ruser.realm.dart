@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'ruser.dart';
+part of '../../services/ruser.dart';
 
 // **************************************************************************
 // RealmObjectGenerator

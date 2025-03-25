@@ -3,13 +3,13 @@ import 'dart:async';
 import 'package:path_provider/path_provider.dart';
 import 'package:realm/realm.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../datasources/api_service.dart';
+import '../datasources/api_service.dart';
 
-part 'ruser.realm.dart';
+part '../models/realm/ruser.realm.dart';
 
 // Constants for sync settings
 const String LAST_SYNC_KEY = 'last_sync_time';
-const Duration SYNC_INTERVAL = Duration(hours: 1);
+const Duration SYNC_INTERVAL = Duration(seconds: 1);
 
 @RealmModel()
 class _RUser {
@@ -95,9 +95,9 @@ extension UserServiceLocal on UserService {
       // Initialize Realm
       final config = Configuration.local(
         [RUser.schema],
-        schemaVersion: 2, // Increment this value whenever you update the schema
+        schemaVersion: 6, // Increment this value whenever you update the schema
         migrationCallback: (migration, oldVersion) {
-          if (oldVersion < 2) {
+          if (oldVersion < 6) {
             // Handle the migration if needed
           }
         },
