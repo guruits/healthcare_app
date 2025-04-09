@@ -14,6 +14,8 @@ class AppointmentsController extends ChangeNotifier {
   bool isLoading = false;
   String? error;
   String? userRole;
+  String? userRoleId;
+  String? userId;
   bool isOnLeave = false;
   Map<String, dynamic>? lastAppointmentResponse;
 
@@ -29,20 +31,86 @@ class AppointmentsController extends ChangeNotifier {
 
       if (userDetailsString != null) {
         final userDetails = json.decode(userDetailsString);
-        // Extract rolename from the nested role object
-        if (userDetails['role'] != null && userDetails['role']['rolename'] != null) {
-          userRole = userDetails['role']['rolename'];
-          // Save the role name to SharedPreferences for easier access
+        if (userDetails['role'] != null && userDetails['role']['name'] != null) {
+          userRole = userDetails['role']['name'];
+          userRoleId = userDetails['role']['id'];
+          userId = userDetails['id'];
           await prefs.setString('userRole', userRole!);
         }
       }
 
       print('User Role: $userRole');
-      notifyListeners();
+      print('User Role id: $userRoleId');
+      print('User ID: $userId');
     } catch (e) {
       print('Error loading user role: $e');
-      error = 'Failed to load user role';
+    }
+  }
+
+  bool canModifySlots() {
+    return userRole == 'Admin' || userRole == 'Doctor';
+  }
+
+  Future<void> fetchDoctors() async {
+    try {
+      isLoading = true;
       notifyListeners();
+
+      final response = await http.get(
+        Uri.parse('${IpConfig.baseUrl}/api/appointment/doctors'),
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode == 200) {
+        final allDoctors = json.decode(response.body);
+
+        // If the user is a doctor, filter to only show their own profile
+        if (userRole == 'Doctor' && userId != null) {
+          doctors = allDoctors.where((doctor) =>
+          (doctor['_id'] == userId || doctor['id'] == userId)).toList();
+
+          // If no matching doctor was found, the list will be empty
+          if (doctors.isEmpty) {
+            print('Could not find the current doctor in doctors list');
+          }
+        } else {
+          // For Admin or Patient roles, show all doctors
+          doctors = allDoctors;
+        }
+      } else {
+        error = 'Failed to load doctors: ${response.statusCode}';
+      }
+    } catch (e) {
+      error = e.toString();
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<String?> _getUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userDetails = prefs.getString('userDetails');
+
+    if (userDetails == null) {
+      print('No user details stored in SharedPreferences');
+      throw Exception('No user details found');
+    }
+
+    try {
+      // Decode the user details JSON string into a Map
+      final userJson = json.decode(userDetails) as Map<String, dynamic>;
+      final userId = userJson['id'];  // Extract the 'id' from the decoded Map
+
+      if (userId == null) {
+        print('User ID not found in stored user details');
+        throw Exception('No user ID found in the stored data');
+      }
+
+      return userId;
+    } catch (e) {
+      print('Error decoding user details: $e');
+      throw Exception('Error decoding user details: $e');
     }
   }
 
@@ -63,28 +131,7 @@ class AppointmentsController extends ChangeNotifier {
     };
   }
 
-  Future<void> fetchDoctors() async {
-    try {
-      isLoading = true;
-      notifyListeners();
 
-      final response = await http.get(
-        Uri.parse('${IpConfig.baseUrl}/api/appointment/doctors'),
-        headers: await _getHeaders(),
-      );
-
-      if (response.statusCode == 200) {
-        doctors = json.decode(response.body);
-      } else {
-        error = 'Failed to load doctors: ${response.statusCode}';
-      }
-    } catch (e) {
-      error = e.toString();
-    } finally {
-      isLoading = false;
-      notifyListeners();
-    }
-  }
 
   Future<void> fetchDoctorTimeSlots(String doctorId) async {
     if (selectedDate == null) return;
@@ -131,6 +178,25 @@ class AppointmentsController extends ChangeNotifier {
     } finally {
       isLoading = false;
       notifyListeners();
+    }
+  }
+  Future<Appointment> getAppointmentById(String appointmentId) async {
+    try {
+
+      final response = await http.get(
+        Uri.parse('${IpConfig.baseUrl}/api/appointment/appointments/$appointmentId'),
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return Appointment.fromJson(data);
+      } else {
+        throw Exception('Failed to fetch appointment: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error in getAppointmentById: $e');
+      throw Exception('Error fetching appointment: $e');
     }
   }
 
@@ -243,6 +309,61 @@ class AppointmentsController extends ChangeNotifier {
       throw Exception('Error updating time slots: $e');
     }
   }
+  Future<List<Appointment>> getAppointmentsByUserId() async {
+    try {
+
+      final userId = await _getUserId();
+      if (userId == null) {
+        throw Exception('User ID not found');
+      }
+      final response = await http.get(
+        Uri.parse('${IpConfig.baseUrl}/api/appointment/appointment/$userId'),
+        headers: await _getHeaders(),
+      );
+      //print('Fetching from: ${IpConfig.baseUrl}/api/appointment/appointment/$userId');
+
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        return data.map((json) => Appointment.fromJson(json)).toList();
+      } else {
+        throw Exception('Failed to fetch appointments: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error in getAppointmentsByUserId: $e');
+      throw Exception('Error fetching user appointments: $e');
+    }
+  }
+
+  Future<List<Appointment>> getAppointmentsByDoctorId() async {
+    try {
+      print("get appointment calling.....");
+      // Check if user is a doctor
+      if (userRole != 'Doctor') {
+        throw Exception('Only doctors can access this information');
+      }
+
+      final doctorId = userId;
+      if (doctorId == null) {
+        throw Exception('Doctor ID not found');
+      }
+
+      final response = await http.get(
+        Uri.parse('${IpConfig.baseUrl}/api/appointment/appointmentd/$doctorId'),
+        headers: await _getHeaders(),
+      );
+      print('Fetching from: ${IpConfig.baseUrl}/api/appointment/appointment/$doctorId');
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        return data.map((json) => Appointment.fromJson(json)).toList();
+      } else {
+        throw Exception('Failed to fetch doctor appointments: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error in getAppointmentsByDoctorId: $e');
+      throw Exception('Error fetching doctor appointments: $e');
+    }
+  }
 
 
   bool isValidDate(DateTime date) {
@@ -326,13 +447,28 @@ class AppointmentsController extends ChangeNotifier {
     }
   }
 
+  Future<bool> getAppointmentbyId(String userId) async {
+    try {
+
+      final response = await http.get(
+        Uri.parse('${IpConfig.baseUrl}/api/appointment/appointments/$userId'),
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        final error = json.decode(response.body)['error'] ?? 'Failed to get appointment';
+        throw Exception(error);
+      }
+    } catch (e) {
+      throw Exception('Error get appointment: $e');
+    }
+  }
 
   // Delete appointment
   Future<bool> deleteAppointment(String appointmentId) async {
     try {
-      // if (userRole != 'Admin' && userRole != 'Doctor') {
-      //   throw Exception('Unauthorized: Only administrators and doctors can delete appointments');
-      // }
 
       final response = await http.delete(
         Uri.parse('${IpConfig.baseUrl}/api/appointment/appointments/$appointmentId'),
@@ -409,9 +545,7 @@ class AppointmentsController extends ChangeNotifier {
         : '';
   }
 
-  bool canModifySlots() {
-    return userRole == 'Admin' || userRole == 'Doctor';
-  }
+
 }
 class Appointment {
   final String id;

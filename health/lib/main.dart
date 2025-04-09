@@ -1,9 +1,12 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:health/presentation/controller/local.controller.dart';
 import 'package:health/presentation/controller/login.controller.dart';
+import 'package:health/presentation/screens/appointmentmanage.dart';
+import 'package:health/presentation/screens/appointments.dart';
 import 'package:health/presentation/screens/localdbview.dart';
 import 'package:health/presentation/screens/splash.dart';
 import 'package:health/presentation/widgets/local_inherited.widgets.dart';
@@ -20,22 +23,25 @@ const kColorRoseGold = Color(0xFFC18E8E);
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final savedLocale = await _getSavedLocale();
-  runApp(
+
+  try {
+    await Firebase.initializeApp();
+    final savedLocale = await _getSavedLocale();
+
+    runApp(
       MultiProvider(
         providers: [
           ChangeNotifierProvider(create: (_) => AuthLogin()),
           // Your other providers
         ],
-  /*  MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => AuthLogin()),
-        Provider<MongoRealmUserService>.value(value: realmUserService),
-      ],*/
-      child: MyApp(initialLocale: savedLocale),
+        child: MyApp(initialLocale: savedLocale),
       ),
-  );
+    );
+  } catch (e) {
+    print('Firebase initialization error: $e');
+  }
 }
+
 
 Future<Locale> _getSavedLocale() async {
   final prefs = await SharedPreferences.getInstance();
@@ -115,6 +121,7 @@ class MyApp extends StatelessWidget {
             debugShowCheckedModeBanner: false,
             builder: EasyLoading.init(),
             home: Splash(),
+            //home: Appointments(),
           );
         },
       ),

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -6,11 +7,16 @@ import 'package:health/presentation/screens/selectPatienttest.dart';
 import 'package:health/presentation/screens/start.dart';
 import 'package:health/presentation/widgets/dateandtimepicker.widgets.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../data/models/realm/faceimage_realm_model.dart';
+import '../../data/models/users.dart';
+import '../../data/services/userImage_service.dart';
 import '../controller/language.controller.dart';
 import '../controller/selectPatient.controller.dart';
 import '../widgets/bluetooth.widgets.dart';
 import '../widgets/language.widgets.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+
+import '../widgets/qr_scanner.widgets.dart';
 
 class Neurotouch extends StatefulWidget {
   const Neurotouch({super.key});
@@ -22,7 +28,6 @@ class Neurotouch extends StatefulWidget {
 class _NeurotouchState extends State<Neurotouch> {
   final NeurotouchController _controller = NeurotouchController();
   final LanguageController _languageController = LanguageController();
-  final SelectpatientController _selectpatientcontroller = SelectpatientController();
   DateTime? _selectedDateTime;
   late String TestStatus;
 
@@ -32,45 +37,54 @@ class _NeurotouchState extends State<Neurotouch> {
     TestStatus = 'YET-TO-START';
   }
 
-  void _selectPatient(Map<String, dynamic> patient) {
-    setState(() {
-      _controller.selectPatient(
-          patient['patientName'],
-          patient['mobileNumber'] ?? '',
-          patient['aadharNumber'] ?? '',
-          patient['appointmentSlot'] ?? '',
-          patient['address'] ?? ''
+  void _scanQRCode() async {
+    _controller.isPatientSelected = true;
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => QRScanScreen()),
+    );
+
+    if (result != null && result is Users) {
+      try {
+        setState(() {
+          // Update patient details
+          _controller.selectedPatient = result.name ?? 'Unknown';
+          _controller.patientMobileNumber = result.phoneNumber ?? 'N/A';
+          _controller.patientId = result.id ?? 'N/A';
+          _controller.patientAddress = result.address ?? 'N/A';
+
+          // Set patient as selected to show blood collection form
+          _controller.isPatientSelected = true;
+        });
+
+      } catch (e) {
+        print('Patient Selection Error: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error selecting patient: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } else {
+      // Handle case where no user was returned
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('No patient selected'),
+          backgroundColor: Colors.yellow,
+        ),
       );
-      TestStatus = patient['TestStatus'] ?? 'YET-TO-START';
-    });
+    }
   }
 
   void _submit() {
     Map<String, dynamic> currentPatient = {
       'patientName': _controller.selectedPatient,
       'mobileNumber': _controller.patientMobileNumber,
-      'aadharNumber': _controller.patientAadharNumber,
-      'appointmentSlot': _controller.appointmentSlot,
-      'address': _controller.patientAddress,
       'neurotouchTestStatus': TestStatus,
     };
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) =>
-            SelectPatienttest(
-              onSelect: (patient) {
-                print(
-                    '${patient['patientName']} state: ${patient['neurotouchTestStatus']}');
-              },
-              testType: 'neurotouch_test_label',
-              submittedPatientNames: [currentPatient['patientName']],
-              initialSelectedPatient: currentPatient,
-              TestStatus: TestStatus, // Explicitly pass the TestStatus
-            ),
-      ),
-    );
+
   }
 
   void _printLabel() {
@@ -104,8 +118,8 @@ class _NeurotouchState extends State<Neurotouch> {
       backgroundColor: Colors.white,
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: _controller.isPatientSelected
-            ? _buildBloodCollectionForm()
+        child: _controller.selectedPatient.isNotEmpty
+            ? _buildneuroCollectionForm()
             : _buildSelectPatientButton(),
       ),
     );
@@ -113,14 +127,8 @@ class _NeurotouchState extends State<Neurotouch> {
 
   Widget _buildSelectPatientButton() {
     final localizations = AppLocalizations.of(context)!;
-    final screenWidth = MediaQuery
-        .of(context)
-        .size
-        .width;
-    final screenHeight = MediaQuery
-        .of(context)
-        .size
-        .height;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
 
     return Center(
       child: Column(
@@ -133,58 +141,50 @@ class _NeurotouchState extends State<Neurotouch> {
             ),
           ),
           SizedBox(height: screenHeight * 0.02),
-          ElevatedButton(
-            onPressed: () async {
-              _languageController.speakText(localizations.select_patient);
-              await Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) =>
-                        SelectPatienttest(
-                          onSelect: (patient) {
-                            _selectPatient(patient);
-                          },
-                          testType: 'neurotouch_test_label',
-                          submittedPatientNames: [_controller.selectedPatient],
-                        )
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              padding: EdgeInsets.symmetric(
-                horizontal: screenWidth * 0.1,
-                vertical: screenHeight * 0.02,
-              ),
-              backgroundColor: Colors.black,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30),
-              ),
-              elevation: 10,
-              shadowColor: Colors.green.withOpacity(0.5),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.person_add, color: Colors.white),
-                SizedBox(width: screenWidth * 0.02),
-                Text(
-                  localizations.select_patient,
-                  style: TextStyle(
-                    fontSize: screenWidth * 0.028,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    letterSpacing: 1.2,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+
+              SizedBox(width: 16),
+              ElevatedButton(
+                onPressed: _scanQRCode,
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: screenWidth * 0.1,
+                    vertical: screenHeight * 0.02,
                   ),
+                  backgroundColor: Colors.green,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  elevation: 10,
+                  shadowColor: Colors.black.withOpacity(0.5),
                 ),
-              ],
-            ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.qr_code_scanner, color: Colors.white),
+                    SizedBox(width: screenWidth * 0.02),
+                    Text(
+                      'Scan QR',
+                      style: TextStyle(
+                        fontSize: screenWidth * 0.028,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildBloodCollectionForm() {
+  Widget _buildneuroCollectionForm() {
     final localizations = AppLocalizations.of(context)!;
     return Center(
       child: SingleChildScrollView(
@@ -232,6 +232,10 @@ class _NeurotouchState extends State<Neurotouch> {
 
   Widget _buildPatientInfoBox() {
     final localizations = AppLocalizations.of(context)!;
+
+    // Use UserImageService to retrieve the patient's image
+    final imageServices = ImageServices();
+
     return Card(
       color: Colors.white70,
       elevation: 4,
@@ -241,20 +245,81 @@ class _NeurotouchState extends State<Neurotouch> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(localizations.selected_patient_info,
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            Divider(),
+            Row(
+              children: [
+                // Patient Image
+                FutureBuilder<ImageRealm?>(
+                  future: imageServices.getUserImageWithMongoBackup(_controller.patientId),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return CircleAvatar(
+                        radius: 40,
+                        backgroundColor: Colors.grey[200],
+                        child: CircularProgressIndicator(),
+                      );
+                    }
+
+                    if (snapshot.hasError) {
+                      print('Error fetching patient image: ${snapshot.error}');
+                      return _buildFallbackAvatar();
+                    }
+
+                    if (snapshot.hasData && snapshot.data?.base64Image != null) {
+                      try {
+                        return CircleAvatar(
+                          radius: 40,
+                          backgroundImage: MemoryImage(
+                            base64Decode(snapshot.data!.base64Image),
+                          ),
+                        );
+                      } catch (e) {
+                        print("Error decoding patient image: $e");
+                        return _buildFallbackAvatar();
+                      }
+                    }
+
+                    // Fallback if no image found
+                    return _buildFallbackAvatar();
+                  },
+                ),
+                SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Patient Details",
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      Divider(),
+                    ],
+                  ),
+                ),
+              ],
+            ),
             _buildInfoRow(
-                localizations.patient_name, _controller.selectedPatient),
+                localizations.patient_name,
+                _controller.selectedPatient.isNotEmpty
+                    ? _controller.selectedPatient
+                    : 'N/A'),
             _buildInfoRow(
-                localizations.mobile_number, _controller.patientMobileNumber),
-            _buildInfoRow(
-                localizations.aadhar_number, _controller.patientAadharNumber),
-            _buildInfoRow(
-                localizations.appointment_slot, _controller.appointmentSlot),
-            _buildInfoRow(localizations.address, _controller.patientAddress),
+                localizations.mobile_number,
+                _controller.patientMobileNumber.isNotEmpty
+                    ? _controller.patientMobileNumber
+                    : 'N/A'),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildFallbackAvatar() {
+    return CircleAvatar(
+      radius: 40,
+      backgroundColor: Colors.grey[200],
+      child: Text(
+        _controller.selectedPatient.isNotEmpty
+            ? _controller.selectedPatient[0].toUpperCase()
+            : '?',
+        style: TextStyle(fontSize: 40, color: Colors.black54),
       ),
     );
   }
@@ -336,7 +401,7 @@ class _NeurotouchState extends State<Neurotouch> {
       onDateTimeSelected: (DateTime? dateTime) {
         setState(() {
           _selectedDateTime = dateTime;
-          _selectpatientcontroller.appointmentDateTime = dateTime;
+          // _selectpatientcontroller.appointmentDateTime = dateTime;
         });
       },
     );
@@ -390,7 +455,7 @@ class _NeurotouchState extends State<Neurotouch> {
               ? CircularProgressIndicator()
               : Text("Get Details"),
         ),
-        if (_controller.statusMessage.isNotEmpty) Text( 
+        if (_controller.statusMessage.isNotEmpty) Text(
             _controller.statusMessage),
       ],
     );
@@ -883,9 +948,9 @@ class _NeurotouchEditScreenState extends State<NeurotouchEditScreen> {
               ),
             ),
             ElevatedButton.icon(
-              onPressed: _pickImageFromGallery,
-              icon: Icon(Icons.photo_library),
-              label: Text("Pick Image"),
+                onPressed: _pickImageFromGallery,
+                icon: Icon(Icons.photo_library),
+                label: Text("Pick Image"),
                 style: ElevatedButton.styleFrom(
                   foregroundColor: Colors.white, backgroundColor: Colors.black,
                 )

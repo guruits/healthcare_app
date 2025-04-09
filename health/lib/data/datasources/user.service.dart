@@ -28,6 +28,27 @@ class UserManageService {
     };
 
   }
+  Future<Users> getUserDetailsByid(String scannedUserId ) async {
+    try {
+      print("Scanned Id:$scannedUserId");
+
+      final response = await http.get(
+        Uri.parse('${IpConfig.baseUrl}/api/user/user/$scannedUserId'),
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        print("User dataqr:$responseData");
+        return Users.fromJson(responseData);
+      } else {
+        print("Error:$e");
+        throw Exception('Failed to load user details: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Error fetching user details: $e');
+    }
+  }
 
   Future<Users> getUserDetails( ) async {
     try {

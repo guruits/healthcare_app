@@ -1,9 +1,13 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../utils/config/ipconfig.dart';
 
@@ -38,6 +42,8 @@ class LoginController {
     isMuted = !isMuted;
   }
 
+
+
   // Save user details in SharedPreferences
   Future<void> saveUserDetails(Map<String, dynamic> responseBody) async {
     final prefs = await SharedPreferences.getInstance();
@@ -46,7 +52,6 @@ class LoginController {
     if (responseBody['user']['role'] != null && responseBody['user']['role']['permissions'] != null) {
       permissions = List<dynamic>.from(responseBody['user']['role']['permissions']);
     }
-
 
     // Ensure permissions are properly structured for easier retrieval
     // Structured user details saving
@@ -62,10 +67,10 @@ class LoginController {
     };
 
     // Debug log to verify permissions are being saved
-    print("Saving permissions: $permissions");
+    //print("Saving permissions: $permissions");
 
     await prefs.setString('userDetails', json.encode(userDetails));
-    print("saved user details sf:$userDetails");
+    //print("saved user details sf:$userDetails");
     await prefs.setString('userToken', responseBody['token'] ?? '');
   }
 
@@ -75,30 +80,106 @@ class LoginController {
 
     if (userJson != null) {
       final userMap = json.decode(userJson);
-      print("Retrieved user details: $userMap");
+      //print("Retrieved user details: $userMap");
       return userMap;
     }
     return null;
   }
 
+  // Get device info for passkey authentication
+
+  Future<Map<String, dynamic>> getDeviceInfo() async {
+    DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+    Map<String, dynamic> deviceData = {};
+
+    try {
+      if (Platform.isAndroid) {
+        deviceData = _readAndroidBuildData(await deviceInfo.androidInfo);
+      } else if (Platform.isIOS) {
+        deviceData = _readIosDeviceInfo(await deviceInfo.iosInfo);
+      } else {
+        deviceData = _readWebBrowserInfo(await deviceInfo.webBrowserInfo);
+      }
+    } catch (e) {
+      print('Error getting device info: $e');
+    }
+
+    return deviceData;
+  }
+
+
+  Map<String, dynamic> _readAndroidBuildData(AndroidDeviceInfo build) {
+    return {
+      'type': 'android',
+      'deviceId': build.id,
+      'model': build.model,
+      'manufacturer': build.manufacturer,
+      'androidVersion': build.version.release,
+      'sdkVersion': build.version.sdkInt,
+    };
+  }
+
+  Map<String, dynamic> _readIosDeviceInfo(IosDeviceInfo data) {
+    return {
+      'type': 'ios',
+      'deviceId': data.identifierForVendor,
+      'model': data.model,
+      'systemName': data.systemName,
+      'systemVersion': data.systemVersion,
+    };
+  }
+
+  Map<String, dynamic> _readWebBrowserInfo(WebBrowserInfo data) {
+    return {
+      'type': 'web',
+      'browserName': data.browserName.toString(),
+      'platform': data.platform,
+      'userAgent': data.userAgent,
+    };
+  }
+
+  // Static navigator key for accessing context from non-context functions
+  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
   Future<Map<String, Map<String, dynamic>>> fetchUserDetails(
       String phoneNumber,
       String password,
-      ) async {
+      {required String authMethod,
+        String? otp,
+        String? firebaseToken,
+      }) async {
     try {
-      print('Attempting login with phone: $phoneNumber');
+      print('Attempting login with phone: $phoneNumber, method: $authMethod');
+
+      Map<String, dynamic> requestBody = {
+        'phone_number': phoneNumber,
+        'auth_method': authMethod,
+      };
+
+      // Add authentication specific parameters
+      switch (authMethod) {
+        case 'password':
+          requestBody['password'] = password;
+          break;
+        case 'otp':
+          requestBody['otp'] = otp;
+          break;
+        case 'firebase':
+          requestBody['firebase_token'] = firebaseToken;
+          break;
+        case 'passkey':
+        // Add device info for passkey authentication
+          final deviceInfo = await getDeviceInfo();
+          print("device info:$deviceInfo");
+          requestBody['passkey_credential'] = deviceInfo;
+          break;
+      }
 
       final response = await http.post(
         Uri.parse('${IpConfig.baseUrl}/api/auth/login'),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'phone_number': phoneNumber,
-          'password': password,
-        }),
+        body: json.encode(requestBody),
       );
-
-      //print('Response status: ${response.statusCode}');
-      //print('Response body: ${response.body}');
 
       final responseBody = json.decode(response.body);
 

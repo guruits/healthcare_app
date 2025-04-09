@@ -8,7 +8,6 @@ import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import io.flutter.embedding.android.FlutterActivity
-import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.io.IOException
 import android.content.Context
@@ -24,8 +23,12 @@ import androidx.core.content.FileProvider
 import java.io.File
 import java.nio.ByteOrder
 import java.nio.ByteBuffer
+import io.flutter.embedding.android.FlutterFragmentActivity
+import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugins.GeneratedPluginRegistrant
 
-class MainActivity: FlutterActivity() {
+class MainActivity: FlutterFragmentActivity() {
+
     private val TAG = "BluetoothFile"
     private val CHANNEL = "bluetooth_health"
 
@@ -49,6 +52,8 @@ class MainActivity: FlutterActivity() {
     private val ROOT_PATH = "/"
 
 
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d("Bluetooth", "MainActivity onCreate")
@@ -66,10 +71,111 @@ class MainActivity: FlutterActivity() {
             requestBluetoothPermissions()
         }
 
-        setupMethodChannel()
+        //setupMethodChannel()
     }
 
-    private fun setupMethodChannel() {
+    override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
+        super.configureFlutterEngine(flutterEngine)
+        GeneratedPluginRegistrant.registerWith(flutterEngine)
+
+        // Set up method channel here
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            CHANNEL
+        ).setMethodCallHandler { call, result ->
+            Log.d("Bluetooth", "Method called: ${call.method}")
+            when (call.method) {
+                "isBluetoothEnabled" -> {
+                    result.success(bluetoothAdapter?.isEnabled ?: false)
+                }
+
+                "getPairedDevices" -> {
+                    if (!hasRequiredPermissions()) {
+                        result.error(
+                            "PERMISSION_DENIED",
+                            "Required Bluetooth permissions not granted", null
+                        )
+                        return@setMethodCallHandler
+                    }
+                    val pairedDevices = getPairedDevices()
+                    result.success(pairedDevices)
+                }
+
+                "getDeviceServices" -> {
+                    val deviceAddress = call.argument<String>("deviceAddress")
+                    if (deviceAddress == null) {
+                        result.error(
+                            "INVALID_ARGUMENT",
+                            "Device address is required", null
+                        )
+                        return@setMethodCallHandler
+                    }
+                    getDeviceServices(deviceAddress) { services ->
+                        handler.post {
+                            result.success(services)
+                        }
+                    }
+                }
+
+                "connectToDevice" -> {
+                    val deviceAddress = call.argument<String>("deviceAddress")
+                    if (deviceAddress == null) {
+                        result.error(
+                            "INVALID_ARGUMENT",
+                            "Device address is required", null
+                        )
+                        return@setMethodCallHandler
+                    }
+                    connectToDevice(deviceAddress) { success ->
+                        handler.post {
+                            result.success(success)
+                        }
+                    }
+                }
+                "sendImage" -> {
+                    val imagePath = call.argument<String>("imagePath")
+                    if (imagePath == null) {
+                        result.error("INVALID_ARGUMENT", "Image path is required", null)
+                        return@setMethodCallHandler
+                    }
+                    sendImage(imagePath, result)
+                }
+
+                "startReceiving" -> {
+                    startReceiving(result)
+                }
+                "stopReceiving" -> {
+                    stopReceiving()
+                    result.success(true)
+                }
+
+                "browseFiles" -> {
+                    val path = call.argument<String>("path") ?: ROOT_PATH
+                    browseRemoteFiles(path, result)
+                }
+                "downloadFile" -> {
+                    val remotePath = call.argument<String>("remotePath")
+                    if (remotePath == null) {
+                        result.error("INVALID_ARGUMENT", "Remote file path is required", null)
+                        return@setMethodCallHandler
+                    }
+                    downloadRemoteFile(remotePath, result)
+                }
+
+
+                "disconnect" -> {
+                    disconnect()
+                    result.success(true)
+                }
+
+                else -> result.notImplemented()
+            }
+        }
+
+        super.configureFlutterEngine(flutterEngine)
+    }
+
+    /*private fun setupMethodChannel() {
         flutterEngine?.let { engine ->
             Log.d("Bluetooth", "Setting up MethodChannel")
             MethodChannel(
@@ -165,7 +271,7 @@ class MainActivity: FlutterActivity() {
                 }
             }
         }
-    }
+    }*/
 
     private fun hasRequiredPermissions(): Boolean {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
