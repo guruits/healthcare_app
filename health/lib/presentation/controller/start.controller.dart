@@ -29,7 +29,7 @@ class StartController {
   Future<String> getUserRole() async {
     final prefs = await SharedPreferences.getInstance();
     final userDetails = prefs.getString('userDetails');
-    print("user details startc:$userDetails");
+    //print("user details startc:$userDetails");
 
     if (userDetails != null) {
       try {
@@ -46,7 +46,6 @@ class StartController {
   // Clear user data on logout
   Future<void> clearUserData() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
   }
 
   final Map<String, Map<String, dynamic>> _screenDefinitions = {
@@ -61,7 +60,7 @@ class StartController {
     'Urine Collection': {'screen': Urinecollection(), 'title': 'Urine Collection', 'imageTitle': 'urinecollection',},
     'Arc': {'screen': Arc(), 'title': 'Arc', 'imageTitle': 'arc',},
     'Dentist': {'screen': Dentist(), 'title': 'Dentist', 'imageTitle': 'dentist',},
-    'X-ray': {'screen': XRay(), 'title': 'X-ray', 'imageTitle': 'xray',},
+    'X-ray': {'screen': XRay(), 'title': 'X-ray', 'imageTitle': 'x-ray',},
     'Dexa Scan': {'screen': DexaScan(), 'title': 'Dexa Scan', 'imageTitle': 'dexascan',},
     'Echo': {'screen': Echo(), 'title': 'Echo', 'imageTitle': 'echo',},
     'Profile': {'screen': Profile(), 'title': 'Profile', 'imageTitle': 'Profile',},

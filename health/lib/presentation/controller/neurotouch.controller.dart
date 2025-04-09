@@ -6,6 +6,7 @@ class NeurotouchController {
   String _patientAadharNumber = '';
   String _appointmentSlot = '';
   String _patientAddress = '';
+  String _patientId = '';
   DateTime? _collectionDateTime;
   String _collectionNumber = '';
   bool _isPatientSelected = false;
@@ -15,6 +16,7 @@ class NeurotouchController {
 
   String get selectedPatient => _selectedPatient;
   String get patientMobileNumber => _patientMobileNumber;
+  String get patientId => _patientId;
   String get patientAadharNumber => _patientAadharNumber;
   String get appointmentSlot => _appointmentSlot;
   String get patientAddress => _patientAddress;
@@ -22,7 +24,13 @@ class NeurotouchController {
   bool get isPatientSelected => _isPatientSelected;
   bool get isPrinting => _isPrinting;
   String get statusMessage => _statusMessage;
-
+  set selectedPatient(String value) => _selectedPatient = value;
+  set patientMobileNumber(String value) => _patientMobileNumber = value;
+  set patientId(String value) => _patientId = value;
+  set patientAadharNumber(String value) => _patientAadharNumber = value;
+  set appointmentSlot(String value) => _appointmentSlot = value;
+  set patientAddress(String value) => _patientAddress = value;
+  set isPatientSelected(bool value) => _isPatientSelected;
   void selectPatient(String patientName, String mobileNumber, String aadharNumber, String appointmentSlot, String address) {
     _selectedPatient = patientName;
     _patientMobileNumber = mobileNumber;

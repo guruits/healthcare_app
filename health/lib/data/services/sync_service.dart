@@ -1,3 +1,4 @@
+/*
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:health/data/services/realm_service.dart';
@@ -135,4 +136,4 @@ class SyncStatus {
     this.lastSyncTime,
     this.lastError,
   });
-}
+}*/

@@ -2,6 +2,7 @@ plugins {
     id "com.android.application"
     id "kotlin-android"
     id "dev.flutter.flutter-gradle-plugin"
+    id 'com.google.gms.google-services'
 }
 
 def localProperties = new Properties()
@@ -15,11 +16,25 @@ if (localPropertiesFile.exists()) {
 def flutterVersionCode = localProperties.getProperty('flutter.versionCode', '1')
 def flutterVersionName = localProperties.getProperty('flutter.versionName', '1.0')
 
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
 android {
     namespace "com.example.health"
     compileSdk flutter.compileSdkVersion
     ndkVersion = "25.1.8937393"
 
+    signingConfigs {
+        release {
+            keyAlias keystoreProperties['keyAlias']
+            keyPassword keystoreProperties['keyPassword']
+            storeFile keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
+            storePassword keystoreProperties['storePassword']
+        }
+    }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
@@ -35,18 +50,27 @@ android {
 
     defaultConfig {
         applicationId "com.example.health"
-        minSdkVersion 21
-        targetSdkVersion 33 // Adjust if needed
+        minSdkVersion 23
+        targetSdkVersion 34 // Adjust if needed
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
     }
 
     buildTypes {
         release {
-            signingConfig signingConfigs.debug
+            minifyEnabled false
+            shrinkResources false
+            signingConfig signingConfigs.release
         }
     }
 }
+
+//configurations.all {
+//    resolutionStrategy.force 'org.jetbrains.kotlin:kotlin-stdlib:2.1.0'
+//    resolutionStrategy.force 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:2.1.0'
+//    resolutionStrategy.force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.1.0'
+//    resolutionStrategy.force 'org.jetbrains.kotlin:kotlin-reflect:2.1.0'
+//}
 
 flutter {
     source '../..'
@@ -55,5 +79,12 @@ flutter {
 dependencies {
 
     implementation 'com.google.mlkit:face-detection:16.1.7'
+    // Import the Firebase BoM
+    implementation platform('com.google.firebase:firebase-bom:33.11.0')
+    // Import the Firebase BoM
+    implementation 'com.google.firebase:firebase-analytics'
+    implementation 'com.google.android.play:integrity:1.2.0'
+    implementation "androidx.biometric:biometric:1.1.0"
+
     // Add your necessary dependencies here
 }

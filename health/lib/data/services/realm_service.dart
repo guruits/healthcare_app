@@ -18,8 +18,6 @@ class MongoRealmUserService {
   mongo.Db? _mongodb;
   final SyncStatus syncStatus = SyncStatus();
   bool _isInitialized = false;
-  bool isConnected() => _mongodb != null;
-  mongo.Db? getMongoDbInstance() => _mongodb;
 
   bool get isInitialized => _isInitialized;
 
@@ -41,37 +39,37 @@ class MongoRealmUserService {
 
       _realm = await Realm.open(config);
       _isInitialized = true;
+
+      // Try to connect to MongoDB in the background
+      _connectToMongoDB();
     } catch (e) {
       print("Failed to initialize Realm: $e");
       throw Exception('Error initializing Realm: $e');
     }
   }
 
-  Future<bool> connectToMongoDB() async {
+
+  // Separate MongoDB connection method
+  Future<void> _connectToMongoDB() async {
     try {
       _mongodb = await mongo.Db.create('mongodb+srv://edwinprakash603:Edwin2001@cluster0.ykeuu.mongodb.net/test');
       await _mongodb!.open();
       print("Connected to MongoDB");
-      return true;
+
+      // Trigger initial sync only after successful connection
+      _triggerBackgroundSync();
     } catch (e) {
       print("Failed to connect to MongoDB: $e");
-      return false;
+      syncStatus.lastError = "Connection error: $e";
+      // We'll continue with local Realm data only
     }
   }
-
   Realm get realm {
-    if (!_isInitialized) {
-      throw Exception('Realm not initialized. Call initialize() first.');
-    }
-    return _realm;
-  }
-
-  /*Realm get realm {
     if (_realm == null) {
       throw Exception('Realm not initialized. Call initialize() first.');
     }
     return _realm!;
-  }*/
+  }
 
 
   // Convert MongoDB document to User model with improved error handling
@@ -158,7 +156,7 @@ class MongoRealmUserService {
     }
   }
 
-  // Sync MongoDB to Realm
+  // Sync all MongoDB data to Realm
   Future<void> syncMongoToRealm() async {
     if (_mongodb == null) {
       throw Exception('Cannot sync: MongoDB is not connected');
@@ -216,13 +214,23 @@ class MongoRealmUserService {
     }
   }
 
+
+
   // Get all users - always from Realm first
   Future<List<User>> getAllUsers() async {
-    if (!_isInitialized) await initialize();
-
     try {
       // Always get from Realm first
       final realmUsers = _realm.all<UserRealm>();
+
+      // Try to trigger background sync if we have MongoDB connection
+      if (_mongodb != null) {
+        _triggerBackgroundSync();
+      } else {
+        // Try to reconnect if we don't have a connection
+        _connectToMongoDB();
+      }
+
+      // Return Realm data immediately
       return realmUsers.map(_convertRealmToUser).toList();
     } catch (e) {
       print("Error in getAllUsers: $e");
@@ -230,7 +238,7 @@ class MongoRealmUserService {
     }
   }
 
-
+  // Get user by ID - first check Realm, then MongoDB if necessary
   Future<User?> getUserById(String? userId) async {
     if (!_isInitialized) await initialize();
 
@@ -277,6 +285,7 @@ class MongoRealmUserService {
           }
         } catch (e) {
           print("Error fetching user from MongoDB: $e");
+          // Continue to return null if not found
         }
       }
 
@@ -287,7 +296,6 @@ class MongoRealmUserService {
       throw Exception('Error fetching user: $e');
     }
   }
-
 
   Future<User?> getCurrentUserDetails() async {
     if (!_isInitialized) await initialize();
@@ -510,7 +518,7 @@ class MongoRealmUserService {
     }
   }
 
-/*  // Force a sync now - can be called from UI
+  // Force a sync now - can be called from UI
   Future<bool> syncNow() async {
     if (_mongodb == null) {
       // Try to connect first
@@ -526,9 +534,9 @@ class MongoRealmUserService {
       return true;
     }
     return false;
-  }*/
+  }
 
- /* // Check connection status
+  // Check connection status
   bool isConnected() {
     return _mongodb != null;
   }
@@ -536,7 +544,7 @@ class MongoRealmUserService {
   // Get sync status
   SyncStatus getSyncStatus() {
     return syncStatus;
-  }*/
+  }
 
   // Clean up resources
   Future<void> dispose() async {
