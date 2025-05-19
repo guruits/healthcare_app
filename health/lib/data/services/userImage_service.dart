@@ -12,33 +12,43 @@ class SyncStatus {
 
 class ImageServices {
   Realm? _realm;
-  late Realm realm;
+  //late Realm realm;
   mongo.Db? _mongoClient;
   final SyncStatus syncStatus = SyncStatus();
+  bool _isInitialized = false;
 
-  // Initialize Realm independently of MongoDB
-  // In ImageServices class:
+  Realm get realm {
+    if (_realm == null) {
+      throw Exception('Realm has not been initialized. Call initialize() first.');
+    }
+    return _realm!;
+  }
+  bool isInitialized() {
+    return _isInitialized && _realm != null;
+  }
+
   Future<void> initialize() async {
+    // Skip if already initialized
+    if (_isInitialized) return;
+
     try {
       // Initialize Realm with proper configuration
       final config = Configuration.local(
         [ImageRealm.schema],
-        schemaVersion: 6,
+        schemaVersion: 7,
         migrationCallback: (migration, oldSchemaVersion) {
           // Handle migrations from older versions
-          if (oldSchemaVersion < 6) {
-            print('Migrating from schema version $oldSchemaVersion to 6');
+          if (oldSchemaVersion < 7) {
+            print('Migrating from schema version $oldSchemaVersion to 7');
           }
         },
       );
 
       // Open the Realm database
       _realm = await Realm.open(config);
+      _isInitialized = true;
 
-      // Initialize the late realm field with the opened instance
-      realm = _realm!;
-
-      print('ImageServices: Realm initialized successfully with schema version 6');
+      print('ImageServices: Realm initialized successfully with schema version 7');
 
       // Try to connect to MongoDB in the background
       await _connectToMongoDB();
@@ -198,12 +208,12 @@ class ImageServices {
 
   // Retrieve image for a user (prioritize local Realm)
   ImageRealm? getUserImage(String userId) {
-    print("Fetching user image from Realm for userId: $userId");
+    //print("Fetching user image from Realm for userId: $userId");
     final image = realm.all<ImageRealm>()
         .where((image) => image.userId == userId)
         .firstOrNull;
     if (image != null) {
-      print("Image found in Realm: UserId: ${image.userId}, IsSynced: ${image.isSynced}");
+      //print("Image found in Realm: UserId: ${image.userId}, IsSynced: ${image.isSynced}");
     } else {
       print("No image found in Realm for userId: $userId");
     }
@@ -290,14 +300,16 @@ class ImageServices {
       return localImage;
     }
 
-    if (_mongoClient == null) {
-      print("MongoDB client not connected. Attempting to connect...");
+    if (_mongoClient == null || _mongoClient!.state != mongo.State.OPEN) {
+      print("MongoDB client not connected or still connecting. Attempting to connect...");
       await _connectToMongoDB();
-      if (_mongoClient == null) {
-        print("Failed to connect to MongoDB. Returning null.");
+
+      if (_mongoClient == null || _mongoClient!.state != mongo.State.OPEN) {
+        print("Failed to connect to MongoDB or still opening. Returning null.");
         return null;
       }
     }
+
 
     try {
       print("Searching for image in user_images collection...");
@@ -485,10 +497,11 @@ class ImageServices {
   }
 
   // Close connections
-  Future<void> dispose() async {
-    realm.close();
-    if (_mongoClient != null) {
-      await _mongoClient!.close();
-    }
+  void dispose() {
+    _realm?.close();
+    _realm = null;
+    _mongoClient?.close();
+    _mongoClient = null;
+    _isInitialized = false;
   }
 }

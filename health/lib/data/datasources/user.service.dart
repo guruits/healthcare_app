@@ -50,6 +50,30 @@ class UserManageService {
     }
   }
 
+  Future<List<User>> getAllPatients() async {
+    try {
+      final response = await http.get(
+        Uri.parse('${IpConfig.baseUrl}/api/user/patients'),
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode == 200) {
+        print("Raw response body: ${response.body}");
+
+        // Decode the response
+        final List<dynamic> usersJson = json.decode(response.body);
+        // Map each JSON object to a User
+        return usersJson.map((json) => User.fromJson(json)).toList();
+      } else {
+        throw Exception('Failed to load users: ${response.body}');
+      }
+    } catch (e, stackTrace) {
+      print("Detailed error: $e");
+      print("Error stacktrace: $stackTrace");
+      throw Exception('Error fetching users: $e');
+    }
+  }
+
   Future<Users> getUserDetails( ) async {
     try {
       final userId = await _getUserId();
@@ -214,45 +238,6 @@ class UserManageService {
     }
   }
 }
-//get a user image from Database
-class UserImageService {
 
-  UserImageService() {
-  }
-
-
-
-  Future<String?> _getToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('userToken');
-    if (token == null) {
-      throw Exception('No authentication token found');
-    }
-    return token;
-  }
-
-  Future<Map<String, String>> _getHeaders() async {
-    final token = await _getToken();
-    return {
-      'Authorization': 'Bearer $token',
-    };
-  }
-
-  String getUserImageUrl(String userId, {int quality = 50}) {
-    return '${IpConfig.baseUrl}/api/auth/user/compressedimage/$userId/image?quality=$quality';
-  }
-
-  Future<bool> checkImageExists(String userId) async {
-    try {
-      final response = await http.head(
-        Uri.parse(getUserImageUrl(userId)),
-        headers: await _getHeaders(),
-      );
-      return response.statusCode == 200;
-    } catch (e) {
-      return false;
-    }
-  }
-}
 
 

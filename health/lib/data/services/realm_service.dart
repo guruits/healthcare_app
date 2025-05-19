@@ -29,9 +29,9 @@ class MongoRealmUserService {
     try {
       final config = Configuration.local(
         [UserRealm.schema],
-        schemaVersion: 6,
+        schemaVersion: 7,
         migrationCallback: (migration, oldSchemaVersion) {
-          if (oldSchemaVersion < 6) {
+          if (oldSchemaVersion < 7) {
             // Perform any necessary data transformations here
           }
         },
@@ -115,7 +115,6 @@ class MongoRealmUserService {
       dob: dobDateTime,
       phoneNumber: doc['phone_number']?.toString() ?? '',
       address: doc['address']?.toString() ?? '',
-      password: doc['password']?.toString() ?? '',
       roles: roles,
       isActive: doc['isActive'] ?? true,
     );
@@ -130,7 +129,6 @@ class MongoRealmUserService {
       dob: realmUser.dob,
       phoneNumber: realmUser.phoneNumber,
       address: realmUser.address,
-      password: realmUser.password,
       roles: realmUser.roles.toList(),
       isActive: realmUser.isActive,
     );
@@ -182,7 +180,6 @@ class MongoRealmUserService {
               existingUser.dob = user.dob;
               existingUser.phoneNumber = user.phoneNumber;
               existingUser.address = user.address;
-              existingUser.password = user.password;
               existingUser.isActive = user.isActive;
               existingUser.roles.clear();
               existingUser.roles.addAll(user.roles);
@@ -196,7 +193,6 @@ class MongoRealmUserService {
                   dob: user.dob,
                   user.phoneNumber,
                   user.address,
-                  user.password,
                   user.isActive,
                   roles: rolesList,
                 ),
@@ -275,7 +271,6 @@ class MongoRealmUserService {
                 dob: user.dob,
                 user.phoneNumber,
                 user.address,
-                user.password,
                 user.isActive,
                 roles: rolesList,
               ));
@@ -365,7 +360,6 @@ class MongoRealmUserService {
             'dob': user.dob?.toIso8601String(),
             'phone_number': user.phoneNumber,
             'address': user.address,
-            'password': user.password,
             'roles': roleObjectIds,
             'isActive': true,
           });
@@ -399,7 +393,6 @@ class MongoRealmUserService {
           dob: user.dob,
           user.phoneNumber,
           user.address,
-          user.password,
           true,
           roles: rolesList,
         ));
@@ -436,7 +429,6 @@ class MongoRealmUserService {
             dob: user.dob,
             user.phoneNumber,
             user.address,
-            user.password,
             true,
             roles: rolesList,
           ));

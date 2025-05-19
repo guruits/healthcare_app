@@ -29,7 +29,7 @@ class AppTextFields {
         inputFormatters: inputFormatters,
         decoration: InputDecoration(
           labelText: labelText,
-          prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: AppColors.primaryColor) : null,
+          prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: AppColors1.primaryColor) : null,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(15),
             borderSide: BorderSide.none,
@@ -42,7 +42,7 @@ class AppTextFields {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(15),
-            borderSide: BorderSide(color: AppColors.primaryColor, width: 2),
+            borderSide: BorderSide(color: AppColors1.primaryColor, width: 2),
           ),
         ),
         validator: validator,
@@ -72,7 +72,7 @@ class AppTextFields {
         obscureText: !isVisible,
         decoration: InputDecoration(
           labelText: 'Password',
-          prefixIcon: Icon(Icons.lock, color: AppColors.primaryColor),
+          prefixIcon: Icon(Icons.lock, color: AppColors1.primaryColor),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(15),
             borderSide: BorderSide.none,
@@ -82,7 +82,7 @@ class AppTextFields {
           suffixIcon: IconButton(
             icon: Icon(
               isVisible ? Icons.visibility : Icons.visibility_off,
-              color: AppColors.primaryColor,
+              color: AppColors1.primaryColor,
             ),
             onPressed: () => onVisibilityChanged(!isVisible),
           ),
@@ -92,7 +92,7 @@ class AppTextFields {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(15),
-            borderSide: BorderSide(color: AppColors.primaryColor, width: 2),
+            borderSide: BorderSide(color: AppColors1.primaryColor, width: 2),
           ),
         ),
         validator: validator,
@@ -128,7 +128,7 @@ class AppTextFields {
                   controller: controller,
                   decoration: InputDecoration(
                     labelText: 'OTP Code',
-                    prefixIcon: Icon(Icons.pin, color: AppColors.primaryColor),
+                    prefixIcon: Icon(Icons.pin, color: AppColors1.primaryColor),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(15),
                       borderSide: BorderSide.none,
@@ -141,7 +141,7 @@ class AppTextFields {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(15),
-                      borderSide: BorderSide(color: AppColors.primaryColor, width: 2),
+                      borderSide: BorderSide(color: AppColors1.primaryColor, width: 2),
                     ),
                   ),
                   keyboardType: TextInputType.number,
@@ -158,7 +158,7 @@ class AppTextFields {
                 child: ElevatedButton(
                   onPressed: isLoading ? null : onSendOtp,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.accentColor,
+                    backgroundColor: AppColors1.accentColor,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(15),

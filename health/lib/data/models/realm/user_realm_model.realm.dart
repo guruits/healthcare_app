@@ -15,7 +15,6 @@ class UserRealm extends _UserRealm
     String name,
     String phoneNumber,
     String address,
-    String password,
     bool isActive, {
     DateTime? dob,
     Iterable<String> roles = const [],
@@ -26,7 +25,6 @@ class UserRealm extends _UserRealm
     RealmObjectBase.set(this, 'dob', dob);
     RealmObjectBase.set(this, 'phoneNumber', phoneNumber);
     RealmObjectBase.set(this, 'address', address);
-    RealmObjectBase.set(this, 'password', password);
     RealmObjectBase.set<RealmList<String>>(
         this, 'roles', RealmList<String>(roles));
     RealmObjectBase.set(this, 'isActive', isActive);
@@ -69,12 +67,6 @@ class UserRealm extends _UserRealm
   set address(String value) => RealmObjectBase.set(this, 'address', value);
 
   @override
-  String get password =>
-      RealmObjectBase.get<String>(this, 'password') as String;
-  @override
-  set password(String value) => RealmObjectBase.set(this, 'password', value);
-
-  @override
   RealmList<String> get roles =>
       RealmObjectBase.get<String>(this, 'roles') as RealmList<String>;
   @override
@@ -105,7 +97,6 @@ class UserRealm extends _UserRealm
       'dob': dob.toEJson(),
       'phoneNumber': phoneNumber.toEJson(),
       'address': address.toEJson(),
-      'password': password.toEJson(),
       'roles': roles.toEJson(),
       'isActive': isActive.toEJson(),
     };
@@ -121,7 +112,6 @@ class UserRealm extends _UserRealm
         'name': EJsonValue name,
         'phoneNumber': EJsonValue phoneNumber,
         'address': EJsonValue address,
-        'password': EJsonValue password,
         'isActive': EJsonValue isActive,
       } =>
         UserRealm(
@@ -130,7 +120,6 @@ class UserRealm extends _UserRealm
           fromEJson(name),
           fromEJson(phoneNumber),
           fromEJson(address),
-          fromEJson(password),
           fromEJson(isActive),
           dob: fromEJson(ejson['dob']),
           roles: fromEJson(ejson['roles']),
@@ -149,7 +138,6 @@ class UserRealm extends _UserRealm
       SchemaProperty('dob', RealmPropertyType.timestamp, optional: true),
       SchemaProperty('phoneNumber', RealmPropertyType.string),
       SchemaProperty('address', RealmPropertyType.string),
-      SchemaProperty('password', RealmPropertyType.string),
       SchemaProperty('roles', RealmPropertyType.string,
           collectionType: RealmCollectionType.list),
       SchemaProperty('isActive', RealmPropertyType.bool),

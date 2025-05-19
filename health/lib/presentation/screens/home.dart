@@ -119,7 +119,7 @@ class _HomeState extends State<Home> {
                     onPressed: () async {
                       //await _languageController.speakText(localizations.login);
                       await Future.delayed(Duration(milliseconds: 1200));
-                      Navigator.of(context).pushReplacement(
+                      Navigator.of(context).push(
                         MaterialPageRoute(builder: (_) => Login()),
                       );
                     },

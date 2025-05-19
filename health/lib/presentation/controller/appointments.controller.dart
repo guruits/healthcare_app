@@ -5,9 +5,12 @@ import 'dart:convert';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../data/models/Appointment.dart';
+
 class AppointmentsController extends ChangeNotifier {
   String? selectedDoctorId;
   DateTime? selectedDate;
+  String? patientId;
   Map<String, dynamic>? selectedTimeSlot;
   List<dynamic> doctors = [];
   List<dynamic> timeSlots = [];
@@ -20,30 +23,37 @@ class AppointmentsController extends ChangeNotifier {
   Map<String, dynamic>? lastAppointmentResponse;
 
   AppointmentsController() {
-    _loadUserRole();
+    loadUserRole();
   }
 
-  Future<void> _loadUserRole() async {
+  Future<void> loadUserRole() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final userDetailsString = prefs.getString('userDetails');
-      print("user details app:$userDetailsString");
+      print("User details from storage: $userDetailsString");
 
       if (userDetailsString != null) {
-        final userDetails = json.decode(userDetailsString);
-        if (userDetails['role'] != null && userDetails['role']['name'] != null) {
-          userRole = userDetails['role']['name'];
-          userRoleId = userDetails['role']['id'];
+        final Map<String, dynamic> userDetails = json.decode(userDetailsString);
+        final role = userDetails['role'];
+        print("role wise name printing : ${role['rolename'] !=null ? role['rolename'] : role['name']}");
+        if (role != null && (role['rolename'] != null || role['name'] != null)) {
+          userRole = role['rolename'] !=null ? role['rolename'] : role['name'];
+          userRoleId = role['id'];
           userId = userDetails['id'];
           await prefs.setString('userRole', userRole!);
-        }
-      }
 
-      print('User Role: $userRole');
-      print('User Role id: $userRoleId');
-      print('User ID: $userId');
-    } catch (e) {
+          print('User Role: $userRole');
+          print('User Role ID: $userRoleId');
+          print('User ID: $userId');
+        } else {
+          print('Role data missing in userDetails.');
+        }
+      } else {
+        print('No userDetails found in SharedPreferences.');
+      }
+    } catch (e, stackTrace) {
       print('Error loading user role: $e');
+      print('Stack trace: $stackTrace');
     }
   }
 
@@ -237,6 +247,44 @@ class AppointmentsController extends ChangeNotifier {
       notifyListeners();
     }
   }
+  Future<Map<String, dynamic>?> bookAppointmentbyid() async {
+    if (!canBookAppointment()) {
+      error = 'Please select doctor, date and time slot';
+      notifyListeners();
+      return null;
+    }
+
+    try {
+      isLoading = true;
+      notifyListeners();
+
+      final response = await http.post(
+        Uri.parse('${IpConfig.baseUrl}/api/appointment/appointmentbyId'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'patientId': patientId,
+          'doctorId': selectedDoctorId,
+          'date': DateFormat('yyyy-MM-dd').format(selectedDate!),
+          'timeSlot': selectedTimeSlot!['startTime'],
+        }),
+      );
+
+      if (response.statusCode == 201) {
+        final appointmentData = json.decode(response.body);
+        lastAppointmentResponse = appointmentData;
+        return appointmentData;
+      } else {
+        error = json.decode(response.body)['error'] ?? 'Failed to book appointment';
+        return null;
+      }
+    } catch (e) {
+      error = e.toString();
+      return null;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
   String getSelectedDoctorName() {
     if (selectedDoctorId == null) return '';
     final doctor = doctors.firstWhere(
@@ -338,7 +386,7 @@ class AppointmentsController extends ChangeNotifier {
   Future<List<Appointment>> getAppointmentsByDoctorId() async {
     try {
       print("get appointment calling.....");
-      // Check if user is a doctor
+      await loadUserRole();
       if (userRole != 'Doctor') {
         throw Exception('Only doctors can access this information');
       }
@@ -383,17 +431,48 @@ class AppointmentsController extends ChangeNotifier {
       notifyListeners();
     }
   }
+  String mapStatusToApiValue(String status) {
+    // Map UI status values to API status values
+    // Adjust these mappings according to what your API expects
+    switch (status) {
+      case 'Pending':
+        return 'pending';
+      case 'Confirmed':
+        return 'confirmed';
+      case 'Cancelled':
+        return 'cancelled';
+      case 'Completed':
+        return 'completed';
+      default:
+        return status.toLowerCase(); // Fallback to lowercase
+    }
+  }
+
   Future<List<Appointment>> getAppointments({
     String? status,
     DateTime? date,
+    String? searchText,
   }) async {
     try {
-      final queryParams = <String, String>{};
-      if (status != null) queryParams['status'] = status;
-      if (date != null) queryParams['date'] = date.toIso8601String().split('T')[0];
+      final queryParams = <String, dynamic>{};
+
+      // Only add status to query params if it's not null
+      if (status != null) {
+        queryParams['status'] = status;
+      }
+
+      if (date != null) {
+        queryParams['date'] = date.toIso8601String().split('T')[0];
+      }
+
+      if (searchText != null && searchText.isNotEmpty) {
+        queryParams['search'] = searchText;
+      }
 
       final uri = Uri.parse('${IpConfig.baseUrl}/api/appointment/appointments')
           .replace(queryParameters: queryParams);
+
+      print('API request URL: $uri'); // Debug log to see the actual URL
 
       final response = await http.get(
         uri,
@@ -404,6 +483,49 @@ class AppointmentsController extends ChangeNotifier {
         final List<dynamic> data = json.decode(response.body);
         return data.map((json) => Appointment.fromJson(json)).toList();
       } else {
+        print('Error response: ${response.body}');
+        throw Exception('Failed to fetch appointments: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error in getAppointments: $e');
+      throw Exception('Error fetching appointments: $e');
+    }
+  }Future<List<Appointment>> getFilterAppointments({
+    String? status,
+    DateTime? date,
+    String? searchText,
+  }) async {
+    try {
+      final queryParams = <String, dynamic>{};
+
+      // Only add status to query params if it's not null
+      if (status != null) {
+        queryParams['status'] = status;
+      }
+
+      if (date != null) {
+        queryParams['date'] = date.toIso8601String().split('T')[0];
+      }
+
+      if (searchText != null && searchText.isNotEmpty) {
+        queryParams['search'] = searchText;
+      }
+
+      final uri = Uri.parse('${IpConfig.baseUrl}/api/appointment/appointments/filter')
+          .replace(queryParameters: queryParams);
+
+      print('API request URL: $uri');
+
+      final response = await http.get(
+        uri,
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        return data.map((json) => Appointment.fromJson(json)).toList();
+      } else {
+        print('Error response: ${response.body}');
         throw Exception('Failed to fetch appointments: ${response.statusCode}');
       }
     } catch (e) {
@@ -418,13 +540,13 @@ class AppointmentsController extends ChangeNotifier {
     String? notes,
   }) async {
     try {
-      if (userRole != 'Admin' && userRole != 'Doctor') {
+      /*if (userRole != 'Admin' && userRole != 'Doctor') {
         throw Exception('Unauthorized: Only administrators and doctors can update the appointments');
-      }
+      }*/
       print('Updating appointment status: $appointmentId to $status');
       final response = await http.patch(
 
-        Uri.parse('${IpConfig.baseUrl}/api/appointment/appointments/$appointmentId'),
+        Uri.parse('${IpConfig.baseUrl}/api/appointment/appointment/status/$appointmentId'),
         headers: await _getHeaders(),
         body: json.encode({
           'status': status,
@@ -547,68 +669,5 @@ class AppointmentsController extends ChangeNotifier {
 
 
 }
-class Appointment {
-  final String id;
-  final String patientName;
-  final String patientContact;
-  final String patientEmail;
-  final String doctorName;
-  final String doctorSpecialization;
-  final DateTime date;
-  final String timeSlot;
-  final String status;
-  final String? notes;
-  final DateTime createdAt;
 
-  Appointment({
-    required this.id,
-    required this.patientName,
-    required this.patientContact,
-    required this.patientEmail,
-    required this.doctorName,
-    required this.doctorSpecialization,
-    required this.date,
-    required this.timeSlot,
-    required this.status,
-    this.notes,
-    required this.createdAt,
-  });
-
-  factory Appointment.fromJson(Map<String, dynamic> json) {
-    return Appointment(
-      id: json['id'] ?? '',
-      patientName: json['patientName'] ?? 'N/A',
-      patientContact: json['patientContact'] ?? 'N/A',
-      patientEmail: json['patientEmail'] ?? 'N/A',
-      doctorName: json['doctorName'] ?? 'N/A',
-      doctorSpecialization: json['doctorSpecialization'] ?? 'N/A',
-      date: DateTime.parse(json['date']),
-      timeSlot: json['timeSlot'] ?? '',
-      status: json['status'] ?? '',
-      notes: json['notes'],
-      createdAt: DateTime.parse(json['createdAt']),
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'patientName': patientName,
-      'patientContact': patientContact,
-      'patientEmail': patientEmail,
-      'doctorName': doctorName,
-      'doctorSpecialization': doctorSpecialization,
-      'date': date.toIso8601String(),
-      'timeSlot': timeSlot,
-      'status': status,
-      'notes': notes,
-      'createdAt': createdAt.toIso8601String(),
-    };
-  }
-}
-
-// To parse a list of appointments
-List<Appointment> parseAppointments(List<dynamic> jsonList) {
-  return jsonList.map((json) => Appointment.fromJson(json)).toList();
-}
 

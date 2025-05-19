@@ -11,7 +11,7 @@ class MongoRealmScreenService {
   Future<void> initialize() async {
     final config = Configuration.local(
       [ScreenRealm.schema],
-      schemaVersion: 6,
+      schemaVersion: 7,
       migrationCallback: (migration, oldSchemaVersion) {
         // Handle migration if needed
       },

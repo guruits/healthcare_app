@@ -776,7 +776,6 @@ class _UsersScreenState extends State<UsersScreen> with SingleTickerProviderStat
           phoneNumber: _phoneController.text,
           address: _addressController.text,
           roles: _selectedRoles,
-          password: '',
         );
 
         if (_editingUserId != null) {

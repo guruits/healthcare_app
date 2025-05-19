@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-class AppColors {
+class AppColors1 {
   static final Color primaryColor = Color(0xFF6200EE);
   static final Color secondaryColor = Color(0xFF03DAC6);
   static final Color accentColor = Color(0xFFFF3D00);
@@ -8,4 +8,6 @@ class AppColors {
   static final Color surfaceColor = Colors.white;
   static final Color errorColor = Colors.red;
   static final Color successColor = Colors.green;
+
+  static var textSecondary;
 }

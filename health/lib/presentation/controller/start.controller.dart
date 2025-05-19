@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:health/presentation/screens/admin.dart';
 import 'package:health/presentation/screens/appointments.dart';
+import 'package:health/presentation/screens/consultation.dart';
 import 'package:health/presentation/screens/home.dart';
 import 'package:health/presentation/screens/profile.dart';
 import 'package:health/presentation/screens/register.dart';
@@ -8,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
+import '../screens/DoctorConsultationPage.dart';
 import '../screens/appointmentmanage.dart';
 import '../screens/arc.dart';
 import '../screens/bloodcollection.dart';
@@ -65,6 +67,7 @@ class StartController {
     'Echo': {'screen': Echo(), 'title': 'Echo', 'imageTitle': 'echo',},
     'Profile': {'screen': Profile(), 'title': 'Profile', 'imageTitle': 'Profile',},
     'Pharmacy': {'screen': Pharmacy(), 'title': 'Pharmacy', 'imageTitle': 'pharmacy',},
+    'Consultation': {'screen': DoctorConsultationPage(), 'title': 'Consultation', 'imageTitle': 'consultation',},
   };
 
   // Get allowed options based on user permissions
