@@ -38,8 +38,16 @@ class _HomeState extends State<Home> {
     print('Login text: ${localizations.login}');
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(localizations.appTitle),
+        title: Text(
+          localizations.appTitle,
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
+        ),
         actions: [
           LanguageToggle(),
         ],
@@ -50,7 +58,6 @@ class _HomeState extends State<Home> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Sign Up Section on the Left
             Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -70,6 +77,8 @@ class _HomeState extends State<Home> {
                       );
                     },
                     style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black,
+                      foregroundColor: Colors.white,
                       shadowColor: Colors.black,
                       elevation: 5,
                       shape: RoundedRectangleBorder(
@@ -108,13 +117,15 @@ class _HomeState extends State<Home> {
                   SizedBox(height: 20),
                   ElevatedButton(
                     onPressed: () async {
-                      await _languageController.speakText(localizations.login);
+                      //await _languageController.speakText(localizations.login);
                       await Future.delayed(Duration(milliseconds: 1200));
-                      Navigator.of(context).pushReplacement(
+                      Navigator.of(context).push(
                         MaterialPageRoute(builder: (_) => Login()),
                       );
                     },
                     style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black,
+                      foregroundColor: Colors.white,
                       shadowColor: Colors.black,
                       elevation: 5,
                       shape: RoundedRectangleBorder(

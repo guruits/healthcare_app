@@ -3,14 +3,11 @@ package com.example.health
 import android.Manifest
 import android.bluetooth.*
 import android.content.pm.PackageManager
-import android.media.*
 import android.os.Bundle
-import java.io.File
 import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import io.flutter.embedding.android.FlutterActivity
-import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.io.IOException
 import android.content.Context
@@ -18,43 +15,44 @@ import java.util.UUID
 import android.os.Handler
 import android.os.Looper
 import android.os.Build
-import android.media.MediaCodec
-import android.media.MediaExtractor
-import android.media.MediaFormat
-import android.media.AudioTrack
-import android.media.AudioAttributes
-import android.media.AudioFormat
+import java.io.OutputStream
+import java.io.ByteArrayOutputStream
+import java.io.InputStream
+import android.net.Uri
+import androidx.core.content.FileProvider
+import java.io.File
+import java.nio.ByteOrder
 import java.nio.ByteBuffer
+import io.flutter.embedding.android.FlutterFragmentActivity
+import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugins.GeneratedPluginRegistrant
 
-class MainActivity: FlutterActivity() {
-    private val TAG = "BluetoothAudio"
+class MainActivity: FlutterFragmentActivity() {
+
+    private val TAG = "BluetoothFile"
     private val CHANNEL = "bluetooth_health"
+
+    private val REQUEST_BLUETOOTH_PERMISSIONS = 1
+    private val REQUEST_STORAGE_PERMISSION = 2
     private var bluetoothAdapter: BluetoothAdapter? = null
-    private var gatt: BluetoothGatt? = null
+    private var bluetoothGatt: BluetoothGatt? = null
     private var classicSocket: BluetoothSocket? = null
     private val handler = Handler(Looper.getMainLooper())
-    private val REQUEST_BLUETOOTH_PERMISSIONS = 1
-    private var bluetoothA2dp: BluetoothA2dp? = null
-    private var audioTrack: AudioTrack? = null
 
     private val SPP_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
-    private val A2DP_UUID = UUID.fromString("0000110b-0000-1000-8000-00805f9b34fb")
+    private val OPP_UUID = UUID.fromString("00001105-0000-1000-8000-00805f9b34fb")
+    private var outputStream: OutputStream? = null
+    private var inputStream: InputStream? = null
+    private var currentConnectedDevice: BluetoothDevice? = null
+    private var isConnected = false
+    private val ACK_TIMEOUT = 5000L
+    private var isReceivingMode = false
+    private var receiverThread: Thread? = null
+    private val FTP_UUID = UUID.fromString("00001106-0000-1000-8000-00805f9b34fb")
+    private val ROOT_PATH = "/"
 
-    private val bluetoothProfile = object : BluetoothProfile.ServiceListener {
-        override fun onServiceConnected(profile: Int, proxy: BluetoothProfile) {
-            if (profile == BluetoothProfile.A2DP) {
-                bluetoothA2dp = proxy as BluetoothA2dp
-                Log.d("Bluetooth", "A2DP Profile connected")
-            }
-        }
 
-        override fun onServiceDisconnected(profile: Int) {
-            if (profile == BluetoothProfile.A2DP) {
-                bluetoothA2dp = null
-                Log.d("Bluetooth", "A2DP Profile disconnected")
-            }
-        }
-    }
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -68,18 +66,116 @@ class MainActivity: FlutterActivity() {
             return
         }
 
-        // Initialize A2DP profile
-        bluetoothAdapter?.getProfileProxy(this, bluetoothProfile, BluetoothProfile.A2DP)
-
         if (!hasBluetoothPermissions()) {
             Log.d("Bluetooth", "Requesting Bluetooth permissions")
             requestBluetoothPermissions()
         }
 
-        setupMethodChannel()
+        //setupMethodChannel()
     }
 
-    private fun setupMethodChannel() {
+    override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
+        super.configureFlutterEngine(flutterEngine)
+        GeneratedPluginRegistrant.registerWith(flutterEngine)
+
+        // Set up method channel here
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            CHANNEL
+        ).setMethodCallHandler { call, result ->
+            Log.d("Bluetooth", "Method called: ${call.method}")
+            when (call.method) {
+                "isBluetoothEnabled" -> {
+                    result.success(bluetoothAdapter?.isEnabled ?: false)
+                }
+
+                "getPairedDevices" -> {
+                    if (!hasRequiredPermissions()) {
+                        result.error(
+                            "PERMISSION_DENIED",
+                            "Required Bluetooth permissions not granted", null
+                        )
+                        return@setMethodCallHandler
+                    }
+                    val pairedDevices = getPairedDevices()
+                    result.success(pairedDevices)
+                }
+
+                "getDeviceServices" -> {
+                    val deviceAddress = call.argument<String>("deviceAddress")
+                    if (deviceAddress == null) {
+                        result.error(
+                            "INVALID_ARGUMENT",
+                            "Device address is required", null
+                        )
+                        return@setMethodCallHandler
+                    }
+                    getDeviceServices(deviceAddress) { services ->
+                        handler.post {
+                            result.success(services)
+                        }
+                    }
+                }
+
+                "connectToDevice" -> {
+                    val deviceAddress = call.argument<String>("deviceAddress")
+                    if (deviceAddress == null) {
+                        result.error(
+                            "INVALID_ARGUMENT",
+                            "Device address is required", null
+                        )
+                        return@setMethodCallHandler
+                    }
+                    connectToDevice(deviceAddress) { success ->
+                        handler.post {
+                            result.success(success)
+                        }
+                    }
+                }
+                "sendImage" -> {
+                    val imagePath = call.argument<String>("imagePath")
+                    if (imagePath == null) {
+                        result.error("INVALID_ARGUMENT", "Image path is required", null)
+                        return@setMethodCallHandler
+                    }
+                    sendImage(imagePath, result)
+                }
+
+                "startReceiving" -> {
+                    startReceiving(result)
+                }
+                "stopReceiving" -> {
+                    stopReceiving()
+                    result.success(true)
+                }
+
+                "browseFiles" -> {
+                    val path = call.argument<String>("path") ?: ROOT_PATH
+                    browseRemoteFiles(path, result)
+                }
+                "downloadFile" -> {
+                    val remotePath = call.argument<String>("remotePath")
+                    if (remotePath == null) {
+                        result.error("INVALID_ARGUMENT", "Remote file path is required", null)
+                        return@setMethodCallHandler
+                    }
+                    downloadRemoteFile(remotePath, result)
+                }
+
+
+                "disconnect" -> {
+                    disconnect()
+                    result.success(true)
+                }
+
+                else -> result.notImplemented()
+            }
+        }
+
+        super.configureFlutterEngine(flutterEngine)
+    }
+
+    /*private fun setupMethodChannel() {
         flutterEngine?.let { engine ->
             Log.d("Bluetooth", "Setting up MethodChannel")
             MethodChannel(
@@ -89,20 +185,17 @@ class MainActivity: FlutterActivity() {
                 Log.d("Bluetooth", "Method called: ${call.method}")
                 when (call.method) {
                     "isBluetoothEnabled" -> {
-                        Log.d("Bluetooth", "Checking if Bluetooth is enabled")
                         result.success(bluetoothAdapter?.isEnabled ?: false)
                     }
 
                     "getPairedDevices" -> {
                         if (!hasRequiredPermissions()) {
-                            Log.e("Bluetooth", "Bluetooth permissions denied")
                             result.error(
                                 "PERMISSION_DENIED",
                                 "Required Bluetooth permissions not granted", null
                             )
                             return@setMethodCallHandler
                         }
-                        Log.d("Bluetooth", "Getting paired devices")
                         val pairedDevices = getPairedDevices()
                         result.success(pairedDevices)
                     }
@@ -110,17 +203,14 @@ class MainActivity: FlutterActivity() {
                     "getDeviceServices" -> {
                         val deviceAddress = call.argument<String>("deviceAddress")
                         if (deviceAddress == null) {
-                            Log.e("Bluetooth", "Device address is missing")
                             result.error(
                                 "INVALID_ARGUMENT",
                                 "Device address is required", null
                             )
                             return@setMethodCallHandler
                         }
-                        Log.d("Bluetooth", "Getting services for device: $deviceAddress")
                         getDeviceServices(deviceAddress) { services ->
                             handler.post {
-                                Log.d("Bluetooth", "Services fetched: $services")
                                 result.success(services)
                             }
                         }
@@ -129,51 +219,51 @@ class MainActivity: FlutterActivity() {
                     "connectToDevice" -> {
                         val deviceAddress = call.argument<String>("deviceAddress")
                         if (deviceAddress == null) {
-                            Log.e("Bluetooth", "Device address is missing")
                             result.error(
                                 "INVALID_ARGUMENT",
                                 "Device address is required", null
                             )
                             return@setMethodCallHandler
                         }
-                        Log.d("Bluetooth", "Connecting to device: $deviceAddress")
                         connectToDevice(deviceAddress) { success ->
                             handler.post {
-                                Log.d("Bluetooth", "Connection status: $success")
                                 result.success(success)
                             }
                         }
                     }
-
-                    "startAudioStreaming" -> {
-                        val deviceAddress = call.argument<String>("deviceAddress")
-                        val audioData = call.argument<ByteArray>("audioData")
-                        if (deviceAddress == null || audioData == null) {
-                            Log.e("Bluetooth", "Device address or audio data is missing")
-                            result.error(
-                                "INVALID_ARGUMENT",
-                                "Device address and audio data are required", null
-                            )
+                    "sendImage" -> {
+                        val imagePath = call.argument<String>("imagePath")
+                        if (imagePath == null) {
+                            result.error("INVALID_ARGUMENT", "Image path is required", null)
                             return@setMethodCallHandler
                         }
-                        Log.d("Bluetooth", "Starting audio streaming for device: $deviceAddress")
-                        handleAudioStreaming(deviceAddress, audioData) { success ->
-                            handler.post {
-                                Log.d("Bluetooth", "Audio streaming status: $success")
-                                result.success(success)
-                            }
-                        }
+                        sendImage(imagePath, result)
                     }
 
-                    "stopAudioStreaming" -> {
-                        Log.d("Bluetooth", "Stopping audio streaming")
-                        stopAudioStreaming()
+                    "startReceiving" -> {
+                        startReceiving(result)
+                    }
+                    "stopReceiving" -> {
+                        stopReceiving()
                         result.success(true)
                     }
 
+                    "browseFiles" -> {
+                        val path = call.argument<String>("path") ?: ROOT_PATH
+                        browseRemoteFiles(path, result)
+                    }
+                    "downloadFile" -> {
+                        val remotePath = call.argument<String>("remotePath")
+                        if (remotePath == null) {
+                            result.error("INVALID_ARGUMENT", "Remote file path is required", null)
+                            return@setMethodCallHandler
+                        }
+                        downloadRemoteFile(remotePath, result)
+                    }
+
+
                     "disconnect" -> {
-                        Log.d("Bluetooth", "Disconnecting from all devices")
-                        disconnectAll()
+                        disconnect()
                         result.success(true)
                     }
 
@@ -181,10 +271,9 @@ class MainActivity: FlutterActivity() {
                 }
             }
         }
-    }
+    }*/
 
     private fun hasRequiredPermissions(): Boolean {
-        Log.d("Bluetooth", "Checking Bluetooth permissions")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             return ActivityCompat.checkSelfPermission(
                 this,
@@ -195,7 +284,6 @@ class MainActivity: FlutterActivity() {
     }
 
     private fun getPairedDevices(): List<Map<String, Any>> {
-        Log.d("Bluetooth", "Fetching paired devices")
         val devices = mutableListOf<Map<String, Any>>()
 
         if (ActivityCompat.checkSelfPermission(
@@ -204,7 +292,6 @@ class MainActivity: FlutterActivity() {
             ) == PackageManager.PERMISSION_GRANTED
         ) {
             bluetoothAdapter?.bondedDevices?.forEach { device ->
-                Log.d("Bluetooth", "Paired device found: ${device.name} (${device.address})")
                 devices.add(
                     mapOf(
                         "name" to (device.name ?: "Unknown"),
@@ -236,45 +323,49 @@ class MainActivity: FlutterActivity() {
                 return
             }
 
-            when (it.type) {
-                BluetoothDevice.DEVICE_TYPE_CLASSIC -> {
-                    Log.d("Bluetooth", "Fetching services for Classic Bluetooth Device")
-                    servicesList.add("Classic Bluetooth Device")
-                    servicesList.add("Available Profiles:")
-                    it.uuids?.forEach { uuid ->
-                        Log.d("Bluetooth", "Found profile UUID: ${uuid.uuid}")
-                        servicesList.add("  Profile: ${uuid.uuid}")
-                    }
-                    callback(servicesList)
-                }
-                else -> {
-                    Log.d("Bluetooth", "Unsupported device type")
-                    callback(emptyList())
+            Log.d("Bluetooth", "Device Name: ${it.name}")
+            Log.d("Bluetooth", "Device Address: ${it.address}")
+            Log.d("Bluetooth", "Device Type: ${it.type}")
+
+            servicesList.add("Device Name: ${it.name}")
+            servicesList.add("Device Address: ${it.address}")
+            servicesList.add("Device Type: ${getDeviceTypeName(it.type)}")
+
+            it.uuids?.let { uuids ->
+                servicesList.add("Available Services:")
+                uuids.forEach { uuid ->
+                    Log.d("Bluetooth", "Found UUID: ${uuid.uuid}")
+                    servicesList.add("  Service: ${uuid.uuid}")
                 }
             }
+
+            callback(servicesList)
         } ?: callback(emptyList())
     }
 
-    private fun connectToDevice(deviceAddress: String, callback: (Boolean) -> Unit) {
-        Log.d("Bluetooth", "Connecting to device: $deviceAddress")
-        val device = bluetoothAdapter?.getRemoteDevice(deviceAddress)
+    private fun getDeviceTypeName(type: Int): String {
+        return when (type) {
+            BluetoothDevice.DEVICE_TYPE_CLASSIC -> "Classic"
+            BluetoothDevice.DEVICE_TYPE_LE -> "Low Energy"
+            BluetoothDevice.DEVICE_TYPE_DUAL -> "Dual-mode"
+            else -> "Unknown"
+        }
+    }
 
+    private fun connectToDevice(deviceAddress: String, callback: (Boolean) -> Unit) {
+        val device = bluetoothAdapter?.getRemoteDevice(deviceAddress)
         device?.let {
+            currentConnectedDevice = device  // Set the current device
             when (it.type) {
-                BluetoothDevice.DEVICE_TYPE_CLASSIC -> {
-                    Log.d("Bluetooth", "Connecting to Classic device")
-                    connectClassic(it, callback)
-                }
-                else -> {
-                    Log.d("Bluetooth", "Unsupported device type")
-                    callback(false)
-                }
+                BluetoothDevice.DEVICE_TYPE_CLASSIC -> connectClassic(it, callback)
+                BluetoothDevice.DEVICE_TYPE_LE -> connectLE(it, callback)
+                BluetoothDevice.DEVICE_TYPE_DUAL -> connectDual(it, callback)
+                else -> connectClassic(it, callback)
             }
         } ?: callback(false)
     }
 
     private fun connectClassic(device: BluetoothDevice, callback: (Boolean) -> Unit) {
-        Log.d("Bluetooth", "Attempting to connect to Classic device: ${device.name}")
         Thread {
             try {
                 if (ActivityCompat.checkSelfPermission(
@@ -287,233 +378,585 @@ class MainActivity: FlutterActivity() {
                 }
 
                 val socket = device.createRfcommSocketToServiceRecord(SPP_UUID)
-                classicSocket = socket
+                bluetoothAdapter?.cancelDiscovery()
                 socket.connect()
-                Log.d("Bluetooth", "Successfully connected to Classic device")
+                classicSocket = socket
+                outputStream = socket.outputStream
+                inputStream = socket.inputStream
+                isConnected = true
                 callback(true)
             } catch (e: IOException) {
-                Log.e("Bluetooth", "Error connecting to Classic device: ${e.message}")
+                Log.e(TAG, "Error connecting to Classic device: ${e.message}")
+                classicSocket = null
+                outputStream = null
+                inputStream = null
+                isConnected = false
                 callback(false)
             }
         }.start()
     }
 
-    private fun handleAudioStreaming(deviceAddress: String, audioData: ByteArray, callback: (Boolean) -> Unit) {
-        Log.d(TAG, "Starting audio streaming process for device: $deviceAddress")
-        Log.d(TAG, "Audio data size: ${audioData.size} bytes")
+
+    private fun connectLE(device: BluetoothDevice, callback: (Boolean) -> Unit) {
+        val gattCallback = object : BluetoothGattCallback() {
+            override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
+                when (newState) {
+                    BluetoothProfile.STATE_CONNECTED -> {
+                        bluetoothGatt = gatt
+                        isConnected = true
+                        callback(true)
+                    }
+                    BluetoothProfile.STATE_DISCONNECTED -> {
+                        bluetoothGatt = null
+                        isConnected = false
+                        callback(false)
+                    }
+                }
+            }
+        }
+
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.BLUETOOTH_CONNECT
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            callback(false)
+            return
+        }
+
+        bluetoothGatt = device.connectGatt(this, false, gattCallback)
+    }
+
+
+    private fun connectDual(device: BluetoothDevice, callback: (Boolean) -> Unit) {
+        // Try Classic first, then fall back to LE if Classic fails
+        connectClassic(device) { classicSuccess ->
+            if (classicSuccess) {
+                Log.d(TAG, "Classic connection successful")
+                callback(true)
+            } else {
+                Log.d(TAG, "Classic connection failed, trying LE")
+                connectLE(device) { leSuccess ->
+                    if (leSuccess) {
+                        Log.d(TAG, "LE connection successful")
+                    } else {
+                        Log.d(TAG, "LE connection failed")
+                    }
+                    callback(leSuccess)
+                }
+            }
+        }
+    }
+    private fun sendImage(imagePath: String, result: MethodChannel.Result) {
+        Log.d(TAG, "Attempting to send image, connection status: $isConnected")
+        if (!isConnected || currentConnectedDevice == null) {
+            Log.e(TAG, "No device connected. Current device: ${currentConnectedDevice?.address}, isConnected: $isConnected")
+            result.error("CONNECTION_ERROR", "No device connected", null)
+            return
+        }
+
+        if (!hasStoragePermissions()) {
+            result.error("PERMISSION_ERROR", "Storage permission not granted", null)
+            requestStoragePermissions()
+            return
+        }
 
         Thread {
-            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_AUDIO)
-            Log.d(TAG, "Audio thread priority set")
-
-            val device = bluetoothAdapter?.getRemoteDevice(deviceAddress)
-            if (device == null) {
-                Log.e(TAG, "Failed to get remote device for address: $deviceAddress")
-                handler.post { callback(false) }
-                return@Thread
-            }
-            Log.d(TAG, "Retrieved remote device: ${device.name}")
-
-            if (!checkPermissionsAndA2DPSupport(device)) {
-                Log.e(TAG, "Permission check or A2DP support check failed")
-                handler.post { callback(false) }
-                return@Thread
-            }
-            Log.d(TAG, "Permissions and A2DP support verified")
-
             try {
-                // Create temporary file
-                val tempFile = File.createTempFile("audio", ".mp3", cacheDir)
-                tempFile.writeBytes(audioData)
-                Log.d(TAG, "Temporary audio file created: ${tempFile.path}")
-
-                // Set up MediaExtractor
-                val extractor = MediaExtractor()
-                extractor.setDataSource(tempFile.path)
-                Log.d(TAG, "MediaExtractor initialized with audio file")
-
-                // Select audio track
-                val audioTrackIndex = selectAudioTrack(extractor)
-                if (audioTrackIndex < 0) {
-                    Log.e(TAG, "No audio track found in the file")
-                    handler.post { callback(false) }
+                if (!hasRequiredPermissions()) {
+                    handler.post {
+                        result.error("PERMISSION_ERROR", "Bluetooth permission not granted", null)
+                    }
                     return@Thread
                 }
-                Log.d(TAG, "Audio track selected, index: $audioTrackIndex")
 
-                // Get format details
-                val format = extractor.getTrackFormat(audioTrackIndex)
-                val mime = format.getString(MediaFormat.KEY_MIME)
-                Log.d(TAG, "Audio format retrieved - MIME: $mime")
+                // Validate file exists and size
+                val imageFile = File(imagePath)
+                if (!imageFile.exists()) {
+                    handler.post {
+                        result.error("FILE_ERROR", "Image file not found: $imagePath", null)
+                    }
+                    return@Thread
+                }
 
-                // Initialize decoder
-                val decoder = MediaCodec.createDecoderByType(mime!!)
-                decoder.configure(format, null, null, 0)
-                decoder.start()
-                Log.d(TAG, "Media decoder configured and started")
+                Log.d(TAG, "File size: ${imageFile.length()} bytes")
 
-                // Set up AudioTrack
-                val sampleRate = format.getInteger(MediaFormat.KEY_SAMPLE_RATE)
-                val channelCount = format.getInteger(MediaFormat.KEY_CHANNEL_COUNT)
-                val channelConfig = if (channelCount == 1) AudioFormat.CHANNEL_OUT_MONO else AudioFormat.CHANNEL_OUT_STEREO
-                Log.d(TAG, "Audio properties - Sample Rate: $sampleRate, Channels: $channelCount")
+                // Create or reuse socket with timeout
+                val socket = if (classicSocket?.isConnected == true) {
+                    Log.d(TAG, "Using existing socket connection")
+                    classicSocket
+                } else {
+                    Log.d(TAG, "Creating new socket connection")
+                    currentConnectedDevice?.createRfcommSocketToServiceRecord(OPP_UUID)?.also {
+                        bluetoothAdapter?.cancelDiscovery()
+                        it.connect()
+                    }
+                }
 
-                val minBufferSize = AudioTrack.getMinBufferSize(
-                    sampleRate,
-                    channelConfig,
-                    AudioFormat.ENCODING_PCM_16BIT
-                )
-                Log.d(TAG, "Calculated minimum buffer size: $minBufferSize bytes")
+                socket?.use { connectedSocket ->
+                    try {
+                        val imageUri = FileProvider.getUriForFile(
+                            this,
+                            "${applicationContext.packageName}.provider",
+                            imageFile
+                        )
 
-                audioTrack = AudioTrack.Builder()
-                    .setAudioAttributes(AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_MEDIA)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                        .build())
-                    .setAudioFormat(AudioFormat.Builder()
-                        .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-                        .setSampleRate(sampleRate)
-                        .setChannelMask(channelConfig)
-                        .build())
-                    .setBufferSizeInBytes(minBufferSize * 4)
-                    .setTransferMode(AudioTrack.MODE_STREAM)
-                    .setPerformanceMode(AudioTrack.PERFORMANCE_MODE_LOW_LATENCY)
-                    .build()
+                        Log.d(TAG, "File URI: $imageUri")
 
-                Log.d(TAG, "AudioTrack initialized with buffer size: ${minBufferSize * 4} bytes")
+                        contentResolver.openInputStream(imageUri)?.use { imageStream ->
+                            val buffer = ByteArray(8192)
+                            var totalBytesRead = 0L
+                            var bytesRead: Int
 
-                audioTrack?.play()
-                Log.d(TAG, "AudioTrack playback started")
+                            // First send file size as header (8 bytes)
+                            val fileSize = imageFile.length()
+                            connectedSocket.outputStream.write(fileSize.toString().padStart(8, '0').toByteArray())
+                            connectedSocket.outputStream.flush()
 
-                // Begin decoding and playing
-                decodeAndPlay(extractor, decoder, audioTrackIndex)
-                Log.d(TAG, "Audio decoding and playback completed successfully")
+                            // Then send the actual file data with progress tracking
+                            while (imageStream.read(buffer).also { bytesRead = it } != -1) {
+                                connectedSocket.outputStream.write(buffer, 0, bytesRead)
+                                totalBytesRead += bytesRead
 
+                                // Log progress every 10%
+                                val progress = (totalBytesRead.toFloat() / fileSize * 100).toInt()
+                                if (progress % 10 == 0) {
+                                    Log.d(TAG, "Transfer progress: $progress%")
+                                }
+                            }
+
+                            connectedSocket.outputStream.flush()
+                            Log.d(TAG, "File transfer completed. Total bytes sent: $totalBytesRead")
+
+                            // Wait for acknowledgment with timeout
+                            val ACK_TIMEOUT = 10000L // 10 seconds timeout
+                            val startTime = System.currentTimeMillis()
+                            val ackBuffer = ByteArray(1)
+
+                            while (System.currentTimeMillis() - startTime < ACK_TIMEOUT) {
+                                if (connectedSocket.inputStream.available() > 0) {
+                                    val ackReceived = connectedSocket.inputStream.read(ackBuffer)
+                                    if (ackReceived > 0 && ackBuffer[0] == 1.toByte()) {
+                                        Log.d(TAG, "Transfer acknowledged by receiver")
+                                        handler.post { result.success(true) }
+                                        return@Thread
+                                    }
+                                }
+                                // Small delay to prevent busy waiting
+                                Thread.sleep(100)
+                            }
+
+                            // If we get here, timeout occurred
+                            throw IOException("Transfer acknowledgment timeout after ${ACK_TIMEOUT/1000} seconds")
+
+                        } ?: throw IOException("Failed to open input stream for image")
+
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error during file transfer: ${e.message}")
+                        handler.post {
+                            result.error("SEND_ERROR", "Failed to send image: ${e.message}", null)
+                        }
+                    } finally {
+                        try {
+                            // Only close the socket if it's a new connection
+                            if (socket != classicSocket) {
+                                connectedSocket.close()
+                            }
+                        } catch (e: IOException) {
+                            Log.e(TAG, "Error closing socket: ${e.message}")
+                        }
+                    }
+                } ?: throw IOException("Failed to get valid socket connection")
+
+            } catch (e: Exception) {
+                Log.e(TAG, "Error sending image: ${e.message}")
                 handler.post {
-                    callback(true)
+                    result.error("SEND_ERROR", "Failed to send image: ${e.message}", null)
+                }
+            }
+        }.start()
+    }
+
+    private fun startReceiving(result: MethodChannel.Result) {
+        if (!hasRequiredPermissions()) {
+            result.error("PERMISSION_ERROR", "Bluetooth permissions not granted", null)
+            return
+        }
+
+        isReceivingMode = true
+
+        // Create accepting thread
+        receiverThread = Thread {
+            try {
+                val serverSocket = if (ActivityCompat.checkSelfPermission(
+                        this,
+                        Manifest.permission.BLUETOOTH_CONNECT
+                    ) == PackageManager.PERMISSION_GRANTED
+                ) {
+                    bluetoothAdapter?.listenUsingRfcommWithServiceRecord(
+                        "HealthFileReceiver",
+                        OPP_UUID
+                    )
+                } else {
+                    null
+                }
+
+                serverSocket?.use { server ->
+                    while (isReceivingMode) {
+                        try {
+                            Log.d(TAG, "Waiting for incoming connection...")
+                            val socket = server.accept()
+
+                            Log.d(TAG, "Connection accepted from: ${socket.remoteDevice.address}")
+
+                            handleIncomingFile(socket)
+                        } catch (e: IOException) {
+                            Log.e(TAG, "Error accepting connection: ${e.message}")
+                            if (!isReceivingMode) break
+                        }
+                    }
+                }
+
+                handler.post { result.success(true) }
+
+            } catch (e: IOException) {
+                Log.e(TAG, "Error setting up receiver: ${e.message}")
+                handler.post {
+                    result.error(
+                        "RECEIVER_ERROR",
+                        "Failed to start receiver: ${e.message}",
+                        null
+                    )
+                }
+            }
+        }.apply { start() }
+    }
+
+    private fun handleIncomingFile(socket: BluetoothSocket) {
+        try {
+            socket.use { connectedSocket ->
+                // Read file size header (8 bytes)
+                val sizeBuffer = ByteArray(8)
+                connectedSocket.inputStream.read(sizeBuffer)
+                val expectedFileSize = String(sizeBuffer).toLong()
+
+                Log.d(TAG, "Expected file size: $expectedFileSize bytes")
+
+                // Create file to save the incoming data
+                val timestamp = System.currentTimeMillis()
+                val receivedFile = File(getExternalFilesDir(null), "received_image_$timestamp.jpg")
+
+                var totalBytesReceived = 0L
+                val buffer = ByteArray(8192)
+
+                receivedFile.outputStream().use { fileOutputStream ->
+                    while (totalBytesReceived < expectedFileSize) {
+                        val bytesRead = connectedSocket.inputStream.read(buffer)
+                        if (bytesRead == -1) break
+
+                        fileOutputStream.write(buffer, 0, bytesRead)
+                        totalBytesReceived += bytesRead
+
+                        // Log progress
+                        val progress = (totalBytesReceived.toFloat() / expectedFileSize * 100).toInt()
+                        if (progress % 10 == 0) {
+                            Log.d(TAG, "Receiving progress: $progress%")
+                        }
+                    }
+                }
+
+                Log.d(TAG, "File received successfully: ${receivedFile.absolutePath}")
+
+                // Send acknowledgment
+                connectedSocket.outputStream.write(byteArrayOf(1))
+                connectedSocket.outputStream.flush()
+                handler.post {
+                    flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
+                        MethodChannel(messenger, CHANNEL).invokeMethod("onFileReceived", mapOf(
+                            "path" to receivedFile.absolutePath,
+                            "size" to totalBytesReceived
+                        ))
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error handling incoming file: ${e.message}")
+        }
+    }
+
+    private fun stopReceiving() {
+        isReceivingMode = false
+        receiverThread?.interrupt()
+        receiverThread = null
+    }
+
+    private fun browseRemoteFiles(path: String, result: MethodChannel.Result) {
+        if (!isConnected || currentConnectedDevice == null) {
+            result.error("CONNECTION_ERROR", "No device connected", null)
+            return
+        }
+
+        Thread {
+            try {
+                if (!hasRequiredPermissions()) {
+                    handler.post {
+                        result.error("PERMISSION_ERROR", "Bluetooth permission not granted", null)
+                    }
+                    return@Thread
+                }
+
+                // Create FTP connection
+                val ftpSocket = currentConnectedDevice?.createRfcommSocketToServiceRecord(FTP_UUID)
+                ftpSocket?.connect()
+
+                ftpSocket?.use { socket ->
+                    val output = socket.outputStream
+                    val input = socket.inputStream
+
+                    // Send browse request command
+                    val browseCommand = buildBrowseCommand(path)
+                    output.write(browseCommand)
+                    output.flush()
+
+                    // Read response
+                    val response = readFileListResponse(input)
+
+                    handler.post {
+                        result.success(response)
+                    }
                 }
 
             } catch (e: Exception) {
-                Log.e(TAG, "Error during audio streaming: ${e.message}", e)
-                e.printStackTrace()
-                stopAudioStreaming()
-                handler.post { callback(false) }
-            }
-        }.start()
-        Log.d(TAG, "Audio streaming thread started")
-    }
-
-
-    private fun selectAudioTrack(extractor: MediaExtractor): Int {
-        for (i in 0 until extractor.trackCount) {
-            val format = extractor.getTrackFormat(i)
-            val mime = format.getString(MediaFormat.KEY_MIME)
-            if (mime?.startsWith("audio/") == true) {
-                extractor.selectTrack(i)
-                return i
-            }
-        }
-        return -1
-    }
-
-    private fun decodeAndPlay(extractor: MediaExtractor, decoder: MediaCodec, trackIndex: Int) {
-        Log.d(TAG, "Starting decode and play process")
-        val bufferInfo = MediaCodec.BufferInfo()
-        val TIMEOUT_US = 10000L
-        var isEOS = false
-        var totalBytesProcessed = 0
-
-        while (!isEOS) {
-            // Handle input buffer
-            val inputBufferId = decoder.dequeueInputBuffer(TIMEOUT_US)
-            if (inputBufferId >= 0) {
-                val inputBuffer = decoder.getInputBuffer(inputBufferId)
-                val sampleSize = extractor.readSampleData(inputBuffer!!, 0)
-
-                if (sampleSize < 0) {
-                    Log.d(TAG, "Reached end of stream")
-                    decoder.queueInputBuffer(inputBufferId, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM)
-                    isEOS = true
-                } else {
-                    decoder.queueInputBuffer(inputBufferId, 0, sampleSize, extractor.sampleTime, 0)
-                    extractor.advance()
-                    totalBytesProcessed += sampleSize
-                    Log.v(TAG, "Processed $totalBytesProcessed bytes so far")
+                Log.e(TAG, "Error browsing files: ${e.message}")
+                handler.post {
+                    result.error("BROWSE_ERROR", "Failed to browse files: ${e.message}", null)
                 }
             }
+        }.start()
+    }
+    private fun buildBrowseCommand(path: String): ByteArray {
+        // Format: [0x01][path length][path]
+        val pathBytes = path.toByteArray()
+        return byteArrayOf(0x01) + pathBytes.size.toByte() + pathBytes
+    }
 
-            // Handle output buffer
-            var outputBufferId = decoder.dequeueOutputBuffer(bufferInfo, TIMEOUT_US)
-            while (outputBufferId >= 0) {
-                val outputBuffer = decoder.getOutputBuffer(outputBufferId)
-                val pcmData = ByteArray(bufferInfo.size)
-                outputBuffer?.get(pcmData)
+    private fun readFileListResponse(input: InputStream): List<Map<String, Any>> {
+        val files = mutableListOf<Map<String, Any>>()
 
-                val writtenBytes = audioTrack?.write(pcmData, 0, pcmData.size) ?: 0
-                Log.v(TAG, "Written $writtenBytes bytes to AudioTrack")
-
-                decoder.releaseOutputBuffer(outputBufferId, false)
-                outputBufferId = decoder.dequeueOutputBuffer(bufferInfo, TIMEOUT_US)
+        try {
+            // Read header (number of files)
+            val countBuffer = ByteArray(4)
+            if (input.read(countBuffer) != 4) {
+                throw IOException("Failed to read file count")
             }
+
+            // Create ByteBuffer and specify byte order
+            val countByteBuffer = ByteBuffer.wrap(countBuffer).order(ByteOrder.BIG_ENDIAN)
+            val fileCount = countByteBuffer.getInt()
+
+            // Read each file entry
+            for (i in 0 until fileCount) {
+                // Read name length
+                val nameLength = input.read()
+                if (nameLength == -1) break
+
+                // Read name
+                val nameBuffer = ByteArray(nameLength)
+                if (input.read(nameBuffer) != nameLength) {
+                    throw IOException("Failed to read filename")
+                }
+
+                // Read file size
+                val sizeBuffer = ByteArray(8)
+                if (input.read(sizeBuffer) != 8) {
+                    throw IOException("Failed to read file size")
+                }
+
+                // Create ByteBuffer for size and specify byte order
+                val sizeByteBuffer = ByteBuffer.wrap(sizeBuffer).order(ByteOrder.BIG_ENDIAN)
+                val fileSize = sizeByteBuffer.getLong()
+
+                // Read is directory flag
+                val isDirectory = input.read() == 1
+
+                files.add(mapOf(
+                    "name" to String(nameBuffer),
+                    "size" to fileSize,
+                    "isDirectory" to isDirectory
+                ))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error reading file list: ${e.message}")
         }
 
-        Log.d(TAG, "Cleaning up decoder and extractor")
-        decoder.stop()
-        decoder.release()
-        extractor.release()
-        Log.d(TAG, "Decode and play process completed")
+        return files
     }
 
-    private fun checkPermissionsAndA2DPSupport(device: BluetoothDevice): Boolean {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT)
-            != PackageManager.PERMISSION_GRANTED) {
-            Log.e("Bluetooth", "Missing BLUETOOTH_CONNECT permission")
-            return false
+    private fun downloadRemoteFile(remotePath: String, result: MethodChannel.Result) {
+        if (!isConnected || currentConnectedDevice == null) {
+            result.error("CONNECTION_ERROR", "No device connected", null)
+            return
         }
 
-        if (!isA2DPSupported(device) || bluetoothA2dp?.getConnectionState(device) != BluetoothProfile.STATE_CONNECTED) {
-            Log.e("Bluetooth", "A2DP not supported or not connected")
-            return false
+        Thread {
+            try {
+                if (!hasRequiredPermissions()) {
+                    handler.post {
+                        result.error("PERMISSION_ERROR", "Bluetooth permission not granted", null)
+                    }
+                    return@Thread
+                }
+
+                val ftpSocket = currentConnectedDevice?.createRfcommSocketToServiceRecord(FTP_UUID)
+                ftpSocket?.connect()
+
+                ftpSocket?.use { socket ->
+                    val output = socket.outputStream
+                    val input = socket.inputStream
+
+                    // Send download request command
+                    val downloadCommand = buildDownloadCommand(remotePath)
+                    output.write(downloadCommand)
+                    output.flush()
+
+                    // Read file size with ByteBuffer
+                    val sizeBuffer = ByteArray(8)
+                    if (input.read(sizeBuffer) != 8) {
+                        throw IOException("Failed to read file size")
+                    }
+
+                    val sizeByteBuffer = ByteBuffer.wrap(sizeBuffer).order(ByteOrder.BIG_ENDIAN)
+                    val fileSize = sizeByteBuffer.getLong()
+
+                    // Create local file
+                    val fileName = remotePath.substringAfterLast('/')
+                    val localFile = File(getExternalFilesDir(null), fileName)
+
+                    // Download file with progress tracking
+                    var totalReceived = 0L
+                    val buffer = ByteArray(8192)
+
+                    localFile.outputStream().use { fileOutput ->
+                        while (totalReceived < fileSize) {
+                            val read = input.read(buffer, 0, minOf(buffer.size, (fileSize - totalReceived).toInt()))
+                            if (read == -1) break
+
+                            fileOutput.write(buffer, 0, read)
+                            totalReceived += read
+
+                            // Report progress
+                            val progress = (totalReceived * 100 / fileSize).toInt()
+                            if (progress % 10 == 0) {
+                                Log.d(TAG, "Download progress: $progress%")
+                                // Notify Flutter of progress
+                                handler.post {
+                                    flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
+                                        MethodChannel(messenger, CHANNEL).invokeMethod(
+                                            "onDownloadProgress",
+                                            mapOf(
+                                                "progress" to progress,
+                                                "totalSize" to fileSize,
+                                                "received" to totalReceived
+                                            )
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    handler.post {
+                        result.success(mapOf(
+                            "path" to localFile.absolutePath,
+                            "size" to totalReceived
+                        ))
+                    }
+                }
+
+            } catch (e: Exception) {
+                Log.e(TAG, "Error downloading file: ${e.message}")
+                handler.post {
+                    result.error("DOWNLOAD_ERROR", "Failed to download file: ${e.message}", null)
+                }
+            }
+        }.start()
+    }
+
+    private fun buildDownloadCommand(path: String): ByteArray {
+        // Format: [0x02][path length][path]
+        val pathBytes = path.toByteArray()
+        return byteArrayOf(0x02) + pathBytes.size.toByte() + pathBytes
+    }
+
+
+
+
+    private fun hasStoragePermissions(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            true // Android 10 and above handle storage differently
+        } else {
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.READ_EXTERNAL_STORAGE
+            ) == PackageManager.PERMISSION_GRANTED
         }
-
-        return true
     }
 
-
-
-
-    private fun isA2DPSupported(device: BluetoothDevice): Boolean {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT)
-            != PackageManager.PERMISSION_GRANTED) {
-            return false
+    private fun requestStoragePermissions() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE),
+                REQUEST_STORAGE_PERMISSION
+            )
         }
-
-        return device.uuids?.any { uuid ->
-            uuid.uuid == A2DP_UUID
-        } ?: false
     }
 
-    private fun stopAudioStreaming() {
-        Log.d("Bluetooth", "Stopping audio streaming")
-        audioTrack?.apply {
-            stop()
-            flush()
-            release()
+
+    private fun disconnect() {
+        try {
+            classicSocket?.close()
+            classicSocket = null
+
+            if (hasRequiredPermissions()) {
+                bluetoothGatt?.disconnect()
+                bluetoothGatt?.close()
+                bluetoothGatt = null
+            }
+
+            outputStream?.close()
+            outputStream = null
+            inputStream?.close()
+            inputStream = null
+            isConnected = false
+        } catch (e: Exception) {
+            Log.e(TAG, "Error during disconnect: ${e.message}", e)
         }
-        audioTrack = null
     }
 
-    private fun disconnectAll() {
-        Log.d("Bluetooth", "Disconnecting from all devices")
-        classicSocket?.close()
-        classicSocket = null
-        gatt?.close()
-        gatt = null
-        stopAudioStreaming()
+    override fun onDestroy() {
+        super.onDestroy()
+        disconnect()
     }
 
-    private fun requestBluetoothPermissions() {
-        Log.d("Bluetooth", "Requesting Bluetooth permissions")
+
+
+    private fun hasBluetoothPermissions(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.BLUETOOTH_CONNECT
+            ) == PackageManager.PERMISSION_GRANTED &&
+                    ContextCompat.checkSelfPermission(
+                        this,
+                        Manifest.permission.BLUETOOTH_SCAN
+                    ) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+    }
+
+    private fun requestBluetoothPermissions()  {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             ActivityCompat.requestPermissions(
                 this,
@@ -523,21 +966,6 @@ class MainActivity: FlutterActivity() {
                 ),
                 REQUEST_BLUETOOTH_PERMISSIONS
             )
-        }
-    }
-
-    private fun hasBluetoothPermissions(): Boolean {
-        Log.d("Bluetooth", "Checking for required Bluetooth permissions")
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.BLUETOOTH_CONNECT
-            ) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.BLUETOOTH_SCAN
-            ) == PackageManager.PERMISSION_GRANTED
-        } else {
-            true
         }
     }
 }

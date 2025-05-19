@@ -1,54 +1,52 @@
+import 'dart:async';
 import 'dart:io';
 
-import 'package:file_picker/file_picker.dart';
+//import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:health/presentation/screens/start.dart';
-
-import '../widgets/language.widgets.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:path/path.dart' as path;
 
 class AudioBluetoothPage extends StatefulWidget {
+  final String? deviceAddress;
+
+
+  const AudioBluetoothPage({Key? key, this.deviceAddress}) : super(key: key);
   @override
   _AudioBluetoothPageState createState() => _AudioBluetoothPageState();
+
 }
 
 class _AudioBluetoothPageState extends State<AudioBluetoothPage> {
   final BluetoothAudioService _bluetoothService = BluetoothAudioService();
   List<String> _services = [];
   String? _connectedDeviceAddress;
-  bool _isStreaming = false;
   bool _isConnecting = false;
-  String? _selectedFilePath;
-  String? _selectedFileName;
   List<Map<String, dynamic>> _pairedDevices = [];
+  String? _selectedImagePath;
+  String? _selectedImageName;
+  String? _selectedFileName;
+  bool _isImageTransferring = false;
+  String? _imageTransferProgress;
+  bool _isReceivingMode = false;
+  String? _receivedFilePath;
+  List<FileSystemEntity> _detectedFiles = [];
+  String? _selectedFilePath;
+  String? _fileTransferProgress;
+  bool _isFileTransferring = false;
+  bool _isScanning = false;
+
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeBluetoothConnection();
-    });
-
+      _setupReceiveListener();
+      _scanForNewFiles();
   }
 
-  Future<void> _pickAudioFile() async {
-    try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.audio,
-        allowMultiple: false,
-      );
-
-      if (result != null) {
-        setState(() {
-          _selectedFilePath = result.files.single.path;
-          _selectedFileName = result.files.single.name;
-        });
-      }
-    } catch (e) {
-      print('Error picking audio file: $e');
-      _showSnackBar('Error selecting audio file: $e');
-    }
-  }
 
   void _showSnackBar(String message) {
     if (!mounted) return;
@@ -87,7 +85,6 @@ class _AudioBluetoothPageState extends State<AudioBluetoothPage> {
     }
   }
 
-
   Future<void> _connectToDevice(String address, String name) async {
     try {
       setState(() => _isConnecting = true);
@@ -111,46 +108,215 @@ class _AudioBluetoothPageState extends State<AudioBluetoothPage> {
     }
   }
 
-  Future<void> _toggleAudioStreaming() async {
+  Future<void> _scanForNewFiles() async {
+    setState(() {
+      _isScanning = true;
+    });
+
+    print('Starting scan for new files...');
+
+    try {
+      final Directory? monitoredDir = await _getMonitoredDirectory();
+      print('Monitored directory: ${monitoredDir?.path}');
+
+      if (monitoredDir == null) {
+        _showSnackBar('Cannot access monitored directory');
+        print('Monitored directory is null');
+        return;
+      }
+
+      print('Listing files in monitored directory...');
+      final List<FileSystemEntity> files = await monitoredDir.list().toList();
+      print('Total files found: ${files.length}');
+
+      final List<File> imageFiles = files
+          .whereType<File>()
+          .where((file) {
+        final extension = path.extension(file.path).toLowerCase();
+        print('File found: ${file.path}, Extension: $extension');
+        return ['.jpg', '.jpeg', '.png'].contains(extension);
+      }).toList();
+
+      print('Image files found: ${imageFiles.length}');
+
+      if (imageFiles.isEmpty) {
+        _showSnackBar('No new images found');
+        print('No image files found in the monitored directory');
+        return;
+      }
+
+      print('Sorting image files by modified time...');
+      imageFiles.sort((a, b) => b.statSync().modified.compareTo(a.statSync().modified));
+
+      final File mostRecentImage = imageFiles.first;
+      print('Most recent image: ${mostRecentImage.path}');
+
+      setState(() {
+        _selectedImagePath = mostRecentImage.path;
+        _selectedImageName = path.basename(mostRecentImage.path);
+        _imageTransferProgress = null;
+      });
+
+      _showSnackBar('Found new image: ${_selectedImageName}');
+    } catch (e) {
+      print('Error scanning for files: $e');
+      _showSnackBar('Error scanning for files: $e');
+    } finally {
+      print('Scan completed. Resetting scanning state...');
+      setState(() {
+        _isScanning = false;
+      });
+    }
+  }
+
+  Future<Directory?> _getMonitoredDirectory() async {
+    print('Getting monitored directory...');
+
+    if (Platform.isAndroid) {
+      try {
+        print('Checking Downloads directory for Android...');
+        final downloadsDir = Directory('/storage/emulated/0/Download');
+        if (await downloadsDir.exists()) {
+          print('Downloads directory found: ${downloadsDir.path}');
+          return downloadsDir;
+        }
+
+        print('Downloads directory not found. Using app-specific directory.');
+        final directories = await getExternalStorageDirectories();
+        if (directories != null && directories.isNotEmpty) {
+          final monitorDir = Directory('${directories.first.path}/Downloads');
+          if (!await monitorDir.exists()) {
+            print('Creating app-specific Downloads directory...');
+            await monitorDir.create(recursive: true);
+          }
+          return monitorDir;
+        }
+      } catch (e) {
+        print('Error getting monitored directory on Android: $e');
+      }
+    }
+
+    print('Using documents directory for iOS or fallback...');
+    final dir = await getApplicationDocumentsDirectory();
+    final monitorDir = Directory('${dir.path}/Downloads');
+    if (!await monitorDir.exists()) {
+      print('Creating Downloads directory in documents...');
+      await monitorDir.create(recursive: true);
+    }
+    return monitorDir;
+  }
+
+  /*Future<void> _pickImage() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        allowMultiple: false,
+      );
+
+      if (result != null && result.files.isNotEmpty) {
+        setState(() {
+          _selectedImagePath = result.files.single.path;
+          _selectedImageName = result.files.single.name;
+          _imageTransferProgress = null; // Reset transfer progress
+        });
+        _showSnackBar('Image selected: ${result.files.single.name}');
+      }
+    } catch (e) {
+      print('Error picking image: $e');
+      _showSnackBar('Error selecting image: $e');
+    }
+  }*/
+
+  Future<void> _sendSelectedImage() async {
+    if (_selectedImagePath == null) {
+      _showSnackBar('Please select an image first');
+      return;
+    }
+
     if (_connectedDeviceAddress == null) {
       _showSnackBar('No device connected');
       return;
     }
 
-    if (_selectedFilePath == null) {
-      _showSnackBar('Please select an audio file first');
-      return;
-    }
-
     try {
-      if (!_isStreaming) {
-        final File audioFile = File(_selectedFilePath!);
-        final Uint8List audioData = await audioFile.readAsBytes();
+      setState(() {
+        _isImageTransferring = true;
+        _imageTransferProgress = 'Connecting to device...';
+      });
 
-        final success = await _bluetoothService.startAudioStreaming(
-          _connectedDeviceAddress!,
-          audioData,
-        );
+      // First ensure we're connected
+      final bool connected = await _bluetoothService.connectToDevice(_connectedDeviceAddress!);
+      if (!connected) {
+        throw Exception('Failed to connect to device');
+      }
 
-        setState(() => _isStreaming = success);
-        _showSnackBar(success
-            ? 'Started streaming: $_selectedFileName'
-            : 'Failed to start audio streaming'
-        );
-      } else {
-        await _bluetoothService.stopAudioStreaming();
-        setState(() => _isStreaming = false);
-        _showSnackBar('Stopped streaming');
+      setState(() {
+        _imageTransferProgress = 'Sending ${_selectedImageName}...';
+      });
+
+      final success = await _bluetoothService.sendImage(
+        _connectedDeviceAddress!,
+        _selectedImagePath!,
+      );
+
+      setState(() {
+        _isImageTransferring = false;
+        _imageTransferProgress = success ? 'Image sent successfully' : 'Failed to send image';
+      });
+
+      _showSnackBar(_imageTransferProgress!);
+
+      if (success) {
+        setState(() {
+          _selectedImagePath = null;
+          _selectedFileName = null;
+        });
       }
     } catch (e) {
-      print('Error toggling audio stream: $e');
-      _showSnackBar('Error: $e');
+      setState(() {
+        _isImageTransferring = false;
+        _imageTransferProgress = 'Error: $e';
+      });
+      _showSnackBar('Error sending image: $e');
     }
   }
-
+  void _setupReceiveListener() {
+    _bluetoothService.setMethodCallHandler((call) async {
+      switch (call.method) {
+        case 'onFileReceived':
+          final path = call.arguments['path'] as String;
+          final size = call.arguments['size'] as int;
+          setState(() {
+            _receivedFilePath = path;
+            _imageTransferProgress = 'Received file: ${(size / 1024).toStringAsFixed(2)} KB';
+          });
+          _showSnackBar('File received: $path');
+          break;
+      }
+    });
+  }
+  Future<void> _toggleReceivingMode() async {
+    try {
+      if (_isReceivingMode) {
+        await _bluetoothService.stopReceiving();
+        setState(() {
+          _isReceivingMode = false;
+          _imageTransferProgress = 'Receiving mode stopped';
+        });
+      } else {
+        final success = await _bluetoothService.startReceiving();
+        setState(() {
+          _isReceivingMode = success;
+          _imageTransferProgress = success ? 'Waiting for files...' : 'Failed to start receiving mode';
+        });
+      }
+      _showSnackBar(_isReceivingMode ? 'Receiving mode started' : 'Receiving mode stopped');
+    } catch (e) {
+      _showSnackBar('Error toggling receiving mode: $e');
+    }
+  }
   @override
   void dispose() {
-    _bluetoothService.stopAudioStreaming();
     _bluetoothService.disconnect();
     super.dispose();
   }
@@ -171,12 +337,22 @@ class _AudioBluetoothPageState extends State<AudioBluetoothPage> {
             navigateToScreen(Start());
           },
         ),
+        actions: [
+
+          Switch(
+            value: _isReceivingMode,
+            onChanged: (value) => _toggleReceivingMode(),
+          ),
+          IconButton(
+            icon: Icon(_isReceivingMode ? Icons.circle : Icons.send),
+            onPressed: _toggleReceivingMode,
+          ),
+        ],
       ),
-      body: _isConnecting
+      body: _isConnecting || _isScanning
           ? Center(child: CircularProgressIndicator())
           : Column(
         children: [
-          // Paired Devices List
           if (_pairedDevices.isNotEmpty && _connectedDeviceAddress == null)
             Expanded(
               child: ListView.builder(
@@ -191,49 +367,89 @@ class _AudioBluetoothPageState extends State<AudioBluetoothPage> {
                 },
               ),
             ),
-
-          // Connected Device UI
-          if (_connectedDeviceAddress != null) ...[
-            ListTile(
-              title: Text('Connected Device:'),
-              subtitle: Text(_pairedDevices
-                  .firstWhere(
-                      (d) => d['address'] == _connectedDeviceAddress,
-                  orElse: () => {'name': 'Unknown Device'}
-              )['name'] ?? 'Unknown Device'
-              ),
-            ),
-            Divider(),
-
-            // Audio File Selection
-            ListTile(
-              title: Text('Selected Audio:'),
-              subtitle: Text(_selectedFileName ?? 'No file selected'),
-              trailing: ElevatedButton(
-                onPressed: _pickAudioFile,
-                child: Text('Choose File'),
-              ),
-            ),
-
-            // Playback Controls
+          if (_isReceivingMode)
             Container(
-              padding: EdgeInsets.symmetric(vertical: 20),
+              color: Colors.blue.withOpacity(0.1),
+              padding: EdgeInsets.all(8),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  ElevatedButton.icon(
-                    onPressed:_toggleAudioStreaming ,
-                    icon: Icon(_isStreaming ? Icons.stop : Icons.play_arrow),
-                    label: Text(_isStreaming ? 'Stop' : 'Play'),
-                    style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                    ),
+                  Icon(Icons.downloading, color: Colors.blue),
+                  SizedBox(width: 8),
+                  Text('Receiving Mode Active',
+                    style: TextStyle(color: Colors.blue),
                   ),
                 ],
               ),
             ),
-            Divider(),
 
+          if (_receivedFilePath != null)
+            ListTile(
+              leading: Icon(Icons.file_download_done),
+              title: Text('Last Received File'),
+              subtitle: Text(_receivedFilePath!),
+              trailing: IconButton(
+                icon: Icon(Icons.folder_open),
+                onPressed: () {
+                  // Add code to open the received file
+                },
+              ),
+            ),
+
+          // Connected Device UI
+          if (_connectedDeviceAddress != null) ...[
+            Divider(),
+            ListTile(
+              title: Text('Selected Image'),
+              subtitle: Text(_selectedImageName ?? 'No image selected'),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: _isScanning ? null : _scanForNewFiles,
+                    icon: Icon(Icons.document_scanner),
+                    label: Text('Scan'),
+                  ),
+                  SizedBox(width: 8),
+                  // ElevatedButton.icon(
+                  //   onPressed: _isImageTransferring ? null : _pickImage,
+                  //   icon: Icon(Icons.photo_library),
+                  //   label: Text('Select'),
+                  // ),
+                ],
+              ),
+            ),
+            if (_selectedImageName != null)
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: ElevatedButton.icon(
+                  onPressed: _isImageTransferring ? null : _sendSelectedImage,
+                  icon: Icon(Icons.send),
+                  label: Text('Send Image'),
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: Size(double.infinity, 48),
+                  ),
+                ),
+              ),
+
+            if (_imageTransferProgress != null)
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Column(
+                  children: [
+                    if (_isImageTransferring) LinearProgressIndicator(),
+                    SizedBox(height: 8),
+                    Text(_imageTransferProgress!,
+                      style: TextStyle(
+                          color: _isImageTransferring ? Colors.blue :
+                          _imageTransferProgress!.contains('success') ? Colors.green :
+                          Colors.red
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            Divider(),
             // Services List
             Expanded(
               child: ListView(
@@ -245,6 +461,7 @@ class _AudioBluetoothPageState extends State<AudioBluetoothPage> {
             ),
           ],
         ],
+
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _initializeBluetoothConnection,
@@ -254,8 +471,11 @@ class _AudioBluetoothPageState extends State<AudioBluetoothPage> {
   }
 }
 
+
+
 class BluetoothAudioService {
   static const platform = MethodChannel('bluetooth_health');
+  Function(MethodCall)? _methodCallHandler;
 
   Future<bool> isBluetoothEnabled() async {
     try {
@@ -265,6 +485,57 @@ class BluetoothAudioService {
       return false;
     }
   }
+
+  Future<bool> sendImage(String deviceAddress, String imagePath) async {
+    try {
+      // First ensure we're connected
+      final bool connected = await connectToDevice(deviceAddress);
+      if (!connected) {
+        throw PlatformException(
+            code: 'CONNECTION_ERROR',
+            message: 'Failed to connect to device'
+        );
+      }
+
+      // Then send the image
+      return await platform.invokeMethod('sendImage', {
+        "deviceAddress": deviceAddress,
+        "imagePath": imagePath,
+      });
+    } on PlatformException catch (e) {
+      print("Failed to send image: ${e.message}");
+      return false;
+    }
+  }
+  void setMethodCallHandler(Future<dynamic> Function(MethodCall) handler) {
+    _methodCallHandler = handler;
+    platform.setMethodCallHandler((call) async {
+      if (_methodCallHandler != null) {
+        return await _methodCallHandler!(call);
+      }
+      return null;
+    });
+  }
+  Future<bool> startReceiving() async {
+    try {
+      return await platform.invokeMethod('startReceiving');
+    } on PlatformException catch (e) {
+      print("Failed to start receiving: ${e.message}");
+      return false;
+    }
+  }
+
+  Future<bool> stopReceiving() async {
+    try {
+      return await platform.invokeMethod('stopReceiving');
+    } on PlatformException catch (e) {
+      print("Failed to stop receiving: ${e.message}");
+      return false;
+    }
+  }
+
+
+
 
   Future<List<Map<String, dynamic>>> getPairedDevices() async {
     try {
@@ -285,6 +556,18 @@ class BluetoothAudioService {
       return false;
     }
   }
+  Future<bool> sendFile(String deviceAddress, String filePath) async {
+    try {
+      return await platform.invokeMethod('sendFile', {
+        "deviceAddress": deviceAddress,
+        "filePath": filePath, // Just send the raw file path
+      });
+    } on PlatformException catch (e) {
+      print("Failed to send file: ${e.message}");
+      return false;
+    }
+  }
+
 
   Future<List<String>> getDeviceServices(String deviceAddress) async {
     try {
@@ -299,25 +582,6 @@ class BluetoothAudioService {
     }
   }
 
-  Future<bool> startAudioStreaming(String deviceAddress, Uint8List audioData) async {
-    try {
-      return await platform.invokeMethod('startAudioStreaming', {
-        "deviceAddress": deviceAddress,
-        "audioData": audioData,
-      });
-    } on PlatformException catch (e) {
-      print("Failed to start audio streaming: ${e.message}");
-      return false;
-    }
-  }
-
-  Future<void> stopAudioStreaming() async {
-    try {
-      await platform.invokeMethod('stopAudioStreaming');
-    } on PlatformException catch (e) {
-      print("Failed to stop audio streaming: ${e.message}");
-    }
-  }
 
   Future<void> disconnect() async {
     try {
@@ -325,5 +589,73 @@ class BluetoothAudioService {
     } on PlatformException catch (e) {
       print("Failed to disconnect: ${e.message}");
     }
+  }
+}
+
+
+class PermissionManager {
+  static Future<bool> requestStoragePermissions(BuildContext context) async {
+    // First check if permissions are already granted
+    bool hasStorage = await Permission.storage.isGranted;
+    bool hasManageStorage = await Permission.manageExternalStorage.isGranted;
+
+    if (hasStorage && hasManageStorage) {
+      return true;
+    }
+
+    // Request permissions if not granted
+    Map<Permission, PermissionStatus> statuses = await [
+      Permission.storage,
+      Permission.manageExternalStorage,
+    ].request();
+
+    // Check if all permissions are granted
+    bool allGranted = statuses.values.every((status) => status.isGranted);
+
+    // If not all permissions granted, show dialog with detailed message
+    if (!allGranted && context.mounted) {
+      bool shouldShowSettings = await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) => AlertDialog(
+          title: Text('Storage Access Required'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('This app needs storage permissions to:'),
+              SizedBox(height: 8),
+              Text('• Monitor received files'),
+              Text('• Access downloaded files'),
+              Text('• Save transferred files'),
+              SizedBox(height: 16),
+              Text('Please grant storage permissions in Settings.'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              child: Text('Cancel'),
+              onPressed: () => Navigator.of(context).pop(false),
+            ),
+            TextButton(
+              child: Text('Open Settings'),
+              onPressed: () => Navigator.of(context).pop(true),
+            ),
+          ],
+        ),
+      ) ?? false;
+
+      if (shouldShowSettings) {
+        await openAppSettings();
+        final recheckedStatuses = await Future.wait([
+          Permission.storage.status,
+          Permission.manageExternalStorage.status,
+        ]);
+        return recheckedStatuses.every((status) => status.isGranted);
+      }
+      return false;
+    }
+
+    return allGranted;
   }
 }

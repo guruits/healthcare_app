@@ -12,14 +12,14 @@ dependencies:
     sdk: flutter
 
   cupertino_icons: ^1.0.6
-  flutter_tts: ^4.0.2
+  flutter_tts: ^4.2.2
   image_picker: ^1.1.2
   webview_flutter: ^4.10.0
   camera: ^0.11.0+2
   flutter_pdfview: ^1.3.3
   flutter_localization: ^0.2.2
-  intl: ^0.19.0
-  shared_preferences: ^2.3.2
+  #intl: ^0.19.0
+  shared_preferences: ^2.4.0
   printing: ^5.13.3
   pdf: ^3.11.1
   path_provider: ^2.1.4
@@ -30,15 +30,60 @@ dependencies:
   http: ^1.2.2
   mime: ^2.0.0
   path: ^1.9.0
+  flutter_easyloading: ^3.0.5
+  url_launcher: ^6.3.1
+  flutter_slidable: ^3.0.0
+  #google_mlkit_face_detection: ^0.12.0
+  face_camera: ^0.1.4
+  cached_network_image: ^3.4.1
+  provider: ^6.1.2
+
+  build_runner: ^2.4.13
+  realm: ^20.0.1
+  connectivity_plus: ^6.1.3
+  mongo_dart: ^0.10.4
+
 
   google_mlkit_text_recognition: ^0.14.0
   #google_mlkit_commons: ^0.9.0
-  file_picker: ^8.1.3
+  #file_picker: ^5.2.8
+
+  qr_flutter: ^4.1.0
+  screenshot: ^3.0.0
+  share_plus: ^10.1.4
+  mobile_scanner: ^6.0.7
+
+  firebase_core: ^3.12.1
+  firebase_auth: ^5.5.1
+  local_auth: ^2.3.0
+  device_info_plus: ^11.3.3
+  webview_flutter_android: ^4.2.0
+dependency_overrides:
+  intl: ^0.20.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
+  flutter_launcher_icons: ^0.14.3
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/profile.png"
+  min_sdk_android: 21
+  web:
+    generate: true
+    image_path: "assets/images/profile.png"
+    background_color: "#ffffff"
+    theme_color: "#ffffff"
+  windows:
+    generate: true
+    image_path: "assets/images/profile.png"
+    icon_size: 48
+  macos:
+    generate: true
+    image_path: "assets/images/profile.png"
+
 
 flutter:
   uses-material-design: true
@@ -65,4 +110,5 @@ flutter_gen_l10n:
   output-class: AppLocalizations
   template-arb-file: app_en.arb
   unconverted-messages-file: untranslated_messages.txt
+  untranslated-messages-file: l10n_untranslated.json
 

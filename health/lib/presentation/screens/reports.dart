@@ -3,6 +3,7 @@ import 'package:health/presentation/controller/language.controller.dart';
 import 'package:health/presentation/controller/reports.controller.dart';
 import 'package:health/presentation/screens/pdfView.dart';
 import 'package:health/presentation/screens/selectPatient.dart';
+import 'package:health/presentation/screens/selectPatienttest.dart';
 import 'package:health/presentation/screens/start.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 

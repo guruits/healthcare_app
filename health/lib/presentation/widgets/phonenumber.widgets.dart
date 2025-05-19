@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -8,6 +9,7 @@ class PhoneInputWidget extends StatefulWidget {
   const PhoneInputWidget({
     Key? key,
     required this.onPhoneValidated,
+    initialValue
   }) : super(key: key);
 
   @override
@@ -71,9 +73,43 @@ class _PhoneInputWidgetState extends State<PhoneInputWidget> {
   void _validatePhone(String value) {
     final fullPhoneNumber = "$phoneNumberPrefix$value";
     setState(() {
-      isPhoneValid = phoneRegex.hasMatch(fullPhoneNumber);
+      isPhoneValid = value.length == maxLength && phoneRegex.hasMatch(value);
     });
     widget.onPhoneValidated(isPhoneValid, fullPhoneNumber);
+  }
+
+
+  Future<void> _selectCountry() async {
+    final String? selected = await showDialog<String>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(AppLocalizations.of(context)!.select_country),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: countryPrefixes.keys
+                  .map(
+                    (country) => ListTile(
+                  title: Text(country),
+                  onTap: () {
+                    Navigator.pop(context, country);
+                  },
+                ),
+              )
+                  .toList(),
+            ),
+          ),
+        );
+      },
+    );
+
+    if (selected != null) {
+      setState(() {
+        selectedCountry = selected;
+        _updateValidationLogic();
+        _validatePhone(_phoneController.text);
+      });
+    }
   }
 
   @override
@@ -81,71 +117,86 @@ class _PhoneInputWidgetState extends State<PhoneInputWidget> {
     final localizations = AppLocalizations.of(context)!;
     return Column(
       children: [
-        Container(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              DropdownButtonHideUnderline(
-                child: DropdownButtonFormField<String>(
-                  value: selectedCountry,
-                  decoration: InputDecoration(
-                    labelText: AppLocalizations.of(context)!.select_country,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8.0),
-                    ),
+        SizedBox(height: 20),
+        Row(
+          children: [
+            GestureDetector(
+              onTap: _selectCountry,
+              child: Container(
+                padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+                decoration: BoxDecoration(
+                  //color: Colors.grey, // Background color
+                  borderRadius: BorderRadius.circular(30.0),
+                  border: Border.all(
+                    color: Colors.black, // Border color
                   ),
-                  isExpanded: true,
-                  onChanged: (String? newCountry) {
-                    setState(() {
-                      selectedCountry = newCountry!;
-                      _updateValidationLogic();
-                      _validatePhone(_phoneController.text);
-                    });
-                  },
-                  items: countryPrefixes.keys
-                      .map<DropdownMenuItem<String>>((String country) {
-                    return DropdownMenuItem<String>(
-                      value: country,
-                      child: Text(country),
-                    );
-                  }).toList(),
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      selectedCountry,
+                      style: TextStyle(fontSize: 18, color: Colors.black),
+                    ),
+                    SizedBox(width: 5),
+                    Icon(
+                      Icons.arrow_drop_down,
+                      color: Colors.black, // Drop-down icon color
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
-        ),
-
-
-
-        SizedBox(height: 20),
-        TextFormField(
-          controller: _phoneController,
-          keyboardType: TextInputType.phone,
-          inputFormatters: [
-            FilteringTextInputFormatter.digitsOnly,
-            LengthLimitingTextInputFormatter(maxLength),
+            ),
+            SizedBox(width: 10),
+            Expanded(
+              child: TextFormField(
+                controller: _phoneController,
+                keyboardType: TextInputType.phone,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(maxLength),
+                ],
+                decoration: InputDecoration(
+                  labelText: localizations.phone_number,
+                  prefixText: "$phoneNumberPrefix ",
+                  labelStyle: TextStyle(
+                    color: isPhoneValid ? Colors.black : Colors.black,
+                  ),
+                  hintStyle: TextStyle(
+                    color: Colors.grey, // Hint text color
+                  ),
+                  /*filled: true,
+                  fillColor: CupertinoColors.lightBackgroundGray,*/
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30.0),
+                    borderSide: BorderSide(
+                      color: isPhoneValid ? Colors.black : Colors.red,
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30.0),
+                    borderSide: BorderSide(
+                      color: isPhoneValid ? Colors.black : Colors.red,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30.0),
+                    borderSide: BorderSide(
+                      color: isPhoneValid ? Colors.black : Colors.red,
+                    ),
+                  ),
+                  errorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30.0),
+                    borderSide: BorderSide(color: Colors.red),
+                  ),
+                  filled: true, // Enable fill color
+                  fillColor: Colors.grey[200],
+                  helperText: isPhoneValid ? null : 'Invalid phone number format',
+                  helperStyle: TextStyle(color: Colors.red),
+                ),
+                onChanged: _validatePhone,
+              ),
+            ),
           ],
-          decoration: InputDecoration(
-            labelText: localizations.phone_number,
-            prefixText: "$phoneNumberPrefix ",
-            border: OutlineInputBorder(),
-            enabledBorder: OutlineInputBorder(
-              borderSide: BorderSide(
-                color: isPhoneValid ? Colors.grey : Colors.red,
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderSide: BorderSide(
-                color: isPhoneValid ? Colors.blue : Colors.red,
-              ),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderSide: BorderSide(color: Colors.red),
-            ),
-            helperText: isPhoneValid ? null : 'Invalid phone number format',
-            helperStyle: TextStyle(color: Colors.red),
-          ),
-          onChanged: _validatePhone,
         ),
       ],
     );

@@ -1,7 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 
-import '../screens/selectPatient.dart';
+import '../screens/selectPatienttest.dart';
 
 class DentistController {
   String selectedPatient = '';
@@ -14,8 +14,7 @@ class DentistController {
   bool isPatientSelected = false;
   bool isPrinting = false;
 
-  void selectPatient(
-      String patientName, String mobileNumber, String aadharNumber, String appointmentSlot, String address) {
+  void selectPatient(String patientName, String mobileNumber, String aadharNumber, String appointmentSlot, String address) {
     selectedPatient = patientName;
     patientMobileNumber = mobileNumber;
     patientAadharNumber = aadharNumber;
@@ -31,22 +30,7 @@ class DentistController {
     return '$datePart$randomPart';
   }
 
-  void submit(BuildContext context, String selectedPatient, DateTime? appointmentDateTime) {
-    print('Submitting Dentist Appointment for $selectedPatient');
-    print('Appointment DateTime: $appointmentDateTime');
-    print('Dentist Appointment Number: $dentistAppointmentNumber');
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => SelectPatient(
-          onSelect: (patientName) {
-            print('$patientName state: completed');
-          },
-        ),
-      ),
-    );
-  }
 
   void printLabel() {
     isPrinting = true;
