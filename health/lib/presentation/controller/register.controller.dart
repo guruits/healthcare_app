@@ -1,116 +1,84 @@
 import 'dart:io';
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
-import 'package:image_picker/image_picker.dart';
-import '../../data/datasources/api_service.dart';
-import 'aadhaar.controller.dart';
 
 class RegisterController {
   FlutterTts flutterTts = FlutterTts();
-  final   AadhaarController aadhaarController = AadhaarController();
-  bool isPhoneEntered = false;
-  bool showQrScanner = false;
-  bool showCameraOptions = false;
-  bool showFrontBackScan = false;
-  bool showPreview = false;
-  bool showContinueButton = true;
-  bool showUserDropdown = false;
-  bool showSignupButton = false;
-  XFile? frontImage;
-  XFile? backImage;
-  String? frontImagePath;
-  String? backImagePath;
 
   // Language and TTS variables
   bool isMuted = false;
   String selectedLanguage = 'en-US';
 
   // Form related variables
-  final userService = UserService();
-  File? imageFile;
   final formKey = GlobalKey<FormState>();
 
-  // Form controllers
+  // Personal details
   final phone = TextEditingController();
   final name = TextEditingController();
   final aadharnumber = TextEditingController();
   final dateofbirth = TextEditingController();
+  final age = TextEditingController();
   final addresss = TextEditingController();
-  final newpassword = TextEditingController();
-  final confirmpassword = TextEditingController();
+  String gender = 'Male';
+
+  // Medical history
+  // bool hasDiabetes = false;
+  String diabetesDuration = '0-1 years';
+  bool hasHeartDisease = false;
+  bool hasKidneyDisease = false;
+  bool hasHighBP = false;
+  bool hasHighCholesterol = false;
+  // final medications = TextEditingController();
+  final previousSurgeries = TextEditingController();
+  bool hasFamilyHistoryDiabetes = false;
+
+  // Lifestyle
+  String smokingStatus = 'Never';
+  String alcoholConsumption = 'Never';
+  String physicalActivity = 'Sedentary';
+  // String dietType = 'Vegetarian';
+  String sweetsIntake = 'Moderate';
+  String waterIntake = '1-2 liters';
+  String sleepPattern = '6-8 hours';
+  double stressLevel = 5.0;
+
+  bool hasDiabetes = false;
+  String diabetesType = 'Type 2';
+  TextEditingController diagnosisDate = TextEditingController();
+  bool takingMedication = false;
+  TextEditingController medications = TextEditingController();
+  List<String> healthConditions = ['None'];
+  bool familyHistory = false;
+  TextEditingController familyRelation = TextEditingController();
+  List<String> symptoms = ['None'];
+  File? imageFile;
+  // Lifestyle Properties
+  String activityLevel = 'Moderate';
+  String dietType = 'Regular';
+  bool isSmoker = false;
+  bool consumesAlcohol = false;
+  TextEditingController sleepHours = TextEditingController();
+  bool checksBloodSugar = false;
+  TextEditingController monitoringFrequency = TextEditingController();
+  bool ownsGlucometer = false;
+  TextEditingController fastingBloodSugar = TextEditingController();
+  TextEditingController postMealBloodSugar = TextEditingController();
+  TextEditingController emergencyContactName = TextEditingController();
+  TextEditingController emergencyContactRelation = TextEditingController();
+  TextEditingController emergencyContactPhone = TextEditingController();
 
   RegisterController() {
-    // Set up listeners for Aadhaar details
-    aadhaarController.frontDetailsStream.listen((details) {
-      name.text = details['name'] ?? '';
-      aadharnumber.text = details['aadhaar']?.replaceAll(' ', '') ?? '';
-      dateofbirth.text = details['dob']?.replaceAll('/', '-') ?? '';
-    });
-
-    aadhaarController.backDetailsStream.listen((details) {
-      addresss.text = details['address'] ?? '';
-    });
-
-    // Set up listeners for images
-    aadhaarController.frontImageStream.listen((image) {
-      if (image != null) {
-        frontImage = image;
-        updatePreviewState();
-      }
-    });
-
-    aadhaarController.backImageStream.listen((image) {
-      if (image != null) {
-        backImage = image;
-        updatePreviewState();
-      }
-    });
-  }
-/*
-
-  get frontImagePath => null;
-
-  get backImagePath => null;
-*/
-
-
-  void updatePreviewState() {
-    showPreview = frontImage != null && backImage != null;
-    showSignupButton = showPreview;
+    // Initialize TTS
+    flutterTts.setLanguage(selectedLanguage);
   }
 
-
-  // Modified image picking methods
-  Future<void> pickImage(String side) async {
-    try {
-      if (side == 'front') {
-        await aadhaarController.captureFront();
-      } else {
-        await aadhaarController.captureBack();
-      }
-    } catch (e) {
-      print('Error picking image: $e');
-      throw Exception('Failed to pick image');
-    }
-  }
-
-  // Form validation methods remain the same
+  // Form validation methods
   String? validatePhone(String? value) {
     if (value == null || value.isEmpty) {
       return 'Phone number is required';
     }
     if (value.length != 10) {
       return 'Phone number must be 10 digits';
-    }
-    return null;
-  }
-
-  String? validateAadhar(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Aadhar number is required';
-    }
-    if (value.length != 12) {
-      return 'Aadhar number must be 12 digits';
     }
     return null;
   }
@@ -136,25 +104,6 @@ class RegisterController {
     return null;
   }
 
-  String? validatePassword(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Password is required';
-    }
-    if (value.length < 6) {
-      return 'Password must be at least 6 characters';
-    }
-    return null;
-  }
-
-  String? validateConfirmPassword(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Please confirm your password';
-    }
-    if (value != newpassword.text) {
-      return 'Passwords do not match';
-    }
-    return null;
-  }
   // Language and TTS methods
   Future<void> changeLanguage(String langCode) async {
     try {
@@ -176,38 +125,97 @@ class RegisterController {
     }
   }
 
+
   void toggleMute() {
     isMuted = !isMuted;
   }
 
-  // Form submission method
-  Future<bool> submitRegistration() async {
-    if (!formKey.currentState!.validate()) {
-      return false;
+  // Get medical history as a map
+  Map<String, dynamic> getMedicalHistoryMap() {
+    return {
+      'hasDiabetes': hasDiabetes,
+      'diabetesDuration': hasDiabetes ? diabetesDuration : 'N/A',
+      'hasHeartDisease': hasHeartDisease,
+      'hasKidneyDisease': hasKidneyDisease,
+      'hasHighBP': hasHighBP,
+      'hasHighCholesterol': hasHighCholesterol,
+      'medications': medications.text,
+      'previousSurgeries': previousSurgeries.text,
+      'hasFamilyHistoryDiabetes': hasFamilyHistoryDiabetes,
+    };
+  }
+
+  // Get lifestyle as a map
+  Map<String, dynamic> getLifestyleMap() {
+    return {
+      'smokingStatus': smokingStatus,
+      'alcoholConsumption': alcoholConsumption,
+      'physicalActivity': physicalActivity,
+      'dietType': dietType,
+      'sweetsIntake': sweetsIntake,
+      'waterIntake': waterIntake,
+      'sleepPattern': sleepPattern,
+      'stressLevel': stressLevel,
+    };
+  }
+
+  // Analysis based on the data
+  Map<String, dynamic> getAnalysisResults() {
+    // Calculate risk level
+    int riskScore = 0;
+
+    // Diabetes risk factors
+    if (hasDiabetes) riskScore += 5;
+    if (hasFamilyHistoryDiabetes) riskScore += 3;
+
+    // Lifestyle risk factors
+    if (smokingStatus != 'Never') riskScore += 2;
+    if (alcoholConsumption != 'Never') riskScore += 2;
+    if (physicalActivity == 'Sedentary') riskScore += 2;
+    if (sweetsIntake == 'High') riskScore += 2;
+    if (stressLevel > 7) riskScore += 2;
+
+    // Medical conditions risk factors
+    if (hasHeartDisease) riskScore += 3;
+    if (hasKidneyDisease) riskScore += 3;
+    if (hasHighBP) riskScore += 3;
+    if (hasHighCholesterol) riskScore += 3;
+
+    String riskLevel = 'Low';
+    if (riskScore > 10) riskLevel = 'High';
+    else if (riskScore > 5) riskLevel = 'Medium';
+
+    // Suggested tests
+    List<String> suggestedTests = ['Blood Sugar (FBS, PPBS)'];
+    if (riskScore > 5) suggestedTests.add('HbA1c');
+    if (hasHeartDisease || hasHighBP || hasHighCholesterol) {
+      suggestedTests.add('Lipid Profile');
+      suggestedTests.add('ECG');
+    }
+    if (hasKidneyDisease) suggestedTests.add('Kidney Function Test');
+
+    // Diet recommendations
+    List<String> dietTips = [];
+    if (sweetsIntake == 'High') dietTips.add('Reduce sugar intake');
+    if (waterIntake == '1-2 liters') dietTips.add('Increase water intake to at least 3 liters daily');
+    if (dietType == 'Non-vegetarian') dietTips.add('Include more plant-based foods in your diet');
+
+    // Activity recommendations
+    List<String> activityTips = [];
+    if (physicalActivity == 'Sedentary') {
+      activityTips.add('Start with 30 minutes of walking daily');
+      activityTips.add('Consider yoga for flexibility and stress reduction');
+    } else if (physicalActivity == 'Light') {
+      activityTips.add('Increase exercise to moderate intensity');
+      activityTips.add('Add strength training twice a week');
     }
 
-    if (frontImage == null || backImage == null) {
-      throw Exception('Both front and back Aadhaar images are required');
-    }
-
-    try {
-      final response = await userService.addUser(
-        imageFile: imageFile!,
-        phoneNumber: phone.text,
-        aadhaarNumber: aadharnumber.text,
-        name: name.text,
-        dob: dateofbirth.text,
-        address: addresss.text,
-        newPassword: newpassword.text,
-        confirmPassword: confirmpassword.text,
-      );
-
-      clearForm();
-      return true;
-    } catch (e) {
-      print('Error submitting registration: $e');
-      throw Exception('Failed to submit registration');
-    }
+    return {
+      'riskLevel': riskLevel,
+      'suggestedTests': suggestedTests,
+      'dietTips': dietTips,
+      'activityTips': activityTips,
+    };
   }
 
   // Clear form method
@@ -216,42 +224,40 @@ class RegisterController {
     name.clear();
     aadharnumber.clear();
     dateofbirth.clear();
+    age.clear();
     addresss.clear();
-    newpassword.clear();
-    confirmpassword.clear();
-    imageFile = null;
-    frontImage = null;
-    backImage = null;
-    showPreview = false;
-    showSignupButton = false;
+    gender = 'Male';
+
+    hasDiabetes = false;
+    diabetesDuration = '0-1 years';
+    hasHeartDisease = false;
+    hasKidneyDisease = false;
+    hasHighBP = false;
+    hasHighCholesterol = false;
+    medications.clear();
+    previousSurgeries.clear();
+    hasFamilyHistoryDiabetes = false;
+
+    smokingStatus = 'Never';
+    alcoholConsumption = 'Never';
+    physicalActivity = 'Sedentary';
+    dietType = 'Vegetarian';
+    sweetsIntake = 'Moderate';
+    waterIntake = '1-2 liters';
+    sleepPattern = '6-8 hours';
+    stressLevel = 5.0;
   }
 
   // Dispose method
   void dispose() {
     phone.dispose();
     name.dispose();
-    frontImagePath = null;
-    backImagePath = null;
     aadharnumber.dispose();
     dateofbirth.dispose();
+    age.dispose();
     addresss.dispose();
-    newpassword.dispose();
-    confirmpassword.dispose();
+    medications.dispose();
+    previousSurgeries.dispose();
     flutterTts.stop();
-    aadhaarController.dispose();
-  }
-
-  Future<void> scanQrCode() async {
-    try {
-      // Simulated QR code scan result
-      name.text = "John Doe";
-      aadharnumber.text = "123456789101";
-      dateofbirth.text = "01-01-1990";
-      addresss.text = "123 Main Street, City";
-      showSignupButton = true;
-    } catch (e) {
-      print('Error scanning QR code: $e');
-      throw Exception('Failed to scan QR code');
-    }
   }
 }

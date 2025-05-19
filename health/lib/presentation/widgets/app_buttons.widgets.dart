@@ -13,14 +13,14 @@ class AppButtons {
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primaryColor.withOpacity(0.3),
+            color: AppColors1.primaryColor.withOpacity(0.3),
             spreadRadius: 1,
             blurRadius: 10,
             offset: Offset(0, 3),
           ),
         ],
         gradient: LinearGradient(
-          colors: [AppColors.primaryColor, Color(0xFF9C27B0)],
+          colors: [AppColors1.primaryColor, Color(0xFF9C27B0)],
         ),
       ),
       child: ElevatedButton(
@@ -59,14 +59,14 @@ class AppButtons {
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
-            color: AppColors.secondaryColor.withOpacity(0.3),
+            color: AppColors1.secondaryColor.withOpacity(0.3),
             spreadRadius: 1,
             blurRadius: 10,
             offset: Offset(0, 3),
           ),
         ],
         gradient: LinearGradient(
-          colors: [AppColors.secondaryColor, Color(0xFF00BCD4)],
+          colors: [AppColors1.secondaryColor, Color(0xFF00BCD4)],
         ),
       ),
       child: ElevatedButton.icon(
@@ -94,7 +94,7 @@ class AppButtons {
     return OutlinedButton(
       onPressed: onPressed,
       style: OutlinedButton.styleFrom(
-        side: BorderSide(color: AppColors.primaryColor),
+        side: BorderSide(color: AppColors1.primaryColor),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(15),
         ),
@@ -123,14 +123,14 @@ class AppButtons {
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
-            color: AppColors.accentColor.withOpacity(0.3),
+            color: AppColors1.accentColor.withOpacity(0.3),
             spreadRadius: 1,
             blurRadius: 10,
             offset: Offset(0, 3),
           ),
         ],
         gradient: LinearGradient(
-          colors: [AppColors.accentColor, Colors.deepOrange],
+          colors: [AppColors1.accentColor, Colors.deepOrange],
         ),
       ),
       child: ElevatedButton(

@@ -5,15 +5,11 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:health/presentation/controller/local.controller.dart';
 import 'package:health/presentation/controller/login.controller.dart';
-import 'package:health/presentation/screens/appointmentmanage.dart';
-import 'package:health/presentation/screens/appointments.dart';
-import 'package:health/presentation/screens/localdbview.dart';
 import 'package:health/presentation/screens/splash.dart';
 import 'package:health/presentation/widgets/local_inherited.widgets.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'data/services/realm_service.dart';
 const kColorWhiteCardBg = Colors.white;
 const kColorBlack = Colors.black;
 const kColorBlack05 = Color(0xFFE5E5E5);

@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:health/presentation/controller/language.controller.dart';
@@ -17,7 +18,7 @@ import '../widgets/app_buttons.widgets.dart';
 import '../widgets/app_decorations.widgets.dart';
 import '../widgets/app_snackbars.widgets.dart';
 import '../widgets/app_text_fields.widgets.dart';
-import '../widgets/appcolors.widgets.dart';
+import '../widgets/AppColors.widgets.dart';
 
 class Login extends StatefulWidget {
   const Login({Key? key}) : super(key: key);
@@ -35,8 +36,7 @@ class _LoginState extends State<Login> {
 
   bool _isPasswordVisible = false;
   bool _isLoading = false;
-  String _authMethod = 'pin';
-  bool _hasStoredPhoneNumber = true;
+  String _authMethod = 'password';
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final LocalAuthentication _localAuth = LocalAuthentication();
@@ -49,7 +49,6 @@ class _LoginState extends State<Login> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkPasskeyAvailability();
-      _loadSavedPhoneNumber();
     });
   }
 
@@ -59,72 +58,33 @@ class _LoginState extends State<Login> {
     _otpController.dispose();
     super.dispose();
   }
-
-  Future<void> _loadSavedPhoneNumber() async {
-    final prefs = await SharedPreferences.getInstance();
-    String? savedPhoneNumber = prefs.getString('phoneNumber');
-
-    if (savedPhoneNumber != null && savedPhoneNumber.isNotEmpty) {
-      setState(() {
-        _controller.phoneController.text = savedPhoneNumber;
-        _hasStoredPhoneNumber = true;
-      });
-    }
-  }
-
-
   Future<void> _checkPasskeyAvailability() async {
-    try {
-      // Check if biometric authentication is available
-      bool canAuthenticate = await _localAuth.canCheckBiometrics && await _localAuth.isDeviceSupported();
+    if (_authMethod == 'passkey') {
+      try {
+        // Check if biometric authentication is available
+        bool canAuthenticate = await _localAuth.canCheckBiometrics;
+        List<BiometricType> availableBiometrics =
+        await _localAuth.getAvailableBiometrics();
 
-      if (!canAuthenticate) {
-        setState(() {
-          _authMethod = 'face';
-        });
-        AppSnackbars.showInfo(context, 'Biometric authentication not available on this device. Using OTP instead.');
-        return;
-      }
+        bool hasFaceId = availableBiometrics.contains(BiometricType.face);
+        bool hasFingerprint = availableBiometrics.contains(BiometricType.fingerprint);
+        bool hasPin = availableBiometrics.contains(BiometricType.values);
 
-      // Get available biometric types
-      List<BiometricType> availableBiometrics = await _localAuth.getAvailableBiometrics();
-      bool hasFaceId = availableBiometrics.contains(BiometricType.face);
-      bool hasFingerprint = availableBiometrics.contains(BiometricType.fingerprint);
-
-      // Update UI based on available authentication methods
-      if (hasFaceId || hasFingerprint) {
-        if (_hasStoredPhoneNumber) {
+        if (!canAuthenticate || (!hasFaceId && !hasFingerprint &&!hasPin)) {
+          // If no biometrics available, switch to password method
           setState(() {
-            _authMethod = hasFaceId ? 'face' : 'passkey';
+            _authMethod = 'password';
           });
-
-          // Optionally auto-trigger authentication for a smoother experience
-          if (hasFaceId) {
-            // Show a banner that face authentication is available
-            Future.delayed(Duration(milliseconds: 500), () {
-              AppSnackbars.showInfo(context, 'Face ID available. Tap "Face Unlock" to authenticate.');
-            });
-          }
-        } else {
-          setState(() {
-            _authMethod = 'otp';
-          });
-          AppSnackbars.showInfo(context, 'Please log in with OTP first to enable biometric authentication.');
+          AppSnackbars.showInfo(context, 'Biometric authentication not available on this device. Using password login instead.');
         }
-      } else {
+      } catch (e) {
         setState(() {
-          _authMethod = 'otp';
+          _authMethod = 'password';
         });
-        AppSnackbars.showInfo(context, 'No biometric authentication available. Using OTP instead.');
+        AppSnackbars.showError(context, 'Error checking biometrics: ${e.toString()}');
       }
-    } catch (e) {
-      setState(() {
-        _authMethod = 'otp';
-      });
-      AppSnackbars.showError(context, 'Error checking biometric availability: ${e.toString()}');
     }
   }
-
 
   void navigateToScreen(Widget screen) {
     Navigator.of(context).pushReplacement(
@@ -137,20 +97,10 @@ class _LoginState extends State<Login> {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('phoneNumber', phoneNumber);
       _controller.phoneController.text = phoneNumber;
-      setState(() {
-        _hasStoredPhoneNumber = true;
-      });
     }
   }
 
-
   Future<void> handleLogin() async {
-    // Phone number validation for first-time users
-    if (!_hasStoredPhoneNumber && _controller.phoneController.text.isEmpty) {
-      AppSnackbars.showError(context, 'Please enter a valid phone number');
-      return;
-    }
-
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -161,6 +111,14 @@ class _LoginState extends State<Login> {
       Map<String, dynamic> userData;
 
       switch (_authMethod) {
+        case 'password':
+          userData = await _controller.fetchUserDetails(
+            _controller.phoneController.text,
+            _passwordController.text,
+            authMethod: 'password',
+          );
+          break;
+
         case 'otp':
           if (!_otpSent || _verificationId == null) {
             AppSnackbars.showError(context, 'Please request OTP first');
@@ -182,23 +140,6 @@ class _LoginState extends State<Login> {
             authMethod: 'firebase',
             firebaseToken: firebaseToken,
           );
-
-          // Store phone number for future logins
-          if (userData.isNotEmpty) {
-            final prefs = await SharedPreferences.getInstance();
-            await prefs.setString('phoneNumber', _controller.phoneController.text);
-
-            // Debug: Verify storage
-            String? storedPhoneNumber = prefs.getString('phoneNumber');
-            print(" Stored Phone Number in SharedPreferences: $storedPhoneNumber");
-          }
-          break;
-        case 'password':
-          userData = await _controller.fetchUserDetails(
-            _controller.phoneController.text,
-            _passwordController.text,
-            authMethod: 'password',
-          );
           break;
 
         case 'passkey':
@@ -206,19 +147,15 @@ class _LoginState extends State<Login> {
 
           if (!canAuthenticate) {
             AppSnackbars.showError(context, 'Biometric authentication not available on this device');
-            setState(() {
-              _authMethod = 'otp';
-              _isLoading = false;
-            });
+            setState(() => _isLoading = false);
             return;
           }
 
           bool authenticated = await _localAuth.authenticate(
-            localizedReason: 'Unlock your screen with Pin,Pattern,Password,Face,or Fingerprint',
+            localizedReason: 'Authenticate to log in',
             options: const AuthenticationOptions(
               stickyAuth: true,
-              biometricOnly: false,
-              useErrorDialogs: true,
+              biometricOnly: true,
             ),
           );
 
@@ -228,34 +165,11 @@ class _LoginState extends State<Login> {
             return;
           }
 
-          if (_controller.phoneController.text.isEmpty) {
-            final prefs = await SharedPreferences.getInstance();
-            String? storedPhoneNumber = prefs.getString('phoneNumber');
-
-            if (storedPhoneNumber != null && storedPhoneNumber.isNotEmpty) {
-              _controller.phoneController.text = storedPhoneNumber;
-              print(" Loaded phone number from SharedPreferences: ${_controller.phoneController.text}");
-            } else {
-              print(" ERROR: No stored phone number found!");
-              AppSnackbars.showError(context, 'No phone number found. Please log in with OTP first.');
-              setState(() => _isLoading = false);
-              return;
-            }
-          }
-
           userData = await _controller.fetchUserDetails(
             _controller.phoneController.text,
             '',
             authMethod: 'passkey',
           );
-
-          // Debug print
-          print(" Attempting login with phone: ${_controller.phoneController.text}, method: passkey");
-
-          if (userData.isNotEmpty && !_hasStoredPhoneNumber) {
-            final prefs = await SharedPreferences.getInstance();
-            await prefs.setString('phoneNumber', _controller.phoneController.text);
-          }
           break;
 
         default:
@@ -269,23 +183,19 @@ class _LoginState extends State<Login> {
         return;
       }
 
-      // Debug: Retrieve and check the stored phone number
-      final prefs = await SharedPreferences.getInstance();
-      String? retrievedPhoneNumber = prefs.getString('phoneNumber');
-      print("Retrieved Phone Number from SharedPreferences: $retrievedPhoneNumber");
-
       // Login successful, navigate to Start screen
       Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => Start()),
+          context,
+          MaterialPageRoute(builder: (context) => Start())
       );
     } catch (e, stackTrace) {
+      print('Login failed: ${e.toString()}');
+      print('StackTrace: $stackTrace');
       AppSnackbars.showError(context, 'Login failed: ${e.toString()}');
     } finally {
       setState(() => _isLoading = false);
     }
   }
-
 
   Future<void> sendOTP() async {
     if (_controller.phoneController.text.isEmpty) {
@@ -310,10 +220,6 @@ class _LoginState extends State<Login> {
           );
 
           if (userData.isNotEmpty) {
-            // Store phone number
-            final prefs = await SharedPreferences.getInstance();
-            await prefs.setString('phoneNumber', _controller.phoneController.text);
-
             Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(builder: (context) => Start())
@@ -337,11 +243,59 @@ class _LoginState extends State<Login> {
             _verificationId = verificationId;
           });
         },
-        timeout: const Duration(seconds: 120),
+        timeout: const Duration(seconds: 60),
       );
     } catch (e) {
       AppSnackbars.showError(context, 'Failed to send OTP: ${e.toString()}');
       setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> handleFaceUnlock() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      bool canAuthenticate = await _localAuth.canCheckBiometrics;
+
+      if (!canAuthenticate) {
+        AppSnackbars.showError(context, 'Biometric authentication not available on this device');
+        return;
+      }
+
+      bool authenticated = await _localAuth.authenticate(
+        localizedReason: 'Authenticate with face to login',
+        options: const AuthenticationOptions(
+          stickyAuth: true,
+          biometricOnly: true,
+        ),
+      );
+
+      if (authenticated) {
+        final userData = await _controller.fetchUserDetails(
+          _controller.phoneController.text,
+          '',
+          authMethod: 'passkey',
+        );
+
+        if (userData.isNotEmpty) {
+          Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => Start())
+          );
+        } else {
+          AppSnackbars.showError(context, 'User not found or not registered for face unlock');
+        }
+      } else {
+        AppSnackbars.showError(context, 'Face authentication failed');
+      }
+    } catch (e) {
+      AppSnackbars.showError(context, 'Face unlock failed: ${e.toString()}');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
@@ -350,10 +304,6 @@ class _LoginState extends State<Login> {
       _authMethod = method;
       if (method == 'otp') {
         _otpSent = false;
-      } else if (method == 'face' && _hasStoredPhoneNumber) {
-        Future.delayed(Duration(milliseconds: 300), () {
-          handleFaceUnlock();
-        });
       }
     });
   }
@@ -364,12 +314,12 @@ class _LoginState extends State<Login> {
     if (localizations == null) return Container();
 
     return Scaffold(
-      backgroundColor: AppColors.surfaceColor,
+      backgroundColor: AppColors1.surfaceColor,
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: AppColors.surfaceColor,
+        backgroundColor: AppColors1.surfaceColor,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, color: AppColors.primaryColor),
+          icon: Icon(Icons.arrow_back_ios_new, color: AppColors1.primaryColor),
           onPressed: () => navigateToScreen(Home()),
         ),
         actions: [
@@ -384,7 +334,7 @@ class _LoginState extends State<Login> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [AppColors.surfaceColor, AppColors.backgroundColor],
+            colors: [AppColors1.surfaceColor, AppColors1.backgroundColor],
           ),
         ),
         child: SingleChildScrollView(
@@ -404,64 +354,23 @@ class _LoginState extends State<Login> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Phone input with shadow - Only show if no saved phone number for passkey
-                      if (!_hasStoredPhoneNumber || _authMethod != 'passkey')
-                        Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(15),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.grey.withOpacity(0.1),
-                                spreadRadius: 1,
-                                blurRadius: 10,
-                                offset: Offset(0, 3),
-                              ),
-                            ],
-                          ),
-                          child: PhoneInputWidget(
-                            onPhoneValidated: handlePhoneValidation,
-                          ),
+                      // Phone input with shadow
+                      Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(15),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.grey.withOpacity(0.1),
+                              spreadRadius: 1,
+                              blurRadius: 10,
+                              offset: Offset(0, 3),
+                            ),
+                          ],
                         ),
-
-                      // Show saved phone number message for returning passkey users
-                      if (_hasStoredPhoneNumber && _authMethod == 'passkey' && _authMethod == 'face')
-                        Container(
-                          decoration: AppDecorations.cardShadow(),
-                          padding: EdgeInsets.all(16),
-                          margin: EdgeInsets.only(bottom: 24),
-                          child: Row(
-                            children: [
-                              Icon(Icons.phone_android, color: AppColors.primaryColor),
-                              SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Authorised  Phone Number',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.primaryColor,
-                                      ),
-                                    ),
-                                    Text(
-                                      _controller.phoneController.text,
-                                      style: TextStyle(color: Colors.grey[700]),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                               /*IconButton(
-                                icon: Icon(Icons.edit, color: Colors.grey),
-                                onPressed: () {
-                                  setState(() {
-                                    _hasStoredPhoneNumber = false;
-                                  });
-                                },
-                              )*/
-                            ],
-                          ),
+                        child: PhoneInputWidget(
+                          onPhoneValidated: handlePhoneValidation,
                         ),
+                      ),
 
                       SizedBox(height: 24),
 
@@ -478,29 +387,10 @@ class _LoginState extends State<Login> {
 
                       SizedBox(height: 32),
 
-                      Row(
-                        children: [
-                          Expanded(
-                            child: AppButtons.gradientPrimary(
-                              label: _authMethod == 'passkey' ? 'Login with Fingerprint or Face' : 'Login',
-                              onPressed: _isLoading ? null : handleLogin,
-                              isLoading: _isLoading,
-                            ),
-                          ),
-                          /*SizedBox(width: 16),
-                          Expanded(
-                            child: AppButtons.gradientSecondary(
-                              label: 'Face Unlock',
-                              onPressed: _isLoading ? null : handleFaceUnlock,
-                              icon: Icons.face,
-                              isLoading: _isLoading,
-                            ),
-                          ),*/
-                        ],
-                      ),
+                      // Login and Face Unlock buttons
+                      _buildActionButtons(),
 
                       SizedBox(height: 24),
-
 
                       // Create account button
                       _buildCreateAccountButton(localizations),
@@ -514,64 +404,6 @@ class _LoginState extends State<Login> {
       ),
     );
   }
-  Future<void> handleFaceUnlock() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      bool canAuthenticate = await _localAuth.isDeviceSupported();
-      List<BiometricType> availableBiometrics = await _localAuth.getAvailableBiometrics();
-      /*List<BiometricType> availableBiometrics = await auth.getAvailableBiometrics();*/
-      print(availableBiometrics); // Check if BiometricType.face is listed
-
-      bool hasFaceCapability = availableBiometrics.contains(BiometricType.weak);
-
-      availableBiometrics.contains(BiometricType.strong);
-      bool canUseFaceID = availableBiometrics.contains(BiometricType.face);
-      print("Face ID Available: $canUseFaceID");
-
-
-      print("Available biometrics: $availableBiometrics");
-      print("Contains Face ID: ${availableBiometrics.contains(BiometricType.face)}");
-      print("Contains Strong: ${availableBiometrics.contains(BiometricType.strong)}");
-
-
-
-
-      if (!canAuthenticate || !hasFaceCapability) {
-        String errorMessage = 'Face authentication is not available on this device';
-        print("ERROR: $errorMessage");
-        AppSnackbars.showError(context, errorMessage);
-        return;
-      }
-
-      // Rest of your authentication code remains the same
-      bool authenticated = await _localAuth.authenticate(
-        localizedReason: 'Please authenticate with Face ID to log in',
-        options: const AuthenticationOptions(
-          stickyAuth: true,
-          biometricOnly: true,
-          useErrorDialogs: true,
-        ),
-      );
-
-      if (authenticated) {
-        AppSnackbars.showSuccess(context, 'Face authentication successful');
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => Start()));
-      } else {
-        AppSnackbars.showError(context, 'Face authentication failed');
-      }
-    } catch (e) {
-      AppSnackbars.showError(context, 'Face authentication error: ${e.toString()}');
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
-
 
   Widget _buildHeroSection() {
     return Stack(
@@ -585,7 +417,7 @@ class _LoginState extends State<Login> {
             height: 60,
             width: 60,
             decoration: BoxDecoration(
-              color: AppColors.primaryColor.withOpacity(0.1),
+              color: AppColors1.primaryColor.withOpacity(0.1),
               borderRadius: BorderRadius.circular(50),
             ),
           ),
@@ -597,7 +429,7 @@ class _LoginState extends State<Login> {
             height: 80,
             width: 80,
             decoration: BoxDecoration(
-              color: AppColors.secondaryColor.withOpacity(0.1),
+              color: AppColors1.secondaryColor.withOpacity(0.1),
               borderRadius: BorderRadius.circular(20),
             ),
           ),
@@ -623,14 +455,12 @@ class _LoginState extends State<Login> {
             style: TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.bold,
-              color: AppColors.primaryColor,
+              color: AppColors1.primaryColor,
             ),
           ),
           SizedBox(height: 8),
           Text(
-            _hasStoredPhoneNumber && _authMethod == 'passkey'
-                ? 'Tap to authenticate with your fingerprint or face'
-                : 'Sign in to continue your health journey',
+            'Sign in to continue your health journey',
             style: TextStyle(
               fontSize: 16,
               color: Colors.grey[600],
@@ -642,36 +472,60 @@ class _LoginState extends State<Login> {
   }
 
   Widget _buildAuthInputSection() {
-    return Column(
+    switch (_authMethod) {
+      case 'password':
+        return AppTextFields.passwordField(
+          controller: _passwordController,
+          isVisible: _isPasswordVisible,
+          onVisibilityChanged: (value) => setState(() => _isPasswordVisible = value),
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please enter your password';
+            }
+            return null;
+          },
+        );
+
+      case 'otp':
+        return AppTextFields.otpField(
+          controller: _otpController,
+          otpSent: _otpSent,
+          onSendOtp: sendOTP,
+          isLoading: _isLoading,
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please enter the OTP';
+            }
+            return null;
+          },
+        );
+
+      case 'passkey':
+        return PasskeyWidget();
+
+      default:
+        return SizedBox.shrink();
+    }
+  }
+
+  Widget _buildActionButtons() {
+    return Row(
       children: [
-
-        if (_authMethod == 'otp') ...[
-          if (!_otpSent)
-            AppButtons.orangebutton(
-              label: 'Send OTP',
-              onPressed: _isLoading ? null : sendOTP,
-            ),
-
-          if (_otpSent)
-            AppTextFields.otpField(
-              controller: _otpController,
-              otpSent: _otpSent,
-              onSendOtp: sendOTP,
-              isLoading: _isLoading,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter the OTP';
-                }
-                return null;
-              },
-            )
-        ],
-
-        if (_authMethod == 'passkey')
-          PasskeyWidget(),
-
-        /*if (_authMethod == 'face')
-          FaceIDWidget(),*/
+        Expanded(
+          child: AppButtons.gradientPrimary(
+            label: 'Login',
+            onPressed: _isLoading ? null : handleLogin,
+            isLoading: _isLoading,
+          ),
+        ),
+        SizedBox(width: 16),
+        Expanded(
+          child: AppButtons.gradientSecondary(
+            label: 'Face Unlock',
+            icon: Icons.face,
+            onPressed: _isLoading ? null : handleFaceUnlock,
+          ),
+        ),
       ],
     );
   }
@@ -703,7 +557,7 @@ class _LoginState extends State<Login> {
             Text(
               localizations.create_account,
               style: TextStyle(
-                color: AppColors.primaryColor,
+                color: AppColors1.primaryColor,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -739,7 +593,7 @@ class AuthMethodSelector extends StatelessWidget {
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
-                color: AppColors.primaryColor,
+                color: AppColors1.primaryColor,
               ),
             ),
           ),
@@ -747,20 +601,20 @@ class AuthMethodSelector extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               _buildAuthMethodOption(
+                'password',
+                'Password',
+                Icons.lock_outline,
+              ),
+              _buildAuthMethodOption(
                 'otp',
                 'OTP',
                 Icons.sms_outlined,
               ),
               _buildAuthMethodOption(
                 'passkey',
-                'Biometric',
-                Icons.security,
+                'Passkey',
+                Icons.key_outlined,
               ),
-             /* _buildAuthMethodOption(
-                'face',
-                'Face ID',
-                Icons.face,
-              ),*/
             ],
           ),
         ],
@@ -778,10 +632,10 @@ class AuthMethodSelector extends StatelessWidget {
       child: Container(
         padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primaryColor.withOpacity(0.1) : Colors.transparent,
+          color: isSelected ? AppColors1.primaryColor.withOpacity(0.1) : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isSelected ? AppColors.primaryColor : Colors.grey.withOpacity(0.3),
+            color: isSelected ? AppColors1.primaryColor : Colors.grey.withOpacity(0.3),
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -789,14 +643,14 @@ class AuthMethodSelector extends StatelessWidget {
           children: [
             Icon(
               icon,
-              color: isSelected ? AppColors.primaryColor : Colors.grey,
+              color: isSelected ? AppColors1.primaryColor : Colors.grey,
               size: 24,
             ),
             SizedBox(height: 8),
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? AppColors.primaryColor : Colors.grey[700],
+                color: isSelected ? AppColors1.primaryColor : Colors.grey[700],
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
             ),
@@ -806,7 +660,6 @@ class AuthMethodSelector extends StatelessWidget {
     );
   }
 }
-
 class PasskeyWidget extends StatelessWidget {
   const PasskeyWidget({Key? key}) : super(key: key);
 
@@ -818,22 +671,22 @@ class PasskeyWidget extends StatelessWidget {
       child: Column(
         children: [
           Icon(
-            Icons.security,
+            Icons.fingerprint,
             size: 60,
-            color: AppColors.primaryColor,
+            color: AppColors1.primaryColor,
           ),
           const SizedBox(height: 16),
           Text(
-            'Use fingerprint or face authentication',
+            'Use biometric authentication',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: AppColors.primaryColor,
+              color: AppColors1.primaryColor,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            'Tap the login button to authenticate with your fingerprint or face',
+            'Tap the login button to authenticate with your registered biometrics',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Colors.grey[600],
@@ -844,84 +697,4 @@ class PasskeyWidget extends StatelessWidget {
       ),
     );
   }
-}
-
-
-/*class FaceIDWidget extends StatelessWidget {
-  const FaceIDWidget({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: AppDecorations.cardShadow(),
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        children: [
-          Icon(
-            Icons.face,
-            size: 60,
-            color: AppColors.primaryColor,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Use Face ID authentication',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: AppColors.primaryColor,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Tap the Face Unlock button to authenticate with your face',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.grey[600],
-              fontSize: 14,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-}*/
-class OtpWidget extends StatelessWidget {
-  const OtpWidget({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: AppDecorations.cardShadow(),
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        children: [
-          Icon(
-            Icons.confirmation_num_outlined,
-            size: 60,
-            color: AppColors.primaryColor,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Use Otp authentication',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: AppColors.primaryColor,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Tap the Send Otp button to get a otp',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.grey[600],
-              fontSize: 14,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
 }

@@ -16,7 +16,6 @@
     <uses-feature android:name="android.hardware.camera"/>
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
     <uses-permission android:name="android.permission.USE_FINGERPRINT" />
-    <uses-permission android:name="android.permission.USE_FACE" />
 
 
 
@@ -33,7 +32,7 @@
         android:label="health"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon"
-        android:enableOnBackInvokedCallback="true">
+        android:enableOnBackInvokedCallback="false">
         <meta-data
             android:name="com.google.mlkit.vision.DEPENDENCIES"
             android:value="face"/>

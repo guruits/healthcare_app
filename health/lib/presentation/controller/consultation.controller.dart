@@ -1,60 +1,56 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_signature_pad/flutter_signature_pad.dart';
 
-class ConsultationController {
+class ConsultationController with ChangeNotifier {
+  // Make this a singleton to ensure we always access the same instance
+  static final ConsultationController _instance = ConsultationController._internal();
+
+  factory ConsultationController() {
+    return _instance;
+  }
+
+  ConsultationController._internal();
+
+  bool _isPatientSelected = false;
   String _selectedPatient = '';
   String _patientMobileNumber = '';
   String _patientAadharNumber = '';
   String _appointmentSlot = '';
   String _patientAddress = '';
+  String _patientId = '';
+  String _doctorId = '';
+  String _patientName = '';
+  String get selectedPatient => _selectedPatient;
+  String get patientMobileNumber => _patientMobileNumber;
+  String get patientId => _patientId;
+  String get doctorId => _doctorId;
+  String get patientName => _patientName;
+  String get patientAddress => _patientAddress;
+  bool get isPatientSelected => _isPatientSelected;
+  set isPatientSelected(bool value) => _isPatientSelected = value;
   // Patient Details
-  final Map<String, dynamic> patientReport = {
-    'name': 'Ram',
-    'age': 45,
-    'gender': 'Male',
-    'contactNumber': '+91 6584759645',
-    'height': '175 cm',
-    'weight': '70 kg',
-  };
 
-  // Test Results
-  final List<Map<String, String>> testResults = [
-    {
-      'name': 'Blood Sugar',
-      'result': '120 mg/dL',
-      'referenceRange': '70-100 mg/dL',
-      'status': 'High'
-    },
-    {
-      'name': 'Cholesterol',
-      'result': '210 mg/dL',
-      'referenceRange': 'Below 200 mg/dL',
-      'status': 'Borderline'
-    },
-  ];
-
-  // Medication Details
-  final List<String> availableMedicines = [
-    'Metformin',
-    'Sulfonylurea',
-    'Linagliptin',
-    'Alogliptin',
-    'Glimepiride ',
-    'Alogliptin '
-  ];
-  final List<String> dosageOptions = ['1-0-1', '1-1-1', '0-1-1'];
-  final List<String> timingOptions = ['Before Food', 'After Food', 'Empty Stomach'];
 
   String? selectedMedicine;
   String? selectedDosage;
   String? selectedTiming;
   int? numberOfDays;
-  bool _isPatientSelected = false;
-  bool get isPatientSelected => _isPatientSelected;
 
-  ConsultationController() {
-    numberOfDays = 7;
+  void updatePatientData({
+    required String name,
+    required String mobile,
+    required String id,
+    required String address,
+    required bool selected,
+  }) {
+    _selectedPatient = name;
+    _patientMobileNumber = mobile;
+    _patientId = id;
+    _patientAddress = address;
+    _isPatientSelected = selected;
+    notifyListeners();
   }
+
   void selectPatient(String patientName, String mobileNumber, String aadharNumber, String appointmentSlot, String address) {
     _selectedPatient = patientName;
     _patientMobileNumber = mobileNumber;
@@ -76,16 +72,7 @@ class ConsultationController {
 
   List<String> selectedTests = [];
   // Select Test
-  final List<String> selectTest = [
-    'Blood Test',
-    'Urine Test',
-    'EyeArc',
-    'Dentist',
-    'X-Ray',
-    'Dexa Scan',
-    'Echo',
-    'Ultrasound',
-    ];
+
 
   // Methods
   void clearSignature() {

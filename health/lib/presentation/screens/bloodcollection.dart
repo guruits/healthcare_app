@@ -622,33 +622,106 @@ class _BloodcollectionState extends State<Bloodcollection> {
       _generateBloodCollectionNumber();
     }
 
-    return Row(
-      children: [
-        Expanded(
-          child: TextField(
-            readOnly: true,
-            decoration: InputDecoration(
-              labelText: localizations.blood_appointment_success,
-              border: OutlineInputBorder(),
-              hintText: 'Automatically generated',
-            ),
-            controller: TextEditingController(
-                text: _controller.bllodcollectionAppointmentNumber),
+    return Container(
+      padding: EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.deepPurple.shade100, Colors.deepPurple.shade200],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.deepPurple.withOpacity(0.2),
+            blurRadius: 10,
+            offset: Offset(0, 5),
           ),
-        ),
-        SizedBox(width: 10),
-        ElevatedButton(
-          onPressed: () {
-            _languageController.speakText(localizations.print_label);
-            _printLabel();
-          },
-          child: _controller.isPrinting
-              ? CircularProgressIndicator()
-              : Text(localizations.print_label),
-        ),
-        if (_controller.statusMessage.isNotEmpty) Text(
-            _controller.statusMessage),
-      ],
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            localizations.blood_appointment_success,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.deepPurple.shade800,
+            ),
+          ),
+          SizedBox(height: 12),
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.deepPurple.shade300),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.confirmation_number, color: Colors.deepPurple),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    _controller.bllodcollectionAppointmentNumber.isNotEmpty
+                        ? _controller.bllodcollectionAppointmentNumber
+                        : "Automatically generated",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.deepPurple.shade700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 16),
+          ElevatedButton.icon(
+            icon: Icon(Icons.print, color: Colors.white),
+            label: Text(
+              localizations.print_label,
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.deepPurple.shade700,
+              padding: EdgeInsets.symmetric(vertical: 14, horizontal: 24),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              elevation: 5,
+            ),
+            onPressed: () {
+              _languageController.speakText(localizations.print_label);
+              _printLabel();
+            },
+          ),
+          if (_controller.statusMessage.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 8.0),
+              child: Text(
+                _controller.statusMessage,
+                style: TextStyle(
+                  fontStyle: FontStyle.italic,
+                  color: _controller.isPrinting
+                      ? Colors.deepPurple.shade700
+                      : Colors.green.shade700,
+                ),
+              ),
+            ),
+          if (_controller.isPrinting)
+            Padding(
+              padding: const EdgeInsets.only(top: 12.0),
+              child: LinearProgressIndicator(
+                backgroundColor: Colors.deepPurple.shade100,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  Colors.deepPurple.shade700,
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
   Widget buildResultCard(TestResults results) {

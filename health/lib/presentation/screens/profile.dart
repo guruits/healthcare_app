@@ -1,7 +1,6 @@
 
 import 'dart:convert';
 import 'dart:io';
-import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:health/presentation/screens/start.dart';
@@ -9,14 +8,16 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:realm/realm.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../data/datasources/user.service.dart';
+import '../../data/models/Appointment.dart';
 import '../../data/models/realm/faceimage_realm_model.dart';
 import '../../data/models/users.dart';
 import '../../data/services/realm_service.dart';
 import '../../data/services/userImage_service.dart';
 import '../controller/appointments.controller.dart';
+import '../widgets/userdetails.widgets.dart';
 import 'appointments.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 
 // Define a consistent color scheme
 class AppColors {
@@ -30,7 +31,7 @@ class AppColors {
   static const Color success = Color(0xFF06D6A0);
   static const Color error = Color(0xFFFF595E);
 }
-
+enum AppointmentFilter { all, today, upcoming, past }
 class Profile extends StatefulWidget {
   const Profile({super.key});
 
@@ -39,14 +40,13 @@ class Profile extends StatefulWidget {
 }
 
 class _ProfileState extends State<Profile> {
+
   final MongoRealmUserService _userrealmService = MongoRealmUserService();
   final AppointmentsController _appointmentsController = AppointmentsController();
-  final Appointments _appointments = Appointments();
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = true;
   Users? _users;
   bool _isEditing = false;
-
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _aadhaarController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
@@ -71,11 +71,11 @@ class _ProfileState extends State<Profile> {
 
   _ProfileState() : _realm = Realm(Configuration.local(
     [ImageRealm.schema],
-    schemaVersion: 6,
+    schemaVersion: 7,
     migrationCallback: (migration, oldSchemaVersion) {
-      if (oldSchemaVersion < 6) {
+      if (oldSchemaVersion < 7) {
         print('Migrating from schema version $oldSchemaVersion to 6');
-      }
+       }
     },
   )) {
     _imageServices = ImageServices();
@@ -88,66 +88,46 @@ class _ProfileState extends State<Profile> {
     _appointmentsController.getAppointmentsByUserId();
     _initializeServicesAndLoadProfile();
   }
+
   Future<void> _loadUserRole() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final userDetailsString = prefs.getString('userDetails');
-      print("user details app:$userDetailsString");
+      print("User details from storage: $userDetailsString");
 
       if (userDetailsString != null) {
-        final userDetails = json.decode(userDetailsString);
-        if (userDetails['role'] != null && userDetails['role']['name'] != null) {
-          userRole = userDetails['role']['name'];
-          userRoleId = userDetails['role']['id'];
+        final Map<String, dynamic> userDetails = json.decode(userDetailsString);
+        final role = userDetails['role'];
+        print("role wise name printing : ${role['rolename'] != null
+            ? role['rolename']
+            : role['name']}");
+        if (role != null &&
+            (role['rolename'] != null || role['name'] != null)) {
+          userRole = role['rolename'] != null ? role['rolename'] : role['name'];
+          userRoleId = role['id'];
           userId = userDetails['id'];
           await prefs.setString('userRole', userRole!);
+
+          print('User Role: $userRole');
+          print('User Role ID: $userRoleId');
+          print('User ID: $userId');
+        } else {
+          print('Role data missing in userDetails.');
         }
+      } else {
+        print('No userDetails found in SharedPreferences.');
       }
-
-      print('User Role: $userRole');
-      print('User Role id: $userRoleId');
-      print('User ID: $userId');
-    } catch (e) {
+    } catch (e, stackTrace) {
       print('Error loading user role: $e');
+      print('Stack trace: $stackTrace');
     }
   }
-
-  Future<String?> _getUserId() async {
-    final prefs = await SharedPreferences.getInstance();
-    final userDetails = prefs.getString('userDetails');
-
-    if (userDetails == null) {
-      print('No user details stored in SharedPreferences');
-      throw Exception('No user details found');
-    }
-
-    try {
-      final userJson = json.decode(userDetails) as Map<String, dynamic>;
-      final userId = userJson['id'];
-      print("User Id:$userId");
-
-      if (userId == null) {
-        throw Exception('No user ID found in the stored data');
-      }
-
-      return userId;
-    } catch (e) {
-      print('Error decoding user details: $e');
-      throw Exception('Error decoding user details: $e');
-    }
-  }
-
 
 
   Future<void> _initializeServicesAndLoadProfile() async {
     try {
-      // Initialize Realm service first
       await _userrealmService.initialize();
-
-      // Initialize image services next
       await _imageServices.initialize();
-
-      // Then load the user profile
       await _loadUserProfile();
     } catch (e) {
       print("Initialization error: $e");
@@ -181,14 +161,11 @@ class _ProfileState extends State<Profile> {
       if (!_userrealmService.isInitialized) {
         await _userrealmService.initialize();
       }
-
       // Use the getCurrentUserDetails method which handles getting the ID and fetching the user
       final userData = await _userrealmService.getCurrentUserDetails();
-
       if (userData == null) {
         throw Exception('User not found');
       }
-
       // Convert the User model returned from service to Users model needed by the UI
       final usersData = Users(
         id: userData.id,
@@ -205,8 +182,11 @@ class _ProfileState extends State<Profile> {
 
       // If not found in Realm, try to get it from MongoDB
       if (imageRealm == null) {
-        print("Image not found in Realm, trying MongoDB backup for user: ${userData.id}");
-        imageRealm = await _imageServices.getUserImageWithMongoBackup(userData.id);
+        print(
+            "Image not found in Realm, trying MongoDB backup for user: ${userData
+                .id}");
+        imageRealm =
+        await _imageServices.getUserImageWithMongoBackup(userData.id);
       }
 
       if (mounted) {
@@ -220,7 +200,8 @@ class _ProfileState extends State<Profile> {
             _profileImage = imageRealm.base64Image;
             print("Profile image loaded successfully for user: ${userData.id}");
           } else {
-            print("No profile image found for user: ${userData.id} in either Realm or MongoDB");
+            print("No profile image found for user: ${userData
+                .id} in either Realm or MongoDB");
           }
         });
       }
@@ -240,7 +221,8 @@ class _ProfileState extends State<Profile> {
       _phoneController.text = _users!.phoneNumber;
       _addressController.text = _users!.address;
       if (_users!.dob != null) {
-        _selectedDate = DateTime(_users!.dob!.year, _users!.dob!.month, _users!.dob!.day, 12);
+        _selectedDate = DateTime(
+            _users!.dob!.year, _users!.dob!.month, _users!.dob!.day, 12);
         _DobController.text = DateFormat('dd MMM yyyy').format(_selectedDate!);
       }
     }
@@ -278,9 +260,13 @@ class _ProfileState extends State<Profile> {
       backgroundColor: AppColors.background,
       body: _isLoading
           ? Center(
-        child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+        child: LoadingAnimationWidget.discreteCircle(
+          color: Colors.pink,
+          secondRingColor: Colors.teal,
+          thirdRingColor: Colors.orange,
+          size: 80,
         ),
+
       )
           : _users == null
           ? Center(
@@ -308,27 +294,27 @@ class _ProfileState extends State<Profile> {
           ],
         ),
       )
-          : Column(
-        children: [
-          _buildHeader(),
-          Expanded(
-            child: SingleChildScrollView(
+          : SingleChildScrollView(
+        child: Column(
+          children: [
+            _buildHeader(),
+            Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  if (userRole == 'Doctor')
-                    _buildDoctorAppointmentsView()
+                  if (_isEditing)
+                    _buildEditForm()
                   else
-                    _isEditing ? _buildEditForm() : _buildAppointmentInfo(),
+                    _buildAppointmentInfopatient(),
                 ],
-
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
+
 
   Widget _buildHeader() {
     return Container(
@@ -374,13 +360,13 @@ class _ProfileState extends State<Profile> {
                       : null,
                   child: _profileImage == null
                       ? Text(
-                    _users!.name.isNotEmpty ? _users!.name[0].toUpperCase() : '?',
+                    _users!.name.isNotEmpty
+                        ? _users!.name[0].toUpperCase()
+                        : '?',
                     style: TextStyle(fontSize: 50, color: AppColors.primary),
                   )
                       : null,
                 ),
-
-
               ),
 
               if (_isEditing)
@@ -388,7 +374,8 @@ class _ProfileState extends State<Profile> {
                   backgroundColor: AppColors.secondary,
                   radius: 20,
                   child: IconButton(
-                    icon: const Icon(Icons.camera_alt, color: Colors.white, size: 18),
+                    icon: const Icon(
+                        Icons.camera_alt, color: Colors.white, size: 18),
                     onPressed: _updateProfilePicture,
                   ),
                 ),
@@ -404,19 +391,44 @@ class _ProfileState extends State<Profile> {
             ),
           ),
           Text(
-            _users!.phoneNumber.isNotEmpty ? _users!.aadhaarNumber: 'User',
+            _users!.phoneNumber.isNotEmpty ? _users!.phoneNumber : 'User',
             style: const TextStyle(
               fontSize: 16,
               color: Colors.white70,
             ),
           ),
-          _buildInfoButton(Icons.calendar_today_outlined, () {
-          }),
-
+          ElevatedButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ProfileUserDetailsScreen(
+                    userId: _users!.id,
+                    basicUserData: {
+                      'name': _users!.name,
+                      'phoneNumber': _users!.phoneNumber,
+                      'aadhaarNumber': _users!.aadhaarNumber,
+                      'address': _users!.address,
+                      'dob': _users!.dob,
+                    },
+                  ),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: AppColors.primary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+            child: const Text('View Details'),
+          ),
         ],
       ),
     );
   }
+
   Widget _buildInfoButton(IconData icon, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
@@ -431,7 +443,6 @@ class _ProfileState extends State<Profile> {
     );
   }
 
-
   Uint8List _safelyDecodeBase64(String base64String) {
     try {
       return base64Decode(base64String);
@@ -442,8 +453,7 @@ class _ProfileState extends State<Profile> {
     }
   }
 
-
-  Widget _buildAppointmentInfo() {
+  Widget _buildAppointmentInfopatient() {
     return FutureBuilder<List<Appointment>>(
       future: _appointmentsController.getAppointmentsByUserId(),
       builder: (context, snapshot) {
@@ -457,7 +467,8 @@ class _ProfileState extends State<Profile> {
           return Card(
             elevation: 8,
             shadowColor: AppColors.primary.withOpacity(0.2),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16)),
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: Center(
@@ -473,13 +484,12 @@ class _ProfileState extends State<Profile> {
         final appointments = snapshot.data;
 
         if ((appointments == null || appointments.isEmpty) &&
-            userRole != 'Admin' &&
-            userRole != 'Doctor')
-        {
+            userRole == 'Patient')  {
           return Card(
             elevation: 8,
             shadowColor: AppColors.primary.withOpacity(0.2),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16)),
             child: Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
@@ -507,11 +517,13 @@ class _ProfileState extends State<Profile> {
                       'You have no scheduled appointments.',
                       style: TextStyle(color: AppColors.textSecondary),
                     ),
+
                     const SizedBox(height: 24),
                     ElevatedButton.icon(
                       onPressed: () {
                         // Navigate to appointment booking screen
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => Appointments()));
+                        Navigator.push(context, MaterialPageRoute(
+                            builder: (context) => Appointments()));
                       },
                       icon: const Icon(Icons.add),
                       label: const Text('Book Appointment'),
@@ -536,323 +548,440 @@ class _ProfileState extends State<Profile> {
           itemCount: appointments?.length,
           itemBuilder: (context, index) {
             final appointment = appointments?[index];
-            return _buildAppointmentCard(appointment!);
+            return _buildAppointmentCardpatient(appointment!);
           },
         );
       },
     );
   }
-  Widget _buildDoctorAppointmentsView() {
-    return FutureBuilder<List<Appointment>>(
-      future: _appointmentsController.getAppointmentsByDoctorId(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
-        }
 
-        if (snapshot.hasError) {
-          return Card(
-            elevation: 8,
-            shadowColor: AppColors.primary.withOpacity(0.2),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Center(
-                child: Text(
-                  'Error loading patients: ${snapshot.error}',
-                  style: TextStyle(color: AppColors.error),
-                ),
-              ),
-            ),
-          );
-        }
 
-        final appointments = snapshot.data;
 
-        if (appointments == null || appointments.isEmpty) {
-          return Card(
-            elevation: 8,
-            shadowColor: AppColors.primary.withOpacity(0.2),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Colors.white, AppColors.background],
-                  stops: const [0.0, 1.0],
-                ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  children: [
-                    Text(
-                      'No Patient Appointments',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'You have no patient appointments scheduled.',
-                      style: TextStyle(color: AppColors.textSecondary),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        }
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Text(
-                'My Patients',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ),
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: appointments.length,
-              itemBuilder: (context, index) {
-                final appointment = appointments[index];
-                return _buildPatientAppointmentCard(appointment);
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildPatientAppointmentCard(Appointment appointment) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(16),
-        leading: CircleAvatar(
-          backgroundColor: AppColors.primary.withOpacity(0.2),
-          child: Icon(Icons.person, color: AppColors.primary),
-        ),
-        title: Text(
-          appointment.patientName ?? 'Patient',
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 4),
-            Text('Date: ${_formatDate(appointment.date as String?)}'),
-            Text('Time: ${_formatTime(appointment.timeSlot)}'),
-            Text('Status: ${appointment.status}'),
-          ],
-        ),
-        trailing: IconButton(
-          icon: Icon(Icons.more_vert, color: AppColors.primary),
-          onPressed: () {
-            _showAppointmentOptions(context, appointment);
-          },
-        ),
-      ),
-    );
-  }
-
-  String _formatDate(String? dateString) {
-    if (dateString == null) return 'N/A';
-    try {
-      final date = DateTime.parse(dateString);
-      return '${date.day}/${date.month}/${date.year}';
-    } catch (e) {
-      return dateString;
+  IconData _getStatusIcon(String status) {
+    switch (status.toLowerCase()) {
+      case 'scheduled':
+        return Icons.event_available;
+      case 'pending':
+        return Icons.pending_actions;
+      case 'completed':
+        return Icons.check_circle;
+      case 'cancelled':
+        return Icons.cancel;
+      default:
+        return Icons.event_note;
     }
   }
 
-  String _formatTime(String? timeString) {
-    return timeString ?? 'N/A';
-  }
-
-  void _showAppointmentOptions(BuildContext context, Appointment appointment) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: Icon(Icons.check_circle, color: Colors.green),
-              title: const Text('Mark as Completed'),
-              onTap: () {
-                // Implement status update logic
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.cancel, color: Colors.red),
-              title: const Text('Cancel Appointment'),
-              onTap: () {
-                // Implement cancellation logic
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.note_add, color: AppColors.primary),
-              title: const Text('Add Notes'),
-              onTap: () {
-                // Implement notes feature
-                Navigator.pop(context);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAppointmentCard(Appointment appointment) {
+  Widget _buildAppointmentCardpatient(Appointment appointment) {
+    final formattedDate = DateFormat('EEE, MMM d, yyyy').format(
+        appointment.date);
     final statusColor = _getStatusColor(appointment.status);
-    final formattedDate = DateFormat('dd MMM yyyy').format(appointment.date);
+    final userImage = _imageServices.getUserImage(appointment.id ?? '');
+    final TextEditingController notesController = TextEditingController(
+        text: appointment.notes);
+
+    final now = DateTime.now();
+    final isUpcoming = appointment.date.isAfter(now);
+    final isPast = appointment.date.isBefore(
+        DateTime(now.year, now.month, now.day));
+
+    // Time remaining calculation for upcoming appointments
+    String timeRemaining = '';
+    if (isUpcoming) {
+      final difference = appointment.date.difference(now);
+      if (difference.inDays > 0) {
+        timeRemaining =
+        '${difference.inDays} day${difference.inDays > 1 ? 's' : ''} left';
+      } else if (difference.inHours > 0) {
+        timeRemaining =
+        '${difference.inHours} hour${difference.inHours > 1 ? 's' : ''} left';
+      } else {
+        timeRemaining =
+        '${difference.inMinutes} minute${difference.inMinutes > 1
+            ? 's'
+            : ''} left';
+      }
+    }
 
     return Card(
-      elevation: 8,
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      shadowColor: AppColors.primary.withOpacity(0.2),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      elevation: 5,
+      shadowColor: AppColors.primary.withOpacity(0.3),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Colors.white, AppColors.background],
+            colors: [
+              Colors.white,
+              isPast
+                  ? Colors.grey.shade50
+                  : appointment.status.toLowerCase() == 'cancelled'
+                  ? Colors.red.shade50
+                  : AppColors.background.withOpacity(0.5)
+            ],
             stops: const [0.0, 1.0],
           ),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Card header with visual indicator of appointment status
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              decoration: BoxDecoration(
+                color: statusColor.withOpacity(0.15),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
+                ),
+                border: Border(
+                  bottom: BorderSide(
+                    color: statusColor.withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
+              ),
+              child: Row(
                 children: [
-                  Text(
-                    'Appointment with  ${appointment.doctorName}',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+                  const SizedBox(width: 16),
+
+                  // Patient/Doctor name and specialty
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (appointment.doctorName != null)
+                          Text(
+                            "Doctor: ${appointment.doctorName!}",
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: AppColors.textSecondary,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                      ],
                     ),
                   ),
+
+                  // Status badge
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
                       color: statusColor.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(color: statusColor),
                     ),
-                    child: Text(
-                      appointment.status,
-                      style: TextStyle(
-                        color: statusColor,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(_getStatusIcon(appointment.status),
+                            color: statusColor, size: 16),
+                        const SizedBox(width: 6),
+                        Text(
+                          appointment.status,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: statusColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              /*_buildInfoRow(
-                Icons.medical_services,
-                'Specialization',
-                appointment.doctorSpecialization,
-                AppColors.primary,
-              ),*/
-              const SizedBox(height: 8),
-              _buildInfoRow(
-                Icons.calendar_today,
-                'Date',
-                formattedDate,
-                AppColors.secondary,
-              ),
-              const SizedBox(height: 8),
-              _buildInfoRow(
-                Icons.access_time,
-                'Time',
-                appointment.timeSlot,
-                AppColors.accent,
-              ),
-              const SizedBox(height: 8),
-              if (appointment.notes != null && appointment.notes!.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                _buildInfoRow(
-                  Icons.note,
-                  'Notes',
-                  appointment.notes!,
-                  AppColors.accent
-                ),
-              ],
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                    TextButton.icon(
-                      onPressed: () {
-                        showDialog(
-                          context: context,
-                          builder: (BuildContext context) {
-                            return AlertDialog(
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                              title: const Text("Confirm Cancellation"),
-                              content: const Text("Are you sure you want to cancel this appointment?"),
-                              actions: [
-                                TextButton(
-                                  child: const Text("No"),
-                                  onPressed: () => Navigator.of(context).pop(),
-                                ),
-                                TextButton(
-                                  child: const Text("Yes"),
-                                    onPressed: () async {
-                                      Navigator.of(context).pop();
-                                      await _appointmentsController.deleteAppointment(appointment.id);
-                                      setState(() {});
-                                    },
-                                ),
-                              ],
-                            );
-                          },
-                        );
-                      },
+            ),
 
-                      icon: Icon(Icons.cancel, color: AppColors.error),
-                      label: Text('Cancel', style: TextStyle(color: AppColors.error)),
+            // Appointment details section
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Time and countdown
+                  Row(
+                    children: [
+                      // Date card
+                      Flexible(
+                        flex: 1,
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Icon(
+                                  Icons.calendar_month_rounded,
+                                  size: 22,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Flexible(
+                                flex: 1,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Date',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: AppColors.textSecondary,
+                                      ),
+                                    ),
+                                    Text(
+                                      formattedDate,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Flexible(
+                                flex: 1,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.timer_outlined,
+                                      size: 16,
+                                      color: Colors.orange.shade800,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      timeRemaining,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.orange.shade800,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+
+                    ],
+                  ),
+                  SizedBox(height: 15),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppColors.secondary.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Icon(
+                                  Icons.access_time_rounded,
+                                  size: 22,
+                                  color: AppColors.secondary,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Time',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: AppColors.textSecondary,
+                                      ),
+                                    ),
+                                    Text(
+                                      appointment.timeSlot ?? 'Not specified',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  // Time remaining indicator for upcoming appointments
+                  if (isUpcoming &&
+                      appointment.status.toLowerCase() != 'cancelled')
+
+                  // Notes section
+                  if (appointment.notes != null &&
+                      appointment.notes!.isNotEmpty)
+                    Container(
+                      margin: const EdgeInsets.only(top: 16),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                            color: AppColors.textSecondary.withOpacity(0.2)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.03),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.note_rounded, color: AppColors.accent,
+                                  size: 18),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Notes',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: AppColors.accent,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const Divider(height: 16),
+                          Text(
+                            appointment.notes!,
+                            style: TextStyle(
+                              color: AppColors.textPrimary,
+                              height: 1.5,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
 
-                  const SizedBox(width: 8),
+                  // Action buttons
+                  Container(
+                    margin: const EdgeInsets.only(top: 20),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+
+                        if (appointment.status.toLowerCase() != 'cancelled' &&
+                            appointment.status.toLowerCase() != 'completed')
+                          OutlinedButton.icon(
+                            onPressed: () {
+                              _showCancelConfirmation(context, appointment.id ?? '');
+                            },
+
+                            icon: Icon(Icons.cancel_outlined,
+                                color: AppColors.error),
+                            label: Text('Cancel',
+                                style: TextStyle(color: AppColors.error)),
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide(color: AppColors.error),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 10),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
+
+  void _showCancelConfirmation(BuildContext context, String appointmentId) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Cancel Appointment"),
+        content: const Text("Are you sure you want to cancel this appointment? This action cannot be undone."),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("No", style: TextStyle(color: Color(0xFF757575))),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFF44336),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              Navigator.pop(context);
+              _cancelAppointment(appointmentId);
+            },
+            child: const Text("Yes, Cancel"),
+          ),
+        ],
+      ),
+    );
+  }
+  Future<void> _cancelAppointment(String appointmentId) async {
+    setState(() => _isLoading = true);
+    try {
+      final appointment = await _appointmentsController.updateAppointmentStatus(
+          appointmentId: appointmentId ?? '',
+          status: 'cancelled');
+
+      if (appointment.status == 'cancelled') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Appointment cancelled successfully')),
+        );
+        _appointmentsController.getAppointmentsByUserId();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to cancel the appointment')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error cancelling appointment: $e')),
+      );
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+
 
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
@@ -948,7 +1077,9 @@ class _ProfileState extends State<Profile> {
                         color: AppColors.primary,
                       ),
                       label: Text(
-                        _showPasswordFields ? 'Hide Password Fields' : 'Change Password',
+                        _showPasswordFields
+                            ? 'Hide Password Fields'
+                            : 'Change Password',
                         style: TextStyle(
                           fontSize: 16,
                           color: AppColors.primary,
@@ -1024,12 +1155,16 @@ class _ProfileState extends State<Profile> {
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: AppColors.textSecondary.withOpacity(0.3)),
+              borderSide: BorderSide(
+                  color: AppColors.textSecondary.withOpacity(0.3)),
             ),
             filled: true,
             fillColor: Colors.white,
           ),
-          validator: (value) => value == null || value.isEmpty ? 'Please select your DOB' : null,
+          validator: (value) =>
+          value == null || value.isEmpty
+              ? 'Please select your DOB'
+              : null,
         ),
       ),
     );
@@ -1067,8 +1202,7 @@ class _ProfileState extends State<Profile> {
     }
   }
 
-  Widget _buildTextField(
-      TextEditingController controller,
+  Widget _buildTextField(TextEditingController controller,
       String label,
       String errorMessage,
       IconData icon,
@@ -1088,7 +1222,8 @@ class _ProfileState extends State<Profile> {
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.textSecondary.withOpacity(0.3)),
+          borderSide: BorderSide(
+              color: AppColors.textSecondary.withOpacity(0.3)),
         ),
         filled: true,
         fillColor: Colors.white,
@@ -1097,7 +1232,8 @@ class _ProfileState extends State<Profile> {
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value, Color iconColor) {
+  Widget _buildInfoRow(IconData icon, String label, String value,
+      Color iconColor) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1150,7 +1286,8 @@ class _ProfileState extends State<Profile> {
             prefixIcon: Icon(Icons.lock_outline, color: AppColors.primary),
             suffixIcon: IconButton(
               icon: Icon(
-                _isCurrentPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                _isCurrentPasswordVisible ? Icons.visibility : Icons
+                    .visibility_off,
                 color: AppColors.textSecondary,
               ),
               onPressed: () {
@@ -1166,7 +1303,8 @@ class _ProfileState extends State<Profile> {
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: AppColors.textSecondary.withOpacity(0.3)),
+              borderSide: BorderSide(
+                  color: AppColors.textSecondary.withOpacity(0.3)),
             ),
             filled: true,
             fillColor: Colors.white,
@@ -1197,7 +1335,8 @@ class _ProfileState extends State<Profile> {
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: AppColors.textSecondary.withOpacity(0.3)),
+              borderSide: BorderSide(
+                  color: AppColors.textSecondary.withOpacity(0.3)),
             ),
             filled: true,
             fillColor: Colors.white,
@@ -1217,10 +1356,12 @@ class _ProfileState extends State<Profile> {
           obscureText: !_isConfirmPasswordVisible,
           decoration: InputDecoration(
             labelText: 'Confirm New Password',
-            prefixIcon: Icon(Icons.check_circle_outline, color: AppColors.primary),
+            prefixIcon: Icon(
+                Icons.check_circle_outline, color: AppColors.primary),
             suffixIcon: IconButton(
               icon: Icon(
-                _isConfirmPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                _isConfirmPasswordVisible ? Icons.visibility : Icons
+                    .visibility_off,
                 color: AppColors.textSecondary,
               ),
               onPressed: () {
@@ -1236,7 +1377,8 @@ class _ProfileState extends State<Profile> {
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: AppColors.textSecondary.withOpacity(0.3)),
+              borderSide: BorderSide(
+                  color: AppColors.textSecondary.withOpacity(0.3)),
             ),
             filled: true,
             fillColor: Colors.white,
@@ -1253,67 +1395,6 @@ class _ProfileState extends State<Profile> {
     );
   }
 
-  Widget _buildPhoneNumberRow() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: AppColors.primary.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(Icons.phone, size: 24, color: AppColors.primary),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Phone Number',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  Text(
-                    _users!.phoneNumber,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      shape: BoxShape.circle,
-                    ),
-                    child: IconButton(
-                      icon: const Icon(Icons.call, color: Colors.white, size: 18),
-                      onPressed: () => launchUrl(Uri.parse('tel:${_users!.phoneNumber}')),
-                      constraints: const BoxConstraints.tightFor(
-                        width: 36,
-                        height: 36,
-                      ),
-                      padding: EdgeInsets.zero,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
   Future<void> _updateProfilePicture() async {
     final ImagePicker picker = ImagePicker();
     XFile? pickedFile;
@@ -1322,81 +1403,28 @@ class _ProfileState extends State<Profile> {
       source: await _showImageSourceDialog(),
       imageQuality: 70,
     );
-
     if (pickedFile != null) {
       File imageFile = File(pickedFile.path);
-      // The image processing logic would go here
-      // Since it's not included in the original code, I'm leaving it as is
     }
   }
-  Future<void> _toggleSlotAvailability(Map<String, dynamic> slot, bool isAvailable) async {
-    try {
-      if (_appointmentsController.selectedDoctorId == null || _appointmentsController.selectedDate == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please select a doctor and date')),
-        );
-        return;
-      }
-
-      // Create a new list of slots with the updated availability
-      List<Map<String, dynamic>> updatedSlots = _appointmentsController.timeSlots.map((dynamic s) {
-        final Map<String, dynamic> slotMap = Map<String, dynamic>.from(s);
-        if (slotMap['startTime'] == slot['startTime']) {
-          slotMap['isAvailable'] = isAvailable; // Use the passed isAvailable parameter
-        }
-        return slotMap;
-      }).toList();
-
-      final success = await _appointmentsController.updateTimeSlots(
-          updatedSlots,
-          doctorId: _appointmentsController.selectedDoctorId!,
-          date: _appointmentsController.selectedDate!,
-          slots: updatedSlots
-      );
-
-      if (success) {
-        await _appointmentsController.fetchDoctorTimeSlots(_appointmentsController.selectedDoctorId!);
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(isAvailable ? 'Slot enabled successfully' : 'Slot disabled successfully'),
-            ),
-          );
-        }
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(_appointmentsController.error ?? 'Failed to update slot')),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString()}')),
-        );
-      }
-    }
-  }
-
 
   Future<ImageSource> _showImageSourceDialog() async {
     return await showDialog<ImageSource>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text("Choose Image Source"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, ImageSource.camera),
-            child: Text("Camera"),
+      builder: (context) =>
+          AlertDialog(
+            title: Text("Choose Image Source"),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, ImageSource.camera),
+                child: Text("Camera"),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, ImageSource.gallery),
+                child: Text("Gallery"),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, ImageSource.gallery),
-            child: Text("Gallery"),
-          ),
-        ],
-      ),
     ) ?? ImageSource.gallery; // Default to gallery if no selection
   }
 
@@ -1406,7 +1434,8 @@ class _ProfileState extends State<Profile> {
       try {
         // Ensure the date is set to noon before saving
         final adjustedDate = _selectedDate != null
-            ? DateTime(_selectedDate!.year, _selectedDate!.month, _selectedDate!.day, 12)
+            ? DateTime(
+            _selectedDate!.year, _selectedDate!.month, _selectedDate!.day, 12)
             : null;
 
         final updatedUser = Users(
@@ -1417,10 +1446,12 @@ class _ProfileState extends State<Profile> {
           address: _addressController.text,
           dob: adjustedDate,
           roleId: _users!.roleId,
-          currentPassword: _showPasswordFields && _currentPasswordController.text.isNotEmpty
+          currentPassword: _showPasswordFields &&
+              _currentPasswordController.text.isNotEmpty
               ? _currentPasswordController.text
               : null,
-          newPassword: _showPasswordFields && _newPasswordController.text.isNotEmpty
+          newPassword: _showPasswordFields &&
+              _newPasswordController.text.isNotEmpty
               ? _newPasswordController.text
               : null,
         );

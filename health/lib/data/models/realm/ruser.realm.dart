@@ -14,7 +14,6 @@ class RUser extends _RUser with RealmEntity, RealmObjectBase, RealmObject {
     String phoneNumber,
     String dob,
     String address,
-    String password,
     String profilePicturePath,
     bool isSynced,
     DateTime createdAt, {
@@ -25,7 +24,6 @@ class RUser extends _RUser with RealmEntity, RealmObjectBase, RealmObject {
     RealmObjectBase.set(this, 'phoneNumber', phoneNumber);
     RealmObjectBase.set(this, 'dob', dob);
     RealmObjectBase.set(this, 'address', address);
-    RealmObjectBase.set(this, 'password', password);
     RealmObjectBase.set(this, 'profilePicturePath', profilePicturePath);
     RealmObjectBase.set(this, 'isSynced', isSynced);
     RealmObjectBase.set(this, 'createdAt', createdAt);
@@ -62,12 +60,6 @@ class RUser extends _RUser with RealmEntity, RealmObjectBase, RealmObject {
   String get address => RealmObjectBase.get<String>(this, 'address') as String;
   @override
   set address(String value) => RealmObjectBase.set(this, 'address', value);
-
-  @override
-  String get password =>
-      RealmObjectBase.get<String>(this, 'password') as String;
-  @override
-  set password(String value) => RealmObjectBase.set(this, 'password', value);
 
   @override
   String get profilePicturePath =>
@@ -113,7 +105,6 @@ class RUser extends _RUser with RealmEntity, RealmObjectBase, RealmObject {
       'phoneNumber': phoneNumber.toEJson(),
       'dob': dob.toEJson(),
       'address': address.toEJson(),
-      'password': password.toEJson(),
       'profilePicturePath': profilePicturePath.toEJson(),
       'isSynced': isSynced.toEJson(),
       'createdAt': createdAt.toEJson(),
@@ -131,7 +122,6 @@ class RUser extends _RUser with RealmEntity, RealmObjectBase, RealmObject {
         'phoneNumber': EJsonValue phoneNumber,
         'dob': EJsonValue dob,
         'address': EJsonValue address,
-        'password': EJsonValue password,
         'profilePicturePath': EJsonValue profilePicturePath,
         'isSynced': EJsonValue isSynced,
         'createdAt': EJsonValue createdAt,
@@ -142,7 +132,6 @@ class RUser extends _RUser with RealmEntity, RealmObjectBase, RealmObject {
           fromEJson(phoneNumber),
           fromEJson(dob),
           fromEJson(address),
-          fromEJson(password),
           fromEJson(profilePicturePath),
           fromEJson(isSynced),
           fromEJson(createdAt),
@@ -162,7 +151,6 @@ class RUser extends _RUser with RealmEntity, RealmObjectBase, RealmObject {
       SchemaProperty('phoneNumber', RealmPropertyType.string),
       SchemaProperty('dob', RealmPropertyType.string),
       SchemaProperty('address', RealmPropertyType.string),
-      SchemaProperty('password', RealmPropertyType.string),
       SchemaProperty('profilePicturePath', RealmPropertyType.string),
       SchemaProperty('isSynced', RealmPropertyType.bool),
       SchemaProperty('createdAt', RealmPropertyType.timestamp),

@@ -12,7 +12,6 @@ class _UserRealm   {
   late DateTime? dob;
   late String phoneNumber;
   late String address;
-  late String password;
   late List<String> roles;
   late bool isActive;
 

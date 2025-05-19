@@ -28,6 +28,7 @@ class LoginController {
   String? storedPassword;
 
   TextEditingController phoneController = TextEditingController();
+  TextEditingController phoneControllerotp = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
   // Function to change language
@@ -232,11 +233,6 @@ class AuthLogin extends ChangeNotifier {
       // Load the user details first
       _currentUser = json.decode(userJson);
 
-      // Debug the permissions
-     // print("Initializing from storage - User data: $_currentUser");
-      //print("Permissions: ${_currentUser?['role']?['Permissions']}");
-
-      // Don't automatically set authenticated - validate the token first
       bool isValid = await validateToken(storedToken);
 
       if (isValid) {
@@ -321,20 +317,16 @@ class AuthLogin extends ChangeNotifier {
   Future<bool> validateSession() async {
     final prefs = await SharedPreferences.getInstance();
     final storedToken = prefs.getString('userToken');
-
     if (storedToken == null) {
       await logout();
       return false;
     }
 
-    // Actually validate the token with the backend
     bool isValid = await validateToken(storedToken);
-
     if (!isValid) {
-      await logout();  // Clear invalid session data
+      await logout();
       return false;
     }
-
     return true;
   }
 }

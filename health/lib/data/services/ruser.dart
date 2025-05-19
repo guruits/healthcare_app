@@ -20,7 +20,6 @@ class _RUser {
   late String phoneNumber;
   late String dob;
   late String address;
-  late String password;
   late String profilePicturePath;
   late bool isSynced;
   late DateTime createdAt;
@@ -41,7 +40,7 @@ class UserSyncManager {
 
   void initialize() {
     _syncTimer?.cancel();
-    _syncTimer = Timer.periodic(Duration(minutes: 15), (timer) {
+    _syncTimer = Timer.periodic(Duration(seconds: 1), (timer) {
       checkAndSyncData();
     });
   }
@@ -66,6 +65,7 @@ class UserSyncManager {
       await UserServiceLocal.syncPendingRecords(_userService);
       await prefs.setInt(LAST_SYNC_KEY, DateTime.now().millisecondsSinceEpoch);
     }
+    print("Register sync processing..");
   }
 
   Future<void> forceSyncNow() async {
@@ -84,7 +84,6 @@ extension UserServiceLocal on UserService {
     required String name,
     required String dob,
     required String address,
-    required String password,
   }) async {
     try {
       // Save image to local storage
@@ -95,9 +94,9 @@ extension UserServiceLocal on UserService {
       // Initialize Realm
       final config = Configuration.local(
         [RUser.schema],
-        schemaVersion: 6, // Increment this value whenever you update the schema
+        schemaVersion: 7,
         migrationCallback: (migration, oldVersion) {
-          if (oldVersion < 6) {
+          if (oldVersion < 7) {
             // Handle the migration if needed
           }
         },
@@ -112,7 +111,6 @@ extension UserServiceLocal on UserService {
         phoneNumber,
         dob,
         address,
-        password,
         imagePath,
         false, // isSynced
         DateTime.now(), // createdAt
@@ -171,8 +169,6 @@ extension UserServiceLocal on UserService {
           name: user.name,
           dob: user.dob,
           address: user.address,
-          newPassword: user.password,
-          confirmPassword: user.password,
         );
 
         if (response['status'] == 'success') {

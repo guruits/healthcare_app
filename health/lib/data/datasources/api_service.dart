@@ -5,11 +5,28 @@ import 'package:health/data/models/user.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:mime/mime.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../utils/config/ipconfig.dart';
 import 'auth.service.dart';
 
 class UserService {
+  Future<String?> _getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('userToken');
+    if (token == null) {
+      throw Exception('No authentication token found');
+    }
+    return token;
+  }
+
+  Future<Map<String, String>> _getHeaders() async {
+    final token = await _getToken();
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+  }
 
 
   get authService => AuthService();
@@ -291,8 +308,6 @@ class UserService {
     required String name,
     required String dob,
     required String address,
-    required String newPassword,
-    required String confirmPassword,
   }) async {
     try {
       print('Starting user registration...');
@@ -328,8 +343,6 @@ class UserService {
         'name': name,
         'dob': dob,
         'address': address,
-        'password': newPassword,
-        //'confirmPassword': confirmPassword,
       });
 
       try {
@@ -356,15 +369,16 @@ class UserService {
       print('Response status code: ${streamedResponse.statusCode}');
 
       final response = await http.Response.fromStream(streamedResponse);
-      print('Response body: ${response.body}');
+        print('Response body: ${response.body}');
 
       // Return standardized response format
       if (response.statusCode == 201) {
+        final responseData = json.decode(response.body);
         return {
           'status': 'success',
           'statusCode': response.statusCode,
           'message': 'Registration successful',
-          'data': json.decode(response.body)
+          'user': responseData['user']
         };
       } else {
         return {
@@ -393,6 +407,8 @@ class UserService {
       };
     }
   }
+  // Add this to your UserService class
+
 
   updateUser(String s, User user) {}
 

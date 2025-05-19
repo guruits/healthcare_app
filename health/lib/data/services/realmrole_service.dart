@@ -12,7 +12,7 @@ class MongoRealmRoleService {
   Future<void> initialize() async {
     final config = Configuration.local(
       [RoleRealm.schema],
-      schemaVersion: 6,
+      schemaVersion: 7,
       migrationCallback: (migration, oldSchemaVersion) {
         // Handle migration if needed
       },
@@ -219,19 +219,25 @@ class MongoRealmRoleService {
       List<String> permissionIds = [];
 
       for (var permission in role.permissions) {
-        final permResult = await permCollection.insert({
+        final permData = {
           'screen': permission.screen,
           'create': permission.create,
           'read': permission.read,
           'update': permission.update,
           'delete': permission.delete,
-        });
+        };
 
-        final permId = permResult['_id'].toHexString();
-        permissionIds.add(permId);
+        final permResult = await permCollection.insertOne(permData);
 
+        // Store the ObjectId directly
+        final permObjectId = permResult.id;
+        // Convert to string for Realm
+        final permIdString = permObjectId.toString();
+        permissionIds.add(permIdString);
+
+        // Use the original ObjectId, don't try to parse it again
         permissionDocs.add({
-          '_id': mongo.ObjectId.parse(permId),
+          '_id': permObjectId,
           'screen': permission.screen,
           'create': permission.create,
           'read': permission.read,
@@ -241,26 +247,28 @@ class MongoRealmRoleService {
       }
 
       // Insert the role with permission references
-      final result = await collection.insert({
+      final roleData = {
         'name': role.name,
         'description': role.description,
         'permissions': permissionDocs,
-      });
+      };
 
-      // Get the inserted ID
-      String id = '';
-      if (result.containsKey('_id')) {
-        id = result['_id'] is mongo.ObjectId
-            ? result['_id'].toHexString()
-            : result['_id'].toString();
-      }
+      final result = await collection.insertOne(roleData);
 
+      // Get the inserted ID as string
+      String id = result.id.toString();
       role.id = id;
 
       // Add to Realm
       _realm.write(() {
-        final permIdsList = RealmList<String>(permissionIds);
-        permIdsList.addAll(permissionIds);
+        // Create a RealmList with the proper constructor
+        // This assumes the RoleRealm class accepts this type of construction
+        final permIdsList = RealmList<String>(permissionIds); // Initialize with first element
+
+        // Add remaining items if any
+        for (int i = 1; i < permissionIds.length; i++) {
+          permIdsList.add(permissionIds[i]);
+        }
 
         _realm.add(RoleRealm(
           id,
@@ -313,7 +321,9 @@ class MongoRealmRoleService {
           continue;
         }
 
-        final permResult = await permCollection.insert({
+        final newPermId = mongo.ObjectId();
+        await permCollection.insert({
+          '_id': newPermId,
           'screen': permission.screen,
           'create': permission.create,
           'read': permission.read,
@@ -321,8 +331,8 @@ class MongoRealmRoleService {
           'delete': permission.delete,
         });
 
-        final permId = permResult['_id'].toHexString();
-        permissionIds.add(permId);
+        final permId = newPermId.toHexString();
+
 
         // Add the permission with its ID for MongoDB update
         permissionDocs.add({
@@ -350,7 +360,7 @@ class MongoRealmRoleService {
         update: p.update,
         delete: p.delete,
       )).toList();
-
+      print("role permissions ${role.permissions}");
       // After update, verify the data
       print("Updated role ${role.name} with ${role.permissions.length} permissions");
 

@@ -1,6 +1,7 @@
+/*
 import 'package:flutter/cupertino.dart';
 
-import '../datasources/api.service.dart';
+import '../datasources/Userdetailsservice.dart';
 
 class AuthProvider extends ChangeNotifier {
   String? _token;
@@ -18,4 +19,4 @@ class AuthProvider extends ChangeNotifier {
     ApiService().setAuthToken('');
     notifyListeners();
   }
-}
+}*/
